@@ -1,6 +1,6 @@
 #!/bin/sh
 # SPDX-License-Identifier: MPL-2.0
-# Build NEW with fm1-base (base/, a git submodule).
+# Build FM-1_DelRio with fm1-base (base/, a git submodule).
 #   ./build.sh [--release X.Y] [--host | --web]
 #   ./build.sh --site [X.Y]      the release X.Y (default 0.1), the emulator and the site beside them in app/build/site:
 #                                its emu/ has "Install on the FM-1", which opens its install/ (Chrome or Edge: Web MIDI)

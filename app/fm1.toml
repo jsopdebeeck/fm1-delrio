@@ -1,8 +1,8 @@
-# NEW's build settings (fm1-base's tools/build.py: ./build.sh)
-name = "NEW"                   # APP_NAME is in app.h; this names the build's files: new.fwsc
+# FM-1_DelRio's build settings (fm1-base's tools/build.py: ./build.sh)
+name = "DelRio"                # APP_NAME is in app.h; this names the build's files: delrio.fwsc
 id_prefix = "FM-1_48"          # package identity (each firmware its own): dev FM-1_4800, releases FM-1_48XXYYZZ
-usb_manufacturer = "fm1-new"
-usb_product = "NEW FM-1"
+usb_manufacturer = "Jess Del Rio"
+usb_product = "FM-1 DelRio"
 ble = false                    # no radio: USB-MIDI only (the flash goes to the kit's sounds)
 usb_audio_in = true            # the rhythm box recordable over USB
 usb_audio_out = false
@@ -10,7 +10,7 @@ words = "words.tsv"
 include = ["dsp"]
 o2 = ["dsp/drums.c", "dsp/kit_samples.c", "dsp/drone.c"]   # the voices at -O2, the kit's sounds (tools/kit.py)
 # the site (tools/make_site.py, tools/publish_site.sh)
-tagline = "a rhythm box of ceremony percussion for the FM-1"
-repo = ""
+tagline = "a ceremony rhythm box for the FM-1"
+repo = "https://github.com/jsopdebeeck/fm1-new"
 licence = "MPL-2.0"
-credits = "Built on fm1-base and felucca-bsp, from Felucca by Leo Kuroshita (Hügelton Instruments). The cajon, clapsticks, maracas and triangle: VCSL by Versilian Studios (CC0). The udu: klemmy (CC BY 3.0) and AncientOracle (CC BY 4.0) on freesound.org. The berimbau: brfindla and Calango (CC0)."   # a sentence for the installer's footer: what your firmware is built from
+credits = "Built on fm1-base and felucca-bsp, from Felucca by Leo Kuroshita (Hügelton Instruments). The cajon, clapsticks, maracas and triangle: VCSL by Versilian Studios (CC0). The udu: klemmy (CC BY 3.0) and AncientOracle (CC BY 4.0) on freesound.org. The berimbau: Paulo Gonçalves (CC BY 4.0); the caxixi: Oldome (CC0)."   # a sentence for the installer's footer: what your firmware is built from

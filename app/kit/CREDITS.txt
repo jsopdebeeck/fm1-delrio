@@ -1,4 +1,5 @@
 The cajon, clapsticks (claves), maracas (the large shaker's hits) and triangle: VCSL, the Versilian Community Sample Library, by Versilian Studios (CC0 1.0).
 The udu's bass: "122-Udu" by klemmy, freesound.org/s/203349 (CC BY 3.0). Its tone and slap: from "Pong Pop" by AncientOracle, freesound.org/s/476883 (CC BY 4.0), cut.
-The berimbau (dom, dim, tsch) and its caxixi: cut from "Calango1berimbau.mp3" and "Calango2berimbau.mp3" by brfindla, played by Calango, freesound.org/s/26393 and freesound.org/s/26394 (CC0 1.0).
+The berimbau: "Berimbau_03.aiff", "Berimbau_01.aiff" and "Berimbau_02.aiff" by Paulo_Gonçalves, freesound.org/s/177068, /177004 and /177003 (CC BY 4.0), cut: dom the first; dim the second, a tone higher and damped (kit.py take --pitch 2 --damp 0.9); tsch the third (the stick held loosely), damped (--damp 0.25).
+The caxixi: cut from "Musical, percussion, caxixi, shake, rattle, rhythm, movement" by Oldome, freesound.org/s/856789 (CC0 1.0).
 The djembe: synthesised by tools/synth.py.

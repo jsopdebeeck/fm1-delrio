@@ -1,5 +1,5 @@
-# NEW in the host simulator: ./build.sh --host, then
-#   app/build/host/new_host app/tests/basic.txt app/build/host
+# DelRio in the host simulator: ./build.sh --host, then
+#   app/build/host/delrio_host app/tests/basic.txt app/build/host
 wait 600
 # at first: the djembe, HEARTBEAT (2 beats of 4 steps, 64 BPM)
 expect inst 0
@@ -14,10 +14,49 @@ expect v1 <80
 expect s2 0
 shot home.png
 
-# only the buttons that do something glow: FX (the modes), not LFO, nor OCT- / OCT+ with one page of keys
+# the buttons that do something glow: FX (the modes), LFO (the presets' list), OCT- / OCT+ (the tempo)
 expect glowFX 1
-expect glowLFO 0
-expect glowOCT 0
+expect glowLFO 1
+expect glowOCT 1
+
+# OCT- / OCT+: the tempo, 5 BPM a press, 10 held
+tap OCT+
+expect bpm 69
+tap OCT-
+tap OCT-
+expect bpm 59
+press OCT+
+wait 600
+release OCT+
+expect bpm 69
+press OCT-
+wait 600
+release OCT-
+expect bpm 59
+tap OCT+
+
+# LFO: the rhythms listed, one further each press, without choosing; held, the one shown is chosen
+tap LFO
+expect list 1
+expect listi 1
+expect rhythm 0
+tap LFO
+expect listi 2
+shot list.png
+press LFO
+wait 600
+release LFO
+expect list 0
+expect rhythm 2
+expect beats 2
+# round: from the last, the first; the list goes after a while, nothing chosen
+turn PRESET -2
+expect rhythm 0
+tap LFO
+expect listi 1
+wait 6200
+expect list 0
+expect rhythm 0
 
 # SELECT: the instruments, round
 turn SELECT 1
@@ -219,7 +258,7 @@ expect s2 1
 expect strokes 7
 turn SELECT -3
 
-# 8 beats (FREE) of 4 steps: two pages of keys (OCT+ / OCT-), 16 steps each
+# 8 beats (FREE) of 4 steps: two pages of keys, 16 steps each, the keys following the step sounding
 turn ALGO 4
 expect beats 8
 expect rhythm 30
@@ -229,13 +268,18 @@ turn SELECT -1
 expect inst 0
 turn K2 2
 expect div 4
-expect glowOCT 1
-tap OCT+
+expect keypage 0
+tap PLAY
+wait 2900
+expect keypage 1
+tap PLAY
 expect keypage 1
 tapkey w0
 expect s16 1
-tap OCT-
+tap PLAY
+wait 300
 expect keypage 0
+tap PLAY
 
 # no swing with 3 steps a beat (the rhythm swings already)
 turn K2 -1
@@ -490,7 +534,7 @@ expect s2 1
 tap FX
 expect mode 2
 expect drone 0
-expect glowLFO 0
+expect glowLFO 1
 shot tanpura.png
 # the tanpura: PLAY, its four strings plucked in turn, the jawari buzzing
 peakreset
@@ -505,20 +549,51 @@ tapkey w0
 expect sa 5
 turn K1 1
 expect first 1
+# PRESETS: its usual tunings (C# PA, then on to C# MA); LFO lists them, held chooses
+turn PRESET 1
+expect tpp 1
+expect sa 1
+expect first 0
+turn PRESET 5
+expect tpp 6
+expect first 1
+tap LFO
+expect listi 7
+press LFO
+wait 600
+release LFO
+expect tpp 7
+expect first 2
+expect sa 1
 tap PLAY
 expect drone 0
 wait 400
 peakreset
 wait 300
 expect peak_db_max <-60
-# the shruti: its reeds, Sa Pa Sa' at first; a key opens one, again closes it
+# the shruti: its reeds, Sa Pa Sa' at first (SA PA on C4); a key, the chord on it (F3 C4 F4)
 tap FX
 expect mode 3
+expect kind 1
 expect notes 3
 tapkey w0
+expect root 0
+expect notes 3
+# PRESETS: the major chord, the minor, then the reeds one by one (a key opens one, again closes it)
+turn PRESET 1
+expect kind 2
 expect notes 4
-tapkey w0
-expect notes 3
+shot shruti-major.png
+turn PRESET 1
+expect kind 3
+expect notes 4
+turn PRESET 1
+expect kind 0
+expect notes 4
+tapkey w1
+expect notes 5
+tapkey w1
+expect notes 4
 peakreset
 tap PLAY
 expect drone 1

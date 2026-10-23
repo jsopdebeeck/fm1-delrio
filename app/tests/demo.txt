@@ -1,5 +1,5 @@
 # The kit and the rhythms, to listen to: ./build.sh --host, then
-#   app/build/host/new_host app/tests/demo.txt app/build/host
+#   app/build/host/delrio_host app/tests/demo.txt app/build/host
 # kit.wav: every stroke in turn, the black keys left to right; rhythms.wav: two bars of each rhythm; berimbau.wav:
 # its strokes (DOM, DIM, TSCH, the caxixi), then each toque twice round
 wait 600

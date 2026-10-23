@@ -1,11 +1,12 @@
-# fm1-new: a ceremony rhythm box for the M-VAVE FM-1
+# FM-1_DelRio: a ceremony rhythm box for the M-VAVE FM-1
 
 A firmware that turns the M-VAVE FM-1 into a small rhythm box of hand percussion, made to accompany songs in a
 circle: **djembe, cajon, udu, clapsticks, maracas and triangle**. Choose a rhythm, set the tempo, press PLAY and sing;
 or play the instruments on the keys, record them into the loop, and shape them step by step. Three more instruments
 are each played alone: **the berimbau** with its toques, and two drones, **the tanpura** and **the shruti box**.
 
-"NEW" is its working name (it shows on the FM-1's splash screen).
+By Jess Del Rio. Its splash screen says DEL RIO; its USB name is "FM-1 DelRio", its identity FM-1_48 and the version
+(FM-1_48000200 is 0.2).
 
 ![Four of the firmware's screens: the djembe's steps playing HEARTBEAT, the clapsticks' bell in AFRO 12/8, the maracá's strokes in MARCHA, and the cajon's SOUND page](docs/img/screens.png)
 
@@ -24,8 +25,8 @@ the tempo, the beats and the rhythm at the bottom; a page of large sliders. [All
   - triangle.
   Harder is louder.
 - **The white keys are a step sequencer** for the instrument shown. Each press puts that step's next stroke, and after
-  the last, none. A bar has 2 to 8 beats of 2, 3 or 4 steps; when it is longer than the 16 keys, OCT− and OCT+ change
-  the page.
+  the last, none. A bar has 2 to 8 beats of 2, 3 or 4 steps; when it is longer than the 16 keys, they follow the step
+  sounding.
 - **PLAY loops the rhythm; REC records what you play on the black keys**, each stroke onto the nearest step, over
   what is there. From a stop, a bar is counted in first. The sequencer runs in the audio interrupt, to the sample.
 - **31 rhythms, grouped by their beats.** ALGORITHM chooses the beats; PRESETS goes round the rhythms with those beats,
@@ -35,7 +36,7 @@ the tempo, the beats and the rhythm at the bottom; a page of large sliders. [All
     on it, a buzz), then the caxixi; the same again, for the other hand;
   - its toques: ANGOLA, SB PEQUENO, SB GRANDE, BANGUELA, CAVALARIA, JOGO DE DENTRO and SB REGIONAL, and a FREE one;
   - SELECT: the berimbau or its caxixi, each with its steps;
-  - the strokes recorded from Calango's berimbau.
+  - the strokes recorded from Paulo Gonçalves's berimbau.
 - **Only what a player can change.** Each instrument's SOUND page has only what is real for it:
   - djembe: level, tuning (its ropes), decay (a hand on the head);
   - cajon: level, snare wires (down to off), decay (a heel on the front);
@@ -56,12 +57,16 @@ the tempo, the beats and the rhythm at the bottom; a page of large sliders. [All
   - SEQ: tap tempo.
   - SAVE: keep everything.
   - FX: the kit, the berimbau, the tanpura or the shruti box.
-  - LFO does nothing, so it stays dark.
+  - OCT− / OCT+: the tempo, 5 BPM a press, 10 held.
+  - LFO: the presets listed, with their beats, one further each press, without changing anything; held, the one shown
+    is chosen.
 - **Two drones, each played alone (FX):**
   - TANPURA: four strings plucked in turn, buzzing on their bridge (the jawari). A key sets Sa; the knobs set the first
-    string (Pa, Ma or Ni), the cycle, the register, the level.
-  - SHRUTI: the shruti box's reeds. The keys open and close the notes, which stay held while the bellows breathe;
-    KNOB 1 sets how much they breathe (steady at 0), KNOB 2 the level.
+    string (Pa, Ma or Ni), the cycle, the register, the level. PRESETS: its usual tunings, C PA, C# PA, D PA, E PA,
+    G PA, A PA, C# MA (the ragas without Pa), C# NI (Marwa, Puriya).
+  - SHRUTI: the shruti box's reeds, held while the bellows breathe. PRESETS: the chord a key plays, SA PA (root, fifth,
+    octave), MAJOR or MINOR; or NOTES, each key opening or closing its reed. KNOB 1 sets how much they breathe (steady
+    at 0), KNOB 2 the level.
   - Both are synthesised as they play: no samples.
 - **A minimal screen, large type, a colour per instrument.**
 - **A screen reader can follow it** (fm1-reader, over USB).
@@ -138,9 +143,9 @@ git clone --recursive https://github.com/jsopdebeeck/fm1-new
 
 | Command | What |
 | --- | --- |
-| `./build.sh --host` | the host simulator; then `app/build/host/new_host app/tests/basic.txt app/build/host` runs the checks |
+| `./build.sh --host` | the host simulator; then `app/build/host/delrio_host app/tests/basic.txt app/build/host` runs the checks |
 | `./build.sh --web` | the browser emulator, in `app/build/emu/` |
-| `./build.sh` | the firmware, `app/build/new.fwsc` |
+| `./build.sh` | the firmware, `app/build/delrio.fwsc` |
 | `./build.sh --site 0.1` | a release, the emulator and a local site in `app/build/site/`, with fm1-base's web installer |
 
 **What it needs:**
@@ -158,12 +163,15 @@ git clone --recursive https://github.com/jsopdebeeck/fm1-new
 2. Open its `emu/` in Chrome or Edge, and click **Install on the FM-1**.
 3. The installer writes over USB (Web MIDI). It asks for a backup first and can put M-VAVE's own firmware back.
 
-**Status:** an early version. It runs in the simulator and the browser (270 checks pass), and the firmware builds.
-It has not yet been installed on an FM-1.
+**What it keeps:** its own settings and rhythms (SAVE), in its own place in the FM-1's flash. It does not read other
+firmwares' projects or samples.
+
+**Status:** an early version. It runs in the simulator and the browser (304 checks pass), and the firmware builds.
+It installs on an FM-1 (version 0.1, from the web installer).
 
 ## The sounds
 
-`app/kit/` holds one WAV per stroke. `app/tools/kit.py build` turns them into `app/dsp/kit_samples.c` (about 436 KB of
+`app/kit/` holds one WAV per stroke. `app/tools/kit.py build` turns them into `app/dsp/kit_samples.c` (about 439 KB of
 the FM-1's flash). The tanpura and the shruti box use no samples: they are synthesised as they play.
 
 | Instrument | Source | Licence |
@@ -171,7 +179,8 @@ the FM-1's flash). The tanpura and the shruti box use no samples: they are synth
 | Cajon, clapsticks (claves), maracas (a large shaker's hits), triangle | [VCSL](https://github.com/sgossner/VCSL), the Versilian Community Sample Library, by Versilian Studios | CC0 1.0 |
 | Udu, bass | ["122-Udu" by klemmy](https://freesound.org/s/203349/) | CC BY 3.0 |
 | Udu, tone and slap | ["Pong Pop" by AncientOracle](https://freesound.org/s/476883/), cut | CC BY 4.0 |
-| Berimbau (DOM, DIM, TSCH) and caxixi | ["Calango1berimbau"](https://freesound.org/s/26393/) and ["Calango2berimbau"](https://freesound.org/s/26394/) by brfindla, played by Calango, cut | CC0 1.0 |
+| Berimbau (DOM; DIM, a tone higher and damped; TSCH, damped) | ["Berimbau_03"](https://freesound.org/s/177068/), ["Berimbau_01"](https://freesound.org/s/177004/) and ["Berimbau_02"](https://freesound.org/s/177003/) by Paulo Gonçalves, cut | CC BY 4.0 |
+| Caxixi | ["Musical, percussion, caxixi, shake…"](https://freesound.org/s/856789/) by Oldome, cut | CC0 1.0 |
 | Djembe | synthesised by `app/tools/synth.py` | |
 
 Any stroke can be replaced by your own recording: drop a WAV named after it (`djembe_bass.wav`, `triangle_muted.wav`…)

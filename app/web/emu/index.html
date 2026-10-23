@@ -46,7 +46,7 @@ a { color: var(--accent); }
 .held .btnface, .held .keyface { stroke: #f28a5a; stroke-width: 3; }
 .latched .btnface, .latched .keyface { stroke: #6fc3ff; stroke-width: 3; }
 .keyface { transition: fill .06s; }
-/* NEW: the keys' LEDs have one colour and two brightnesses, as on the FM-1: bright a stroke (and the step sounding),
+/* DelRio: the keys' LEDs have one colour and two brightnesses, as on the FM-1: bright a stroke (and the step sounding),
    dim the bar's other steps and the black keys */
 .lit .keyface.white, .lit .keyface.black { fill: #ee8f52; }
 .dim .keyface.white { fill: #f4d6c0; }
@@ -188,17 +188,18 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
     <ul>
       <li><b>SELECT</b>: the instrument (its colour on the screen)</li>
       <li><b>ALGORITHM</b>: the beats in the bar, 2 to 8, and the first rhythm with that many</li>
-      <li><b>PRESETS</b>: the rhythms with those beats, round</li>
+      <li><b>PRESETS</b>: the rhythms with those beats, round (the tanpura: its tunings; the shruti: its chords)</li>
       <li><b>SEL</b>: the instrument muted, or on</li>
       <li><b>EDIT</b> twice: the instrument's strokes cleared</li>
       <li><b>SEQ</b>: tap the tempo (it blinks the beat)</li>
       <li><b>ARP</b> held: flams on the djembe</li>
-      <li><b>OCT−</b> / <b>OCT+</b>: the keys' page of steps, when the bar has more than 16 steps</li>
+      <li><b>OCT−</b> / <b>OCT+</b>: the tempo, 5 BPM a press, 10 held</li>
+      <li><b>LFO</b>: the presets listed, with their beats, one further each press (nothing changes); held, the one
+        shown is chosen</li>
       <li><b>SAVE</b>: keeps everything (lit when something changed)</li>
       <li><b>MASTER</b>: the volume</li>
       <li><b>FX</b>: the mode: the <b>KIT</b>, the <b>BERIMBAU</b>, then the <b>TANPURA</b> and the <b>SHRUTI</b>
         box, each played alone</li>
-      <li><b>LFO</b>: not used (dark)</li>
     </ul>
   </div>
   <div>
@@ -262,6 +263,8 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
         <ul>
           <li><b>PLAY</b>: on, off</li>
           <li>A key: its note is <b>Sa</b> (Sa's keys lit, the first string's dim)</li>
+          <li><b>PRESETS</b>: its usual tunings, Sa and the first string: C PA, C# PA, D PA, E PA, G PA, A PA (Pa for
+            most songs), C# MA (ragas without Pa: Malkauns, Bageshri), C# NI (Marwa, Puriya)</li>
           <li><b>KNOB 1</b>: the first string (Pa, Ma or Ni) · <b>KNOB 2</b>: the cycle (2 to 8 s) · <b>KNOB 3</b>:
             the register (low, high) · <b>KNOB 4</b>: the level</li>
         </ul>
@@ -269,7 +272,9 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
       <li><b>SHRUTI</b>: the reeds of the notes you choose, held, the bellows breathing
         <ul>
           <li><b>PLAY</b>: on, off</li>
-          <li>A key: its reed opens, or closes (open keys lit)</li>
+          <li><b>PRESETS</b>: the chord a key plays: <b>SA PA</b> (its root, fifth and octave), <b>MAJOR</b>,
+            <b>MINOR</b> (with the third); or <b>NOTES</b>, a key opening or closing its reed</li>
+          <li>A key: the chord on it (its notes lit)</li>
           <li><b>EDIT</b> twice: every reed closed</li>
           <li><b>KNOB 1</b>: the breathing of the bellows (steady at 0) · <b>KNOB 2</b>: the level</li>
         </ul>
@@ -321,15 +326,16 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
       <li><kbd>1</kbd>…<kbd>0</kbd>, <kbd>-</kbd>: the black keys (the instruments)</li>
       <li><kbd>Q</kbd>…<kbd>I</kbd>, <kbd>A</kbd>…<kbd>K</kbd>: the white keys (the steps)</li>
       <li><kbd>P</kbd>: PLAY · <kbd>O</kbd>: REC · <kbd>Esc</kbd>: HOME</li>
-      <li><kbd>Z</kbd> / <kbd>X</kbd>: the keys' page · <kbd>↑</kbd> <kbd>↓</kbd>: the instrument</li>
+      <li><kbd>Z</kbd> / <kbd>X</kbd>: the tempo (OCT− / OCT+) · <kbd>↑</kbd> <kbd>↓</kbd>: the instrument</li>
     </ul>
   </div>
 </section>
 <p class="credit">Sounds: the cajon, clapsticks (claves), maracas (the large shaker's hits) and triangle from VCSL by Versilian Studios
   (CC0); the udu from <a href="https://freesound.org/s/203349/">“122-Udu” by klemmy</a> (CC BY 3.0) and
   <a href="https://freesound.org/s/476883/">“Pong Pop” by AncientOracle</a> (CC BY 4.0); the berimbau and its caxixi
-  from <a href="https://freesound.org/s/26393/">“Calango1berimbau”</a> and
-  <a href="https://freesound.org/s/26394/">“Calango2berimbau”</a> by brfindla, played by Calango (CC0); the djembe
+  from <a href="https://freesound.org/s/177068/">“Berimbau_03”</a>, <a href="https://freesound.org/s/177004/">“_01”</a>
+  and <a href="https://freesound.org/s/177003/">“_02”</a> by Paulo Gonçalves (CC BY 4.0) and the caxixi from
+  <a href="https://freesound.org/s/856789/">“caxixi, shake”</a> by Oldome (CC0); the djembe
   synthesised. Built on fm1-base and felucca-bsp.</p>
 <!-- what the screen says, for the computer's screen reader -->
 <div id="live-p" class="sr" aria-live="polite" aria-atomic="true"></div>
@@ -892,7 +898,7 @@ $("mute").addEventListener("click", () => {
   $("mute").setAttribute("aria-pressed", on ? "true" : "false");
   if (gain) gain.gain.value = on ? 0 : 1;
 });
-// NEW: the installer sits beside the emulator in the firmware's site (./build.sh --site: emu/ and install/); it
+// DelRio: the installer sits beside the emulator in the firmware's site (./build.sh --site: emu/ and install/); it
 // writes the FM-1 over Web MIDI, which only Chrome and Edge have, and which a page inside claude.ai may not use
 $("install").addEventListener("click", async () => {
   const there = await fetch("../install/", { method: "HEAD", cache: "no-cache" }).then((r) => r.ok, () => false);

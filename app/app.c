@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: MPL-2.0 */
-/* NEW: a rhythm box of ceremony percussion. Six instruments (djembe, cajon, udu, clapsticks, maracas, triangle), each
+/* FM-1_DelRio: a rhythm box of ceremony percussion. Six instruments (djembe, cajon, udu, clapsticks, maracas, triangle), each
  * with its strokes; and, played alone (FX), the berimbau with its caxixi and its toques (played as the kit is), or a
  * drone (the tanpura, the shruti box: their own screen, drone.c). A rhythm is a bar of 2 to 8 beats, 2 to 4 steps a
  * beat, and each instrument's strokes on its steps. The white keys are the selected instrument's steps (a press: its next stroke, then none); the black keys play the
@@ -8,8 +8,9 @@
  * (each as it is written; each number of beats has a FREE one, the player's own), PLAY plays it in a loop (PLAY again stops),
  * REC records what the black keys play onto the nearest step (from a stop, after a bar counted in), SEL mutes the
  * instrument, EDIT twice clears it, SEQ taps the tempo, ARP held makes the djembe's strokes flams (a step's, a black
- * key's), OCT- / OCT+ the keys' page of steps when a bar has more than the 16 white keys, SAVE keeps everything, MASTER
- * the volume. On the home page KNOB 1-4 set the tempo, the steps a beat, the swing (with 2 or 4 steps a beat) and the
+ * key's), OCT- / OCT+ the tempo (5 BPM a press, 10 held), LFO the presets listed one by one (held: the one shown
+ * chosen), SAVE keeps everything, MASTER the volume; a bar longer than the 16 white keys has them follow the step
+ * sounding. On the home page KNOB 1-4 set the tempo, the steps a beat, the swing (with 2 or 4 steps a beat) and the
  * human feel; ENV opens the instrument's SOUND, with only what a player of it can change (its level; the djembe's and
  * the udu's tuning; the djembe's, the maracas' and the triangle's decay; how far pressing the udu's bass key lowers it,
  * as a palm closing the pot's opening), GLO the SETUP.
@@ -202,7 +203,7 @@ static int inst_in(uint32_t i, uint32_t mode)   /* an instrument of the kit's, o
 }
 static const char *const NOTE_ABC[12] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
 enum { CLICK_OFF, CLICK_REC, CLICK_ON };
-#define SET_MAGIC 0x35534452u            /* "RDS5": the settings record; another magic loads defaults */
+#define SET_MAGIC 0x36534452u            /* "RDS6": the settings record; another magic loads defaults */
 typedef struct {
     uint32_t magic;
     uint8_t rhythm, inst, page;          /* the rhythm and the instrument shown (the kit's, or the berimbau's) */
@@ -221,6 +222,8 @@ typedef struct {
                                               * bellows: 0 steady): % */
     uint32_t sh_notes;                   /* the shruti's notes held: bit k, the FM-1's key k */
     uint8_t other_rhythm, other_inst;    /* the other's: the berimbau's while the kit is shown, the kit's while not */
+    uint8_t tp_preset;                   /* the tanpura's tuning chosen last (PRESETS) */
+    uint8_t sh_kind, sh_root;            /* the shruti's: its reeds one by one, or a chord (PRESETS) on a key */
 } settings_t;
 static settings_t set;
 static uint8_t set_dirty;                /* changed since the last save: SAVE is lit */
@@ -411,6 +414,10 @@ static struct {
     uint32_t glow;                       /* the buttons glowing at the last input (the host's checks) */
     uint8_t drone_on;                    /* the drone shown sounds (PLAY) */
     int8_t string_drawn;                 /* the tanpura's string the screen shows plucked */
+    uint32_t down_at[3];                 /* OCT-, OCT+, LFO: when each went down; */
+    uint8_t held_long;                   /* each held long enough (its long press done) */
+    uint8_t list_i;                      /* the presets' list (LFO): the one shown, */
+    uint32_t list_until;                 /* until when */
     uint8_t redraw;
 } ui;
 
@@ -921,6 +928,45 @@ static int32_t tanpura_sa(void) { return 48 + set.tp_sa + 12 * set.tp_high; }
 static const int8_t FIRST_OFF[3] = {-5, -7, -1};   /* the first string under Sa: Pa, Ma, Ni */
 static const char *const FIRST_NAME[3] = {"PA", "MA", "NI"};
 
+/* PRESETS, the tanpura: its usual tunings. Sa where the voices sit (a man's around C# or D, a woman's around G to A);
+ * the first string on Pa for most songs, on Ma for the ragas without Pa (Malkauns, Bageshri), on Ni for Marwa or
+ * Puriya */
+typedef struct {
+    const char *name;
+    uint8_t sa, first;
+} tp_preset_t;
+static const tp_preset_t TP_PRESET[] = {
+    {"C PA", 0, 0}, {"C# PA", 1, 0}, {"D PA", 2, 0}, {"E PA", 4, 0}, {"G PA", 7, 0}, {"A PA", 9, 0}, {"C# MA", 1, 1},
+    {"C# NI", 1, 2},
+};
+#define NTP (sizeof TP_PRESET / sizeof TP_PRESET[0])
+/* PRESETS, the shruti: its reeds opened one by one (NOTES), or a chord on the key pressed: its root, fifth and octave
+ * (SA PA), with the major or the minor third */
+enum { SH_NOTES, SH_SAPA, SH_MAJOR, SH_MINOR, NSH };
+static const char *const SH_NAME[NSH] = {"NOTES", "SA PA", "MAJOR", "MINOR"};
+static const uint8_t SH_THIRD[NSH] = {0, 0, 4, 3};
+
+static uint32_t chord(uint32_t root, uint32_t kind)   /* its reeds (above the top key: an octave down) */
+{
+    const uint8_t iv[4] = {0, 7, 12, SH_THIRD[kind]};
+    uint32_t m = 0, i, k;
+    for (i = 0; i < (SH_THIRD[kind] ? 4u : 3u); i++) {
+        k = root + iv[i];
+        m |= 1u << (k < NKEYS ? k : k - 12u);
+    }
+    return m;
+}
+
+static void shruti_name(char *t)         /* "A MINOR"; "NOTES" */
+{
+    t[0] = 0;
+    if (set.sh_kind != SH_NOTES) {
+        text_cat(t, NOTE_ABC[(53u + set.sh_root) % 12u]);
+        text_cat(t, " ");
+    }
+    text_cat(t, SH_NAME[set.sh_kind]);
+}
+
 static void drone_apply(void)
 {
     dn_tanpura_t p;
@@ -954,6 +1000,7 @@ static void mode_step(void)
     ui.drone_on = 0;
     drone_apply();
     rhythm_box_fit();
+    ui.list_until = 0;
     if (drone() && set.page == PG_SOUND)
         set.page = PG_HOME;              /* a drone's settings are on its own screen */
     ui.keypage = 0;
@@ -968,10 +1015,122 @@ static void solo_key(uint32_t k)
 {
     if (set.mode == MODE_TANPURA)        /* a key: its note is Sa */
         set.tp_sa = (uint8_t)((53u + k) % 12u);
-    else                                 /* a key: its reed opens or closes */
+    else if (set.sh_kind == SH_NOTES)    /* a key: its reed opens or closes */
         set.sh_notes ^= 1u << k;
+    else {                               /* a key: the chord on it */
+        set.sh_root = (uint8_t)k;
+        set.sh_notes = chord(k, set.sh_kind);
+    }
     changed();
     drone_apply();
+}
+
+/* PRESETS in a drone: the tanpura's tuning, the shruti's chord (on the key pressed last); its name large */
+static void drone_preset(uint32_t i)
+{
+    char t[24];
+    if (set.mode == MODE_TANPURA) {
+        set.tp_preset = (uint8_t)i;
+        set.tp_sa = TP_PRESET[i].sa;
+        set.tp_first = TP_PRESET[i].first;
+        app_say(TP_PRESET[i].name, "");
+    } else {
+        set.sh_kind = (uint8_t)i;
+        if (i != SH_NOTES)
+            set.sh_notes = chord(set.sh_root, i);
+        shruti_name(t);
+        app_say(t, "");
+    }
+    ui.msg_until = plat_ms() + RHY_SAY_MS;
+    ui.msg_title = 1;
+    changed();
+    drone_apply();
+}
+
+/* -------------------------------------------------------- the presets' list --- */
+/* LFO: the mode's presets listed (the kit's rhythms, the berimbau's toques, the tanpura's tunings, the shruti's
+ * chords), one further each press, round, without choosing; held, the one shown is chosen */
+#define LONG_MS 500u                     /* a press held this long: a long one */
+#define LIST_MS 6000u                    /* the list stays this long after the last press */
+
+static uint32_t list_n(void)
+{
+    return set.mode == MODE_KIT ? NRHY_KIT : berimbau() ? NRHY - NRHY_KIT : set.mode == MODE_TANPURA ? NTP : NSH;
+}
+
+static uint32_t list_now(void)           /* the one chosen */
+{
+    return set.mode == MODE_KIT ? set.rhythm : berimbau() ? set.rhythm - NRHY_KIT
+           : set.mode == MODE_TANPURA ? set.tp_preset : set.sh_kind;
+}
+
+static const char *list_name(uint32_t i)
+{
+    return set.mode == MODE_TANPURA ? TP_PRESET[i].name : set.mode == MODE_SHRUTI ? SH_NAME[i]
+           : RDEF[i + (berimbau() ? NRHY_KIT : 0u)].name;
+}
+
+static uint32_t list_beats(uint32_t i) { return drone() ? 0u : RDEF[i + (berimbau() ? NRHY_KIT : 0u)].beats; }
+
+static int list_shown(void) { return ui.list_until && (int32_t)(ui.list_until - plat_ms()) > 0; }
+
+static void list_next(void)
+{
+    ui.list_i = (uint8_t)(((list_shown() ? ui.list_i : list_now()) + 1u) % list_n());
+    ui.list_until = plat_ms() + LIST_MS;
+    ui.msg_until = 0;
+    ui.redraw = 1;
+    if (ann_on()) {                      /* a screen reader hears it: its name, its beats */
+        char t[40] = "", n[4];
+        text_cat(t, list_name(ui.list_i));
+        if (list_beats(ui.list_i)) {
+            text_cat(t, ", ");
+            int_text((int32_t)list_beats(ui.list_i), n);
+            text_cat(t, n);
+            text_cat(t, " BEATS");
+        }
+        ann_say(t, 0, ANN_NOW);
+    }
+}
+
+static void list_choose(void)
+{
+    uint32_t i = ui.list_i;
+    ui.list_until = 0;
+    if (drone())
+        drone_preset(i);
+    else
+        rhythm_select(i + (berimbau() ? NRHY_KIT : 0u));
+}
+
+/* OCT- / OCT+: the tempo, 5 BPM a press, 10 held; LFO: the list, held: its choice */
+static void hold_action(uint32_t b, int held)
+{
+    if (b == B_LFO) {
+        if (!held)
+            list_next();
+        else if (list_shown())
+            list_choose();
+    } else if (!drone())
+        bpm_set((int32_t)cur()->bpm + (b == B_OCTUP ? 1 : -1) * (held ? 10 : 5));
+}
+
+/* those three act when let go, or once held long enough */
+static void hold_buttons(uint32_t btn)
+{
+    static const uint8_t HB[3] = {B_OCTDN, B_OCTUP, B_LFO};
+    uint32_t i, now = plat_ms();
+    for (i = 0; i < 3u; i++) {
+        uint32_t b = HB[i], on = btn >> b & 1u, was = ui.btn >> b & 1u;
+        if (on && !was) {
+            ui.down_at[i] = now;
+            ui.held_long &= (uint8_t)~(1u << i);
+        } else if (on && !(ui.held_long >> i & 1u) && now - ui.down_at[i] >= LONG_MS) {
+            ui.held_long |= (uint8_t)(1u << i);
+            hold_action(b, 1);
+        } else if (!on && was && !(ui.held_long >> i & 1u))
+            hold_action(b, 0);
+    }
 }
 
 static void solo_knob(uint32_t i, int32_t d)
@@ -1047,9 +1206,15 @@ static void solo_input(uint32_t keys, uint32_t btn)
     for (k = 0; k < NB; k++)
         if ((btn >> k & 1u) && !(ui.btn >> k & 1u))
             solo_button(k);
-    for (k = 0; k < NE; k++)             /* (SELECT, ALGORITHM, PRESET: nothing here) */
-        if ((e = plat_enc((int)k)) != 0 && k >= EN_K1)
+    for (k = 0; k < NE; k++) {           /* (SELECT, ALGORITHM: nothing here) */
+        if ((e = plat_enc((int)k)) == 0)
+            continue;
+        if (k == EN_PRESET)
+            drone_preset((list_now() + (e > 0 ? 1u : list_n() - 1u)) % list_n());
+        else if (k >= EN_K1)
             solo_knob(k - EN_K1, e);
+    }
+    hold_buttons(btn);
     if (keys != ui.keys)
         ui.redraw = 1;
     ui.keys = keys;
@@ -1061,11 +1226,11 @@ static void solo_input(uint32_t keys, uint32_t btn)
                 lit_keys |= 1u << k;
             else if ((53u + k) % 12u == first)
                 dim_keys |= 1u << k;
-        used = 1u << B_FX | 1u << B_PLAY | 1u << B_SAVE | 1u << B_HOME | 1u << B_GLO;
+        used = 1u << B_FX | 1u << B_PLAY | 1u << B_SAVE | 1u << B_HOME | 1u << B_GLO | 1u << B_LFO;
     } else {                             /* the reeds open lit, the others dim */
         lit_keys = set.sh_notes;
         dim_keys = ((1u << NKEYS) - 1u) & ~lit_keys;
-        used = 1u << B_FX | 1u << B_PLAY | 1u << B_SAVE | 1u << B_HOME | 1u << B_GLO | 1u << B_EDIT;
+        used = 1u << B_FX | 1u << B_PLAY | 1u << B_SAVE | 1u << B_HOME | 1u << B_GLO | 1u << B_EDIT | 1u << B_LFO;
     }
     lit_keys |= keys;
     lit_btn = (btn & used & ~(1u << B_PLAY)) | 1u << B_FX | 1u << (set.page == PG_SETUP ? B_GLO : B_HOME)
@@ -1074,6 +1239,8 @@ static void solo_input(uint32_t keys, uint32_t btn)
         lit_btn |= LED_PLAY_GREEN;
     if (ui.clear_t && now - ui.clear_t < 2000u)
         lit_btn |= 1u << B_EDIT;
+    if (list_shown())
+        lit_btn |= 1u << B_LFO;
     dim_btn = ~lit_btn & used & ~(1u << B_PLAY);
     if (!ui.drone_on)
         dim_btn |= LED_PLAY_GREEN;
@@ -1136,18 +1303,6 @@ static void button(uint32_t b)
         app_say("FLAM", "ARP + DJEMBE KEY");
         ui.msg_rgb = INST[I_DJEMBE].rgb;
         break;
-    case B_OCTDN:
-    case B_OCTUP:
-        if (npages(r) > 1u) {
-            char t[12] = "STEPS ";
-            uint32_t p = b == B_OCTUP ? (ui.keypage + 1u < npages(r) ? ui.keypage + 1u : ui.keypage)
-                                      : (ui.keypage ? ui.keypage - 1u : 0u);
-            ui.keypage = (uint8_t)p;
-            int_text((int32_t)(p * page_steps(r) + 1u), t + 6);
-            text_cat(t, "+");
-            app_say("KEYS", t);
-        }
-        break;
     case B_SAVE:
         save_all();
         break;
@@ -1162,7 +1317,7 @@ static void button(uint32_t b)
 static void input(void)
 {
     uint32_t keys, btn = plat_buttons(), k, now = plat_ms(), i;
-    uint32_t lit_keys = 0, dim_keys = 0, mid_keys = 0, lit_btn, dim_btn, mid_btn = 0;
+    uint32_t lit_keys = 0, dim_keys = 0, mid_keys = 0, lit_btn, dim_btn;
     rhythm_t *r = cur();
     int32_t e;
     touch_poll();                        /* the sensed keys' presses and velocities */
@@ -1194,6 +1349,7 @@ static void input(void)
         else
             knob_turn(page_knob(set.page, k - EN_K1), e);
     }
+    hold_buttons(btn);
     {   /* the udu's bass key pressed: its bass lower, as far as the pressure goes (the palm closing the opening) */
         uint32_t uk = BLACK[UDU_BASS_PAD];
         float b = !berimbau() && (keys >> uk & 1u) ? -(float)set.bend * (float)touch_pressure(uk) * (1.0f / 127.0f)
@@ -1208,6 +1364,9 @@ static void input(void)
     ui.keys = keys;
     ui.btn = btn;
     r = cur();
+    if (seq.playing && !seq.count && seq.step >= 0 && npages(r) > 1u)   /* a long bar: the keys follow the step */
+        ui.keypage = (uint8_t)((uint32_t)seq.step / page_steps(r));
+    keypage_fit();
     /* the white keys: the instrument's strokes lit, the beats' first steps mid, the other steps dim; the step
      * sounding the other way round (a moving light) */
     for (i = 0; i < 16u; i++) {
@@ -1259,21 +1418,15 @@ static void input(void)
         lit_btn |= 1u << B_EDIT;
     if (seq.playing && (int32_t)(ui.beat_until - now) > 0)
         lit_btn |= 1u << B_SEQ;
-    if (npages(r) > 1u) {
-        if (ui.keypage)
-            mid_btn |= 1u << B_OCTDN;
-        if (ui.keypage + 1u < npages(r))
-            mid_btn |= 1u << B_OCTUP;
-    }
-    /* the ones that do something glow, the others stay dark: LFO; ARP but in the kit (the djembe's flams) */
-    dim_btn = ~lit_btn & ((1u << NB) - 1u) & ~(1u << B_LFO | 1u << B_PLAY | (berimbau() ? 1u << B_ARP : 0u));
-    if (npages(r) < 2u)
-        dim_btn &= ~(1u << B_OCTDN | 1u << B_OCTUP);
+    if (list_shown())
+        lit_btn |= 1u << B_LFO;
+    /* the ones that do something glow, the others stay dark: ARP but in the kit (the djembe's flams) */
+    dim_btn = ~lit_btn & ((1u << NB) - 1u) & ~(1u << B_PLAY | (berimbau() ? 1u << B_ARP : 0u));
     if (!(lit_btn & (1u << B_PLAY | LED_PLAY_GREEN)))
         dim_btn |= LED_PLAY_GREEN;       /* PLAY glows green */
     ui.glow = dim_btn;
     plat_lights(lit_btn, lit_keys, dim_btn, dim_keys, set.lights);
-    plat_lights_mid(mid_btn, mid_keys);
+    plat_lights_mid(0, mid_keys);
 }
 
 void app_input_only(void) { input(); }
@@ -1508,8 +1661,11 @@ static void draw_solo(void)
             n++;
         }
         if (!n)
-            text_c(120, 82, &FONT_M, "PRESS THE KEYS", C_GRAY);
-        else if (n > 8u) {
+            text_c(120, 82, &FONT_M, set.sh_kind == SH_NOTES ? "PRESS THE KEYS" : "PRESS A KEY", C_GRAY);
+        else if (set.sh_kind != SH_NOTES) {   /* a chord: its name */
+            shruti_name(t);
+            text_c(120, 128, &FONT_M, t, col);
+        } else if (n > 8u) {
             t[0] = '+';
             int_text((int32_t)(n - 8u), t + 1);
             text_c(120, 142, &FONT_B, t, C_GRAY);
@@ -1527,13 +1683,40 @@ static void draw_solo(void)
     }
 }
 
+/* the presets' list (LFO): five at most, the one shown in the middle, large on the colour, with its beats; the one
+ * chosen marked at the left */
+static void draw_list(void)
+{
+    uint16_t col = drone() ? MODE_RGB[set.mode] : INST[set.inst].rgb;
+    int32_t n = (int32_t)list_n(), lo = -(n - 1) / 2 < -2 ? -2 : -(n - 1) / 2, hi = n / 2 > 2 ? 2 : n / 2, o;
+    char t[4];
+    for (o = lo; o <= hi; o++) {
+        uint32_t i = (uint32_t)(((int32_t)ui.list_i + o + n * 3) % n), b = list_beats(i);
+        int32_t y = 44 + (o + 2) * 38, x;
+        uint16_t fg = o ? C_GRAY : C_BLACK;
+        const felucca_font_t *f = o ? &FONT_B : &FONT_M;
+        if (!o)
+            cv_rect(6, y, 230, 34, col);
+        if (i == list_now())
+            cv_rect(0, y, 3, 34, C_WHITE);
+        cv_text(14, y + (o ? 9 : 5), f, list_name(i), fg);
+        if (b) {                         /* its beats, at the right */
+            int_text((int32_t)b, t);
+            x = cv_text(230 - text_w(&FONT_XS, "BEATS") - 3 - text_w(f, t), y + (o ? 9 : 5), f, t, fg);
+            cv_text(x + 3, y + 13, &FONT_XS, "BEATS", fg);
+        }
+    }
+}
+
 static void draw(void)
 {
     int32_t top;
     for (top = 0; top < 240; top += 120) {
         band(top);
         header();
-        if (set.page == PG_SETUP)
+        if (list_shown())
+            draw_list();
+        else if (set.page == PG_SETUP)
             draw_page();
         else if (drone())
             draw_solo();
@@ -1574,6 +1757,9 @@ static void settings_default(void)
     set.sh_notes = 1u << 7 | 1u << 14 | 1u << 19;   /* Sa Pa Sa' on C: C4, G4, C5 */
     set.other_rhythm = NRHY_KIT;         /* the berimbau: ANGOLA */
     set.other_inst = I_BERIMBAU;
+    set.tp_preset = 0;                   /* C PA */
+    set.sh_kind = SH_SAPA;               /* on C4: the reeds above */
+    set.sh_root = 7;
 }
 
 void app_init(void)
@@ -1586,7 +1772,7 @@ void app_init(void)
              && set.countin <= 1u && set.lights >= 1u && set.lights <= 2u && set.fixed <= 1u && set.bend <= 6u
              && set.mode < NMODES && set.tp_sa < 12u && set.tp_first < 3u && set.tp_high <= 1u && set.tp_cycle >= 20u
              && set.tp_cycle <= 80u && set.tp_level <= 100u && set.sh_level <= 100u && set.sh_bellows <= 100u
-             && set.sh_notes < 1u << NKEYS;
+             && set.sh_notes < 1u << NKEYS && set.tp_preset < NTP && set.sh_kind < NSH && set.sh_root < NKEYS;
     for (i = 0; ok && i < NINST; i++)
         ok = set.snd[i].level >= 0.0f && set.snd[i].level <= 1.0f && set.snd[i].tune >= -TUNE_MAX
              && set.snd[i].tune <= TUNE_MAX && set.snd[i].decay >= 0.1f && set.snd[i].decay <= 1.0f
@@ -1629,6 +1815,10 @@ void app_frame(void)
     speak();
     if (ui.msg_until && now >= ui.msg_until) {
         ui.msg_until = 0;
+        ui.redraw = 1;
+    }
+    if (ui.list_until && (int32_t)(now - ui.list_until) >= 0) {
+        ui.list_until = 0;
         ui.redraw = 1;
     }
     if (set.mode == MODE_TANPURA && ui.drone_on && dn_string() != ui.string_drawn) {   /* the next string plucked */
@@ -1701,7 +1891,7 @@ int app_expect(const char *what, int *got)
         *got = ART(r->step[set.inst][atoi(what + 1) % NSTEPS]) ? (int)VEL(r->step[set.inst][atoi(what + 1) % NSTEPS]) : 0;
     else if (!strncmp(what, "hits", 4))  /* hitsI: instrument I's strokes played since boot */
         *got = (int)seq.hits[atoi(what + 4) % NINST];
-    else if (!strncmp(what, "glow", 4)) {   /* glowFX, glowLFO, glowOCT: that button glows (OCT: OCT- or OCT+) */
+    else if (!strncmp(what, "glow", 4)) {   /* glowFX, glowLFO, glowARP, glowOCT: it glows (OCT: OCT- or OCT+) */
         uint32_t m = !strcmp(what + 4, "FX") ? 1u << B_FX : !strcmp(what + 4, "LFO") ? 1u << B_LFO
                      : !strcmp(what + 4, "ARP") ? 1u << B_ARP : 1u << B_OCTDN | 1u << B_OCTUP;
         *got = (ui.glow & m) != 0u;
@@ -1722,6 +1912,16 @@ int app_expect(const char *what, int *got)
             (*got)++;
     } else if (!strcmp(what, "msg"))       /* a message is on the screen */
         *got = ui.msg_until && (int32_t)(ui.msg_until - plat_ms()) > 0;
+    else if (!strcmp(what, "list"))      /* the presets' list is on the screen */
+        *got = list_shown();
+    else if (!strcmp(what, "listi"))     /* the one it shows */
+        *got = ui.list_i;
+    else if (!strcmp(what, "tpp"))       /* the tanpura's tuning (PRESETS) */
+        *got = set.tp_preset;
+    else if (!strcmp(what, "kind"))      /* the shruti's: 0 notes, 1 SA PA, 2 major, 3 minor */
+        *got = set.sh_kind;
+    else if (!strcmp(what, "root"))      /* its chord's key */
+        *got = set.sh_root;
     else if (!strcmp(what, "strokes")) { /* the instrument's steps with a stroke, in the bar */
         uint32_t s;
         *got = 0;

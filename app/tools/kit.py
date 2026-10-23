@@ -8,9 +8,11 @@ each at its own rate).
                                                  takes, played in turn: maracas_shake_1.wav, maracas_shake_2.wav
   kit.py vcsl VCSL_DIR [DIR]                     the recorded strokes from VCSL (Versilian Community Sample Library,
                                                  CC0: github.com/sgossner/VCSL), into DIR as kit WAVs
-  kit.py take FILE.wav NAME [--start S] [--end S] [DIR]
+  kit.py take FILE.wav NAME [--start S] [--end S] [--pitch ST] [--damp S] [DIR]
                                                  a stroke from any WAV (from S to S seconds into it: one stroke of a
-                                                 recording that has several) into DIR as NAME.wav
+                                                 recording that has several) into DIR as NAME.wav; --pitch raises it
+                                                 ST semitones (a stone pressed on a wire), --damp stops it sooner
+                                                 (60 dB down in S seconds)
 
 Each stroke is cut from its start (the first sound) to its end (where it falls 60 dB, or the stroke's longest),
 faded out, resampled to its instrument's rate and normalised (the takes of one stroke keep their levels between
@@ -35,12 +37,13 @@ KIT = [
     ("clapsticks", 44100, [("hit", 0.30)]),
     ("maracas", 44100, [("shake", 0.25)]),
     ("triangle", 44100, [("open", 1.60), ("muted", 0.35)]),
-    ("berimbau", 22050, [("dom", 0.40), ("dim", 0.32), ("tsch", 0.28)]),   # the berimbau mode's (FX)
+    ("berimbau", 16000, [("dom", 0.90), ("dim", 0.55), ("tsch", 0.20)]),   # the berimbau mode's (FX)
     ("caxixi", 32000, [("shake", 0.16)]),
 ]
 # each stroke's level against its instrument's others, dB (normalised to the same peak, a short stroke sounds softer)
 TRIM = {"djembe_tone": 1.5, "djembe_slap": 6.0, "cajon_bass": 3.0, "cajon_slap": 5.0, "udu_bass": -1.5,
-        "udu_tone": 2.0, "udu_slap": 3.0, "berimbau_tsch": 4.0, "caxixi_shake": 3.0}
+        "udu_tone": 2.0, "udu_slap": 3.0, "berimbau_dom": 6.0, "berimbau_dim": 7.0, "berimbau_tsch": 8.0,
+        "caxixi_shake": 6.0}
 VCSL = {                                   # kit name: VCSL file (in its folder, any depth)
     "cajon_bass": "Cajon_hit3_f_rr1.wav",
     "cajon_slap": "Cajon_hit1_f_rr1.wav",
@@ -151,9 +154,13 @@ def save(path, x, sr):
         w.writeframes(np.clip(np.round(y * 32768), -32768, 32767).astype("<i2").tobytes())
 
 
-def take(src, name, start, end, dst):
+def take(src, name, start, end, dst, pitch=0.0, damp=0.0):
     x, sr = load(src)
     x = x[int(start * sr):int(end * sr) if end else len(x)]
+    if pitch:                                                       # higher (and shorter): played faster
+        x = resample(x, sr, int(round(sr / 2 ** (pitch / 12))))
+    if damp:
+        x = x * np.exp(-6.9078 * np.arange(len(x)) / (damp * sr))
     dst.mkdir(parents=True, exist_ok=True)
     save(dst / f"{name}.wav", x, sr)
     print(f"{dst / name}.wav  <- {src} {start:g}..{end or len(x) / sr + start:g} s")
@@ -184,6 +191,8 @@ def main():
     t.add_argument("name")
     t.add_argument("--start", type=float, default=0.0)
     t.add_argument("--end", type=float, default=0.0)
+    t.add_argument("--pitch", type=float, default=0.0)
+    t.add_argument("--damp", type=float, default=0.0)
     t.add_argument("dir", type=Path, nargs="?", default=HERE / "kit")
     a = ap.parse_args()
     if a.cmd == "build":
@@ -191,7 +200,7 @@ def main():
     elif a.cmd == "vcsl":
         vcsl(a.vcsl_dir, a.dir)
     else:
-        take(a.file, a.name, a.start, a.end, a.dir)
+        take(a.file, a.name, a.start, a.end, a.dir, a.pitch, a.damp)
 
 
 if __name__ == "__main__":

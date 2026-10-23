@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: MPL-2.0 */
-/* NEW: a rhythm box of ceremony percussion on the FM-1: djembe, cajon, udu, clapsticks, maracas and triangle; the
+/* FM-1_DelRio, by Jess Del Rio: a rhythm box of ceremony percussion on the FM-1: djembe, cajon, udu, clapsticks, maracas and triangle; the
  * berimbau and its toques; two drones, the tanpura and the shruti box. The white keys are the selected instrument's
  * steps, the black keys play the instruments. This header is the app's
  * half of the contract with the platform (fm1-base: device/unity.c, host/plat_host.c). */
@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include "plat.h"
 
-#define APP_NAME "NEW"
+#define APP_NAME "DEL RIO"
 #define APP_SPLASH_RGB RGB(240, 140, 40)
 #define APP_BLOCK 256u                   /* frames per audio block: 5.8 ms at 44.1 kHz */
 #define APP_TOUCH                        /* velocity from the keys (lib/touch.h) */
@@ -31,6 +31,6 @@ void app_say(const char *a, const char *b);   /* a short message on the screen a
  * (its steps with a stroke), msg (a message on the screen), glowFX / glowLFO / glowOCT / glowARP (that button glows), wires
  * (its snare wires, %), tune (its tuning, tenths of a semitone), bend (the udu's bass glide now, tenths),
  * hitsI (instrument I's strokes played since boot), mode (FX: the kit 0, the berimbau 1, the tanpura 2, the shruti 3),
- * drone, sa, first, string, notes (the drones') */
+ * drone, sa, first, string, notes, tpp, kind, root (the drones'), list / listi (the presets' list, the one it shows) */
 #define APP_HOST_EXPECT
 int app_expect(const char *what, int *got);
