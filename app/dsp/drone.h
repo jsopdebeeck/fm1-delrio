@@ -17,9 +17,9 @@ typedef struct {
 void dn_init(float sample_rate);
 /* main loop: on or off (off: the strings ring out), and how */
 void dn_tanpura(int on, const dn_tanpura_t *p);
-/* main loop: on or off, the notes held (bit i: MIDI low + i, 27 at most), the level 0..1 and the bellows' breathing
- * 0..1 (0 steady) */
-void dn_shruti(int on, uint32_t notes, int32_t low, float level, float bellows);
+/* main loop: on or off, the notes held (bit i: MIDI low + i, 27 at most), the level 0..1, the bellows' breathing
+ * 0..1 (0 steady) and their strokes' length, seconds (a push, then a pull, each one stroke) */
+void dn_shruti(int on, uint32_t notes, int32_t low, float level, float bellows, float stroke_s);
 void dn_panic(void);                     /* any context: silence now */
 void dn_render(float *out, uint32_t n);  /* audio interrupt: added into out */
 int dn_string(void);                     /* the tanpura's string plucked last, 0..3 (-1: none yet) */

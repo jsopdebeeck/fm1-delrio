@@ -27,6 +27,6 @@ if [ "$1" = "--site" ]; then
 	V="${2:-0.1}"
 	"$0" --release "$V"
 	"$0" --web
-	exec "$PY" base/tools/make_site.py app "app/build/new-$V.fwsc" "$V" app/build/site
+	exec "$PY" base/tools/make_site.py app "app/build/delrio-$V.fwsc" "$V" app/build/site   # fm1.toml's name, lower case
 fi
 exec "$PY" base/tools/build.py app "$@"

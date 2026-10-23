@@ -31,6 +31,6 @@ void app_say(const char *a, const char *b);   /* a short message on the screen a
  * (its steps with a stroke), msg (a message on the screen), glowFX / glowLFO / glowOCT / glowARP (that button glows), wires
  * (its snare wires, %), tune (its tuning, tenths of a semitone), bend (the udu's bass glide now, tenths),
  * hitsI (instrument I's strokes played since boot), mode (FX: the kit 0, the berimbau 1, the tanpura 2, the shruti 3),
- * drone, sa, first, string, notes, tpp, kind, root (the drones'), list / listi (the presets' list, the one it shows) */
+ * drone, sa, first, string, notes, tpp, kind, root, shtempo (the drones'), list / listi (the presets' list, the one it shows) */
 #define APP_HOST_EXPECT
 int app_expect(const char *what, int *got);

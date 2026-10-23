@@ -1,6 +1,13 @@
 # DelRio in the host simulator: ./build.sh --host, then
 #   app/build/host/delrio_host app/tests/basic.txt app/build/host
 wait 600
+# the opening: the maned wolf pacing across the dusk; it ends by itself
+expect intro 1
+shot intro.png
+wait 1400
+shot intro2.png
+wait 1500
+expect intro 0
 # at first: the djembe, HEARTBEAT (2 beats of 4 steps, 64 BPM)
 expect inst 0
 expect rhythm 0
@@ -353,6 +360,11 @@ expect beats 8
 expect s16 1
 expect countin 0
 expect playing 0
+# the opening plays again: a knob ends it, and does nothing else
+expect intro 1
+turn K1 1
+expect intro 0
+expect bpm 90
 
 # the rhythms from the literature: Santo Daime's MARCHA (the maracá f f f F), in the second store object
 turn ALGO -4
@@ -373,6 +385,7 @@ wait 600
 expect rhythm 18
 expect s0 0
 expect strokes 3
+tap HOME
 # a written rhythm comes as written: what was changed in it (a stroke, the tempo), away and back, is gone
 turn K1 10
 expect bpm 130
@@ -454,7 +467,7 @@ expect rhythm 31
 expect inst 6
 expect beats 4
 expect div 2
-expect bpm 60
+expect bpm 120
 expect strokes 4
 expect s0 3
 expect s1 3
@@ -492,7 +505,7 @@ expect hits7 2
 # PRESET: the toques with its beats (round); ALGORITHM: the beats it has a toque in, 4 and 8
 turn PRESET 1
 expect rhythm 32
-expect bpm 76
+expect bpm 140
 turn PRESET -2
 expect rhythm 37
 expect strokes 0
@@ -549,22 +562,22 @@ tapkey w0
 expect sa 5
 turn K1 1
 expect first 1
-# PRESETS: its usual tunings (C# PA, then on to C# MA); LFO lists them, held chooses
+# PRESETS: Sa where the voices sit, on Pa (MALE SAFED 2: D, FEMALE SAFED 6: A); LFO lists them, held chooses
 turn PRESET 1
 expect tpp 1
-expect sa 1
+expect sa 2
 expect first 0
-turn PRESET 5
-expect tpp 6
-expect first 1
+turn PRESET 3
+expect tpp 4
+expect sa 9
 tap LFO
-expect listi 7
+expect listi 5
 press LFO
 wait 600
 release LFO
-expect tpp 7
-expect first 2
-expect sa 1
+expect tpp 5
+expect sa 10
+expect first 0
 tap PLAY
 expect drone 0
 wait 400
@@ -594,6 +607,10 @@ tapkey w1
 expect notes 5
 tapkey w1
 expect notes 4
+# KNOB 2: the bellows' tempo, a push and a pull (40 a minute at first)
+expect shtempo 40
+turn K2 20
+expect shtempo 60
 peakreset
 tap PLAY
 expect drone 1
@@ -609,6 +626,10 @@ expect drone 0
 tap SAVE
 reboot
 wait 600
+# the opening again: a button ends it, and does nothing else
+expect intro 1
+tap HOME
+expect intro 0
 expect mode 3
 expect drone 0
 expect notes 0

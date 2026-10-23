@@ -136,18 +136,20 @@ static const rdef_t RDEF[] = {
     {"FREE", 7, 2, 90, 0, 1, {"", "", "", "", "", ""}},
     {"FREE", 8, 2, 90, 0, 1, {"", "", "", "", "", ""}},
     /* the berimbau's toques, as the Cordao de Ouro teaches them ("Toques do berimbau", Flensburg 2020), counted
-     * "0 - 1 - 2 - 3": the two chiados (TSCH, soft) eighths on 0, the free DOM (O) and the pressed DIM (I) on the
-     * beats; the caxixi in the pause, where the source shakes it. SB REGIONAL, Mestre Bimba's, over two counts:
-     * "tsch tsch DOM, tsch DIM, tsch tsch DOM DOM DIM" */
-    {"ANGOLA", 4, 2, 60, 0, 0, {[I_BERIMBAU] = "xxO.I...", [I_CAXIXI] = "......x."}},
-    {"SB PEQUENO", 4, 2, 76, 0, 0, {[I_BERIMBAU] = "xxI.O...", [I_CAXIXI] = "......x."}},
-    {"SB GRANDE", 4, 2, 100, 0, 0, {[I_BERIMBAU] = "xxI.O.O."}},
-    {"BANGUELA", 4, 2, 66, 0, 0, {[I_BERIMBAU] = "xxO.I.I."}},
-    {"CAVALARIA", 4, 2, 112, 0, 0, {[I_BERIMBAU] = "xxO.I.O."}},
-    {"JOGO DE DENTRO", 4, 2, 70, 0, 0, {[I_BERIMBAU] = "xxI.O.I."}},
-    {"FREE", 4, 2, 90, 0, 1, {0}},
-    {"SB REGIONAL", 8, 2, 108, 0, 0, {[I_BERIMBAU] = "xxO.x.I.xxO.O.I."}},
-    {"FREE", 8, 2, 90, 0, 1, {0}},
+     * "0 - 1 - 2 - 3": the two chiados (TSCH, soft) on 0, the free DOM (O) and the pressed DIM (I) on the counts;
+     * the caxixi in the pause, where the source shakes it. Each count an eighth of the toque's 2/4 bar (its BPM
+     * here, the bar's quarter half of it: Angola about 60, Sao Bento Grande about 90; Calango's recording, freesound
+     * 26393, has its two chiados 0.23 s apart). SB REGIONAL, Mestre Bimba's, over two counts: "tsch tsch DOM, tsch
+     * DIM, tsch tsch DOM DOM DIM" */
+    {"ANGOLA", 4, 2, 120, 0, 0, {[I_BERIMBAU] = "xxO.I...", [I_CAXIXI] = "......x."}},
+    {"SB PEQUENO", 4, 2, 140, 0, 0, {[I_BERIMBAU] = "xxI.O...", [I_CAXIXI] = "......x."}},
+    {"SB GRANDE", 4, 2, 176, 0, 0, {[I_BERIMBAU] = "xxI.O.O."}},
+    {"BANGUELA", 4, 2, 128, 0, 0, {[I_BERIMBAU] = "xxO.I.I."}},
+    {"CAVALARIA", 4, 2, 184, 0, 0, {[I_BERIMBAU] = "xxO.I.O."}},
+    {"JOGO DE DENTRO", 4, 2, 132, 0, 0, {[I_BERIMBAU] = "xxI.O.I."}},
+    {"FREE", 4, 2, 120, 0, 1, {0}},
+    {"SB REGIONAL", 8, 2, 180, 0, 0, {[I_BERIMBAU] = "xxO.x.I.xxO.O.I."}},
+    {"FREE", 8, 2, 120, 0, 1, {0}},
 };
 typedef char rdef_one_each[sizeof RDEF / sizeof RDEF[0] == NRHY ? 1 : -1];   /* a rhythm for each place */
 
@@ -203,7 +205,7 @@ static int inst_in(uint32_t i, uint32_t mode)   /* an instrument of the kit's, o
 }
 static const char *const NOTE_ABC[12] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
 enum { CLICK_OFF, CLICK_REC, CLICK_ON };
-#define SET_MAGIC 0x36534452u            /* "RDS6": the settings record; another magic loads defaults */
+#define SET_MAGIC 0x37534452u            /* "RDS7": the settings record; another magic loads defaults */
 typedef struct {
     uint32_t magic;
     uint8_t rhythm, inst, page;          /* the rhythm and the instrument shown (the kit's, or the berimbau's) */
@@ -224,6 +226,7 @@ typedef struct {
     uint8_t other_rhythm, other_inst;    /* the other's: the berimbau's while the kit is shown, the kit's while not */
     uint8_t tp_preset;                   /* the tanpura's tuning chosen last (PRESETS) */
     uint8_t sh_kind, sh_root;            /* the shruti's: its reeds one by one, or a chord (PRESETS) on a key */
+    uint8_t sh_tempo;                    /* its bellows' strokes a minute (a push, a pull), 20 .. 120 */
 } settings_t;
 static settings_t set;
 static uint8_t set_dirty;                /* changed since the last save: SAVE is lit */
@@ -418,6 +421,9 @@ static struct {
     uint8_t held_long;                   /* each held long enough (its long press done) */
     uint8_t list_i;                      /* the presets' list (LFO): the one shown, */
     uint32_t list_until;                 /* until when */
+    uint8_t intro;                       /* the opening is playing (app_ui_init), since intro_t0 */
+    uint32_t intro_t0;
+    int32_t intro_drawn;                 /* its step on the screen */
     uint8_t redraw;
 } ui;
 
@@ -928,16 +934,16 @@ static int32_t tanpura_sa(void) { return 48 + set.tp_sa + 12 * set.tp_high; }
 static const int8_t FIRST_OFF[3] = {-5, -7, -1};   /* the first string under Sa: Pa, Ma, Ni */
 static const char *const FIRST_NAME[3] = {"PA", "MA", "NI"};
 
-/* PRESETS, the tanpura: its usual tunings. Sa where the voices sit (a man's around C# or D, a woman's around G to A);
- * the first string on Pa for most songs, on Ma for the ragas without Pa (Malkauns, Bageshri), on Ni for Marwa or
- * Puriya */
+/* PRESETS, the tanpura: Sa where the voices sit, named as singers name it on the harmonium (its white keys "safed"
+ * and black "kali", counted from C): a man's around kali 1 (C#) to kali 2 (D#), a woman's around kali 4 (G#) to
+ * kali 5 (A#); the first string on Pa, the register low. A key then sets any Sa, KNOB 1 Ma or Ni */
 typedef struct {
     const char *name;
-    uint8_t sa, first;
+    uint8_t sa;
 } tp_preset_t;
 static const tp_preset_t TP_PRESET[] = {
-    {"C PA", 0, 0}, {"C# PA", 1, 0}, {"D PA", 2, 0}, {"E PA", 4, 0}, {"G PA", 7, 0}, {"A PA", 9, 0}, {"C# MA", 1, 1},
-    {"C# NI", 1, 2},
+    {"MALE KALI 1", 1}, {"MALE SAFED 2", 2}, {"MALE KALI 2", 3}, {"FEMALE KALI 4", 8}, {"FEMALE SAFED 6", 9},
+    {"FEMALE KALI 5", 10},
 };
 #define NTP (sizeof TP_PRESET / sizeof TP_PRESET[0])
 /* PRESETS, the shruti: its reeds opened one by one (NOTES), or a chord on the key pressed: its root, fifth and octave
@@ -976,7 +982,7 @@ static void drone_apply(void)
     p.level = (float)set.tp_level * 0.01f;
     dn_tanpura(set.mode == MODE_TANPURA && ui.drone_on, &p);
     dn_shruti(set.mode == MODE_SHRUTI && ui.drone_on, set.sh_notes, 53, (float)set.sh_level * 0.01f,
-              (float)set.sh_bellows * 0.01f);
+              (float)set.sh_bellows * 0.01f, 60.0f / (float)set.sh_tempo);
 }
 
 /* the kit and the berimbau each keep their rhythm and instrument: the ones shown are the mode's */
@@ -1032,7 +1038,8 @@ static void drone_preset(uint32_t i)
     if (set.mode == MODE_TANPURA) {
         set.tp_preset = (uint8_t)i;
         set.tp_sa = TP_PRESET[i].sa;
-        set.tp_first = TP_PRESET[i].first;
+        set.tp_first = 0;
+        set.tp_high = 0;
         app_say(TP_PRESET[i].name, "");
     } else {
         set.sh_kind = (uint8_t)i;
@@ -1144,9 +1151,11 @@ static void solo_knob(uint32_t i, int32_t d)
             set.tp_high ^= 1u;
         else
             set.tp_level = (uint8_t)clamp((int32_t)set.tp_level + 5 * d, 0, 100);
-    } else if (i == 0)                   /* the shruti: KNOB 1 its breathing, KNOB 2 its level */
+    } else if (i == 0)                   /* the shruti: KNOB 1 its breathing, KNOB 2 its bellows' tempo, 3 its level */
         set.sh_bellows = (uint8_t)clamp((int32_t)set.sh_bellows + 5 * d, 0, 100);
     else if (i == 1)
+        set.sh_tempo = (uint8_t)clamp((int32_t)set.sh_tempo + d, 20, 120);
+    else if (i == 2)
         set.sh_level = (uint8_t)clamp((int32_t)set.sh_level + 5 * d, 0, 100);
     else
         return;
@@ -1322,6 +1331,18 @@ static void input(void)
     int32_t e;
     touch_poll();                        /* the sensed keys' presses and velocities */
     keys = touch_keys();
+    if (ui.intro) {                      /* the opening: a key, a button or a knob ends it, and does nothing else */
+        int any = (keys & ~ui.keys) || (btn & ~ui.btn);
+        for (k = 0; k < NE; k++)
+            any |= plat_enc((int)k) != 0;
+        if (any) {
+            ui.intro = 0;
+            ui.redraw = 1;
+        }
+        ui.keys = keys;
+        ui.btn = btn;
+        return;
+    }
     if (drone()) {                       /* a drone played alone */
         solo_input(keys, btn);
         return;
@@ -1664,11 +1685,11 @@ static void draw_solo(void)
             text_c(120, 82, &FONT_M, set.sh_kind == SH_NOTES ? "PRESS THE KEYS" : "PRESS A KEY", C_GRAY);
         else if (set.sh_kind != SH_NOTES) {   /* a chord: its name */
             shruti_name(t);
-            text_c(120, 128, &FONT_M, t, col);
+            text_c(120, 112, &FONT_M, t, col);
         } else if (n > 8u) {
             t[0] = '+';
             int_text((int32_t)(n - 8u), t + 1);
-            text_c(120, 142, &FONT_B, t, C_GRAY);
+            text_c(120, 138, &FONT_B, t, C_GRAY);
         }
         t[0] = 0;
         if (set.sh_bellows) {
@@ -1676,10 +1697,13 @@ static void draw_solo(void)
             text_cat(t, "%");
         } else
             text_cat(t, "STEADY");
-        solo_row(170, 0, "BREATHING", t);
+        solo_row(156, 0, "BREATHING", t);
+        int_text(set.sh_tempo, t);
+        text_cat(t, " BPM");
+        solo_row(182, 1, "TEMPO", t);
         int_text(set.sh_level, t);
         text_cat(t, "%");
-        solo_row(200, 1, "LEVEL", t);
+        solo_row(208, 2, "LEVEL", t);
     }
 }
 
@@ -1731,6 +1755,149 @@ static void draw(void)
 }
 
 
+/* ------------------------------------------------------------- the opening --- */
+/* at start: a maned wolf (the lobo-guara of the cerrado) paces across the dusk in big pixels, under the name, its
+ * near legs and its far ones swinging in pairs as it does; a key, a button or a knob ends it at once */
+#define WOLF_W 36
+#define WOLF_H 31
+#define WOLF_PX 5                        /* one of its pixels: 5 x 5 on the screen */
+#define GROUND_Y 200
+#define INTRO_MS 3400u                   /* 5 px every 40 ms: across the screen and out */
+/* o rust, r its darker back, k black (the near legs, the mane, the muzzle), g the far legs, w white */
+static const char *const WOLF_TOP[17] = {
+    "..........................o..o......",
+    ".........................ow.ow......",
+    ".........................ow.ow......",
+    ".........................owwow......",
+    "........................ooooooo.....",
+    "........................oooookooo...",
+    ".......................koooooooooooo",
+    ".......................kkooooooooook",
+    "......................kkkkwwwokkk...",
+    "......................kkkkwwww......",
+    "..........rrrrrrrrrrrrkkkkkwww......",
+    "......ooooooooooooooooookkkkwo......",
+    ".....oooooooooooooooooooooooooo.....",
+    "....ooooooooooooooooooooooooooo.....",
+    "...ooooooooooooooooooooooooooooo....",
+    "...oooo.oooooooooooooooooooooooo....",
+    "...oooo..ooooooooooooooooooooooo....",
+};
+static const char *const WOLF_LEGS[4][14] = {
+    {
+        "...oooo...kko.........okkooooo......",
+        "...oooo....kk..........kkg..........",
+        "...wwww....gkk.........gkk..........",
+        "...www.....gkk........ggkk..........",
+        "....ww.....ggkk.......ggkk..........",
+        "..........ggkk........ggkk..........",
+        ".........gg.kk........ggkk..........",
+        "........gg..kk.......gg..kk.........",
+        ".......gg..kk........gg..kk.........",
+        ".......g....k........gg..kk.........",
+        ".......g....k........g....k.........",
+        ".......g.....k......g.....k.........",
+        ".......g.....k......g.....k.........",
+        ".......gg.....kk....gg.....kk.......",
+    },
+    {
+        "...oooo...kko.........okkooooo......",
+        "...oooo...kkg..........kkg..........",
+        "...wwww....kkg.........kkg..........",
+        "...www......kk.........kk...........",
+        "....ww......kk.........kk...........",
+        "...........kk..........kk...........",
+        "..........kk...........kk...........",
+        "..........kk...........kk...........",
+        ".........kk............kk...........",
+        ".........k.............kk...........",
+        ".........gk............k............",
+        "..........k............gk...........",
+        "..........gk...........gk...........",
+        "..........gkk..........gkk..........",
+    },
+    {
+        "...oooo...kko.........okkooooo......",
+        "...oooo...kkgg........kkgg..........",
+        "...wwww...kkgg........kkgg..........",
+        "...www....kk.gg.......kk.gg.........",
+        "....ww....kk..gg.....kk..gg.........",
+        ".........kk...gg.....kk..gg.........",
+        "........kk...gg......kk..gg.........",
+        ".......kk...gg......kk....gg........",
+        "......kk....gg......kk....gg........",
+        "......k......g......kk....gg........",
+        "......k......g......k.....g.........",
+        "......k.......g.....k......g........",
+        "......k.......g....k........g.......",
+        "......kk.......gg..kk.......gg......",
+    },
+    {
+        "...oooo...kko.........okkooooo......",
+        "...oooo...kkgg.........kkg..........",
+        "...wwww...kkgg........kkgg..........",
+        "...www.....kkg........kkgg..........",
+        "....ww.....kkgg.......kkgg..........",
+        "..........kkgg........kkgg..........",
+        "..........kkgg........kkgg..........",
+        ".........kkgg.........kkgg..........",
+        "........kkgg..........kkgg..........",
+        "........k.g...........kkgg..........",
+        "........k..g..........k.g...........",
+        ".........k.g..........k.g...........",
+        ".........k..g.........k..g..........",
+        ".........kk.gg........kk.gg.........",
+    },
+};
+
+static uint16_t wolf_rgb(char c)
+{
+    return c == 'o' ? RGB(214, 100, 42) : c == 'r' ? RGB(150, 62, 26) : c == 'k' ? RGB(24, 20, 18)
+           : c == 'g' ? RGB(78, 62, 54) : RGB(242, 236, 222);
+}
+
+static void draw_intro(uint32_t t)
+{
+    int32_t top, i, j, x0 = WOLF_PX * ((int32_t)(t / 40u) - WOLF_W), y0 = GROUND_Y - WOLF_H * WOLF_PX;
+    const char *const *legs = WOLF_LEGS[t / 120u % 4u];
+    for (top = 0; top < 240; top += 120) {
+        band(top);
+        for (i = 0; i < 10; i++)         /* the dusk: deep blue above, the glow at the horizon */
+            cv_rect(0, i * 20, 240, 20, RGB(26 + i * 23, 24 + i * 12, 66 + i / 2));
+        for (j = -6; j <= 6; j++)        /* the sun setting, in blocks */
+            for (i = -6; i <= 6; i++)
+                if (i * i + j * j <= 40 && 196 + j * WOLF_PX < GROUND_Y)
+                    cv_rect(176 + i * WOLF_PX, 196 + j * WOLF_PX, WOLF_PX, WOLF_PX, RGB(252, 206, 108));
+        cv_rect(0, GROUND_Y, 240, 40, RGB(70, 54, 28));   /* the ground, the cerrado's grass */
+        cv_rect(0, GROUND_Y + 15, 240, 5, RGB(52, 40, 22));
+        for (i = 0; i < 16; i++) {
+            cv_rect(i * 15 + i * 7 % 10, GROUND_Y - WOLF_PX, WOLF_PX, WOLF_PX, RGB(196, 160, 72));
+            if (i % 3 == 0)
+                cv_rect(i * 15 + i * 7 % 10 + WOLF_PX, GROUND_Y - 2 * WOLF_PX, WOLF_PX, 2 * WOLF_PX, RGB(170, 136, 58));
+        }
+        text_c(120, 12, &FONT_L, APP_NAME, C_WHITE);
+        for (j = 0; j < WOLF_H; j++) {
+            const char *row = j < 17 ? WOLF_TOP[j] : legs[j - 17];
+            for (i = 0; i < WOLF_W; i++)
+                if (row[i] != '.')
+                    cv_rect(x0 + i * WOLF_PX, y0 + j * WOLF_PX, WOLF_PX, WOLF_PX, wolf_rgb(row[i]));
+        }
+        cv_blit(0, (uint32_t)top);
+    }
+}
+
+static void intro_frame(uint32_t now)
+{
+    uint32_t t = now - ui.intro_t0;
+    if (t >= INTRO_MS) {                 /* out of sight: the rhythm box */
+        ui.intro = 0;
+        ui.redraw = 1;
+    } else if ((int32_t)(t / 40u) != ui.intro_drawn) {
+        ui.intro_drawn = (int32_t)(t / 40u);
+        draw_intro(t);
+    }
+}
+
 /* ------------------------------------------------------------------- start --- */
 static void settings_default(void)
 {
@@ -1747,7 +1914,7 @@ static void settings_default(void)
     for (i = 0; i < NINST; i++)
         set.snd[i] = INST[i].def;
     set.mode = MODE_KIT;
-    set.tp_sa = 0;                       /* C */
+    set.tp_sa = 1;                       /* C#: MALE KALI 1 */
     set.tp_first = 0;                    /* Pa */
     set.tp_high = 0;
     set.tp_cycle = 40;
@@ -1757,9 +1924,10 @@ static void settings_default(void)
     set.sh_notes = 1u << 7 | 1u << 14 | 1u << 19;   /* Sa Pa Sa' on C: C4, G4, C5 */
     set.other_rhythm = NRHY_KIT;         /* the berimbau: ANGOLA */
     set.other_inst = I_BERIMBAU;
-    set.tp_preset = 0;                   /* C PA */
+    set.tp_preset = 0;                   /* MALE KALI 1 */
     set.sh_kind = SH_SAPA;               /* on C4: the reeds above */
     set.sh_root = 7;
+    set.sh_tempo = 40;                   /* a push and a pull in 3 s */
 }
 
 void app_init(void)
@@ -1772,7 +1940,8 @@ void app_init(void)
              && set.countin <= 1u && set.lights >= 1u && set.lights <= 2u && set.fixed <= 1u && set.bend <= 6u
              && set.mode < NMODES && set.tp_sa < 12u && set.tp_first < 3u && set.tp_high <= 1u && set.tp_cycle >= 20u
              && set.tp_cycle <= 80u && set.tp_level <= 100u && set.sh_level <= 100u && set.sh_bellows <= 100u
-             && set.sh_notes < 1u << NKEYS && set.tp_preset < NTP && set.sh_kind < NSH && set.sh_root < NKEYS;
+             && set.sh_notes < 1u << NKEYS && set.tp_preset < NTP && set.sh_kind < NSH && set.sh_root < NKEYS
+             && set.sh_tempo >= 20u && set.sh_tempo <= 120u;
     for (i = 0; ok && i < NINST; i++)
         ok = set.snd[i].level >= 0.0f && set.snd[i].level <= 1.0f && set.snd[i].tune >= -TUNE_MAX
              && set.snd[i].tune <= TUNE_MAX && set.snd[i].decay >= 0.1f && set.snd[i].decay <= 1.0f
@@ -1805,6 +1974,9 @@ void app_ui_init(void)
     lcd_fill(0, 0, 240, 240, C_BLACK);
     ui.drawn_step = -2;
     ui.redraw = 1;
+    ui.intro = 1;                        /* the opening first */
+    ui.intro_t0 = plat_ms();
+    ui.intro_drawn = -1;
 }
 
 void app_frame(void)
@@ -1813,6 +1985,10 @@ void app_frame(void)
     static uint32_t last_count;
     input();
     speak();
+    if (ui.intro) {
+        intro_frame(now);
+        return;
+    }
     if (ui.msg_until && now >= ui.msg_until) {
         ui.msg_until = 0;
         ui.redraw = 1;
@@ -1912,6 +2088,8 @@ int app_expect(const char *what, int *got)
             (*got)++;
     } else if (!strcmp(what, "msg"))       /* a message is on the screen */
         *got = ui.msg_until && (int32_t)(ui.msg_until - plat_ms()) > 0;
+    else if (!strcmp(what, "intro"))     /* the opening is playing */
+        *got = ui.intro;
     else if (!strcmp(what, "list"))      /* the presets' list is on the screen */
         *got = list_shown();
     else if (!strcmp(what, "listi"))     /* the one it shows */
@@ -1922,6 +2100,8 @@ int app_expect(const char *what, int *got)
         *got = set.sh_kind;
     else if (!strcmp(what, "root"))      /* its chord's key */
         *got = set.sh_root;
+    else if (!strcmp(what, "shtempo"))   /* its bellows' strokes a minute */
+        *got = set.sh_tempo;
     else if (!strcmp(what, "strokes")) { /* the instrument's steps with a stroke, in the bar */
         uint32_t s;
         *got = 0;

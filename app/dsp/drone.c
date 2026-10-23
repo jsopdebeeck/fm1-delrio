@@ -9,8 +9,9 @@
  * sound), each string a few cents off true, as a real one is.
  *
  * The shruti box: a reed for each note held, a band-limited saw and a narrow pulse (polyBLEP) mixed, softened by two
- * one-pole low-passes; each note fades in and out; the whole breathes with the bellows: each stroke of them a swell
- * and an ebb of the air (louder and a little brighter as it presses), each a little longer or shorter than the last. */
+ * one-pole low-passes; each note fades in and out; the whole breathes with the bellows, pushed then pulled in time:
+ * each stroke a swell of the air (louder and brighter as it presses), the sound falling back where the hand turns
+ * round (to nothing, breathing at the most), the pull a little weaker than the push. */
 #include "drone.h"
 #include "fastmath.h"
 
@@ -45,9 +46,11 @@ static struct {
     volatile int on;
     volatile uint32_t notes;
     volatile int32_t low;
-    volatile float level, bellows;
+    volatile float level, bellows, stroke_s;
     float ph[SHN], amp[SHN];
-    float lp1, lp2, breath, breath_s, gain;
+    float lp1, lp2, gain;
+    float stroke;                        /* where the hand is in its stroke, 0 .. 1 */
+    uint8_t pull;                        /* the stroke is the pull (else the push) */
 } sh;
 
 static float noise(void)
@@ -69,6 +72,7 @@ void dn_init(float sample_rate)
     tp.last = -1;
     sh.low = 53;
     sh.level = 0.7f;
+    sh.stroke_s = 1.5f;
     dn_panic();
 }
 
@@ -100,12 +104,17 @@ void dn_tanpura(int on, const dn_tanpura_t *p)
     tp.on = on;
 }
 
-void dn_shruti(int on, uint32_t notes, int32_t low, float level, float bellows)
+void dn_shruti(int on, uint32_t notes, int32_t low, float level, float bellows, float stroke_s)
 {
+    if (on && !sh.on) {                  /* from the start of a push */
+        sh.stroke = 0.0f;
+        sh.pull = 0;
+    }
     sh.notes = notes;
     sh.low = low;
     sh.level = fm_clampf(level, 0.0f, 1.0f);
     sh.bellows = fm_clampf(bellows, 0.0f, 1.0f);
+    sh.stroke_s = fm_clampf(stroke_s, 0.25f, 6.0f);
     sh.on = on;
 }
 
@@ -210,10 +219,8 @@ static void shruti_render(float *out, uint32_t n)
         held += notes >> k & 1u;
     }
     norm = 0.32f / fm_sqrtf((float)(held ? held : 1u));
-    if (sh.breath_s <= 0.0f)
-        sh.breath_s = 3.8f;
     for (i = 0; i < n; i++) {
-        float sum = 0.0f, b, press;
+        float sum = 0.0f, b, press, s, d = sh.bellows;
         for (k = 0; k < SHN; k++) {
             float want = (float)(notes >> k & 1u), t, saw, pulse, t2;
             sh.amp[k] += (want - sh.amp[k]) * 0.0006f;   /* a note opens and closes in about 40 ms */
@@ -229,14 +236,15 @@ static void shruti_render(float *out, uint32_t n)
             t += inc[k];
             sh.ph[k] = t >= 1.0f ? t - 1.0f : t;
         }
-        sh.breath += 1.0f / (sh.breath_s * SR);   /* the bellows: a swell and an ebb a stroke */
-        if (sh.breath >= 1.0f) {
-            sh.breath -= 1.0f;
-            sh.breath_s = 3.8f * (0.85f + 0.3f * (0.5f + 0.5f * noise()));   /* the next a little longer or shorter */
+        sh.stroke += 1.0f / (sh.stroke_s * SR);   /* the bellows: a push, a pull, in time */
+        if (sh.stroke >= 1.0f) {
+            sh.stroke -= 1.0f;
+            sh.pull ^= 1u;
         }
-        press = 0.5f - 0.5f * fm_cosf(6.2831853f * sh.breath);   /* 0 .. 1 .. 0 */
-        b = 1.0f - sh.bellows * 0.7f * (1.0f - press);
-        sh.lp1 += (sum - sh.lp1) * (0.22f + 0.14f * sh.bellows * press);   /* pressed harder: a little brighter */
+        s = 1.0f - fm_sinf(3.14159265f * sh.stroke);
+        press = 1.0f - s * s;            /* 0 where the hand turns, soon 1 */
+        b = (1.0f - d * (1.0f - press)) * (sh.pull ? 1.0f - 0.25f * d : 1.0f);
+        sh.lp1 += (sum - sh.lp1) * (0.14f + 0.08f * (1.0f - d) + 0.16f * d * press);   /* pressed: brighter */
         sh.lp2 += (sh.lp1 - sh.lp2) * 0.42f;
         sh.gain += (target - sh.gain) * 0.00012f;   /* the bellows filling: about 200 ms */
         out[i] += sh.lp2 * norm * b * sh.gain;
