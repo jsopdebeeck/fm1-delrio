@@ -25,28 +25,30 @@ typedef struct {
     uint8_t nart;
     const char *art[DR_NART];            /* the strokes' names */
     char letter[DR_NART];                /* on the steps, and in the rhythms below */
-    dr_inst_t def;                       /* the sound at first: level, tune, decay */
+    dr_inst_t def;                       /* the sound at first: level, tune, decay, wires */
 } inst_t;
 static const inst_t INST[NINST] = {
-    {"DJEMBE", RGB(240, 140, 40), 3, {"BASS", "TONE", "SLAP"}, {'B', 'T', 'S'}, {0.85f, 0.0f, 1.0f}},
-    {"CAJON", RGB(236, 206, 72), 2, {"BASS", "SLAP"}, {'B', 'S', 0}, {0.9f, 0.0f, 1.0f}},
-    {"UDU", RGB(222, 82, 60), 3, {"BASS", "TONE", "SLAP"}, {'B', 'T', 'S'}, {0.85f, 0.0f, 1.0f}},
-    {"CLAPSTICKS", RGB(124, 204, 84), 1, {"HIT", 0, 0}, {'X', 0, 0}, {0.65f, 0.0f, 1.0f}},
-    {"MARACAS", RGB(232, 96, 184), 1, {"SHAKE", 0, 0}, {'X', 0, 0}, {0.7f, 0.0f, 1.0f}},
-    {"TRIANGLE", RGB(92, 192, 242), 2, {"OPEN", "MUTED", 0}, {'O', 'M', 0}, {0.5f, 0.0f, 1.0f}},
+    {"DJEMBE", RGB(240, 140, 40), 3, {"BASS", "TONE", "SLAP"}, {'B', 'T', 'S'}, {0.85f, 0.0f, 1.0f, 1.0f}},
+    {"CAJON", RGB(236, 206, 72), 2, {"BASS", "SLAP"}, {'B', 'S', 0}, {0.9f, 0.0f, 1.0f, 1.0f}},
+    {"UDU", RGB(222, 82, 60), 3, {"BASS", "TONE", "SLAP"}, {'B', 'T', 'S'}, {0.85f, 0.0f, 1.0f, 1.0f}},
+    {"CLAPSTICKS", RGB(124, 204, 84), 1, {"HIT", 0, 0}, {'X', 0, 0}, {0.65f, 0.0f, 1.0f, 1.0f}},
+    {"MARACAS", RGB(232, 96, 184), 1, {"SHAKE", 0, 0}, {'X', 0, 0}, {0.7f, 0.0f, 1.0f, 1.0f}},
+    {"TRIANGLE", RGB(92, 192, 242), 2, {"OPEN", "MUTED", 0}, {'O', 'M', 0}, {0.5f, 0.0f, 1.0f, 1.0f}},
 };
 /* the black keys, left to right: instrument and stroke */
 static const uint8_t PAD[11][2] = {{0, 1}, {0, 2}, {0, 3}, {1, 1}, {1, 2}, {2, 1}, {2, 2}, {2, 3}, {3, 1}, {4, 1},
                                    {5, 1}};
 static const uint8_t WHITE[16] = PLAT_WHITE_KEYS, BLACK[11] = PLAT_BLACK_KEYS;
-enum { I_DJEMBE, I_CAJON, I_UDU };
+enum { I_DJEMBE, I_CAJON, I_UDU, I_CLAPSTICKS, I_MARACAS, I_TRIANGLE };
+#define TRIANGLE_PAD 10u                 /* held, the triangle rings; let go, the hand closes on it */
+#define TAP_MS 180u                      /* a triangle key let go sooner: a muted stroke (REC records it so) */
 #define UDU_BASS_PAD 5u                  /* the black key of the udu's bass: its pressure lowers it */
 #define FLAM_S 0.028f                    /* a flam: a soft grace stroke, the stroke this long after */
 #define FLAM_GRACE 0.45f
 
 /* ---------------------------------------------------------------- the rhythms --- */
 #define NSTEPS 32u                       /* 8 beats of 4 */
-#define NRHY 23u                         /* kept in two store objects */
+#define NRHY 27u                         /* kept in two store objects */
 #define ART(v) ((uint32_t)(v) >> 6)      /* a step: its stroke (0 none, 1..3) in the top two bits, */
 #define FLAM(v) ((uint32_t)(v) >> 5 & 1u)   /* a flam (the djembe's) in the next, */
 #define VEL(v) (((uint32_t)(v) & 31u) * 4u + 3u)   /* its velocity (3..127) below */
@@ -61,7 +63,7 @@ typedef struct {
     uint8_t rsv[2];
     uint8_t step[NINST][NSTEPS];
 } rhythm_t;
-#define RHY_MAGIC 0x34594852u            /* "RHY4" */
+#define RHY_MAGIC 0x35594852u            /* "RHY5" */
 static struct {
     uint32_t magic;
     rhythm_t r[NRHY];
@@ -75,7 +77,11 @@ static struct {
  *     strong: Ijexá "Ta TaTa Tum Ta", Barravento (6/8) "Tum TaTa TumTum" (Templo Tata Possum, Curso de Atabaque, 2024)
  *   BAIAO: the zabumba on the first beat's first and fourth sixteenths (here the djembe's bass), the triangle's
  *     sixteenths closed, open on the off-beats (ANPPOM 2018); SAMBA: the surdo soft on 1, strong on 2 (the cajon's
- *     bass), the ganzá's sixteenths (the maracas) */
+ *     bass), the ganzá's sixteenths (the maracas)
+ *   IJEXA CANTO, XOTE, MARCHA 2/4, TOADA, and BAIAO's djembe: the grooves the urban neo-ayahuasca circles put on the
+ *     djembe under their cantos (practical adaptations, not canonical transcriptions; the Huni Kuin's own cantos have
+ *     the voice, a maracá at most): IJEXA CANTO for the slow, swaying ones, BAIAO or MARCHA 2/4 for the ones that
+ *     dance, TOADA for the ternary ones */
 typedef struct {
     const char *name;
     uint8_t beats, div, bpm, swing;
@@ -85,13 +91,16 @@ typedef struct {
 /* grouped by their beats (ALGORITHM), each group ending with its FREE one (PRESET goes round a group) */
 static const rdef_t RDEF[] = {
     {"HEARTBEAT", 2, 4, 64, 0, 0, {"Bb..Bb..", "", "B.......", "", "..x...x.", ""}},
-    {"BAIAO", 2, 4, 100, 0, 0, {"B..B....", "", "", "", "", "MMOMMMOM"}},
+    {"BAIAO", 2, 4, 100, 0, 0, {"B..B..S.", "", "", "", "", "MMOMMMOM"}},
+    {"XOTE", 2, 4, 84, 0, 0, {"B..BS...", "", "", "", "", ""}},
     {"SAMBA", 2, 4, 100, 0, 0, {"", "b...B...", "", "", "xxxXxxxX", ""}},
+    {"MARCHA 2/4", 2, 4, 108, 0, 0, {"B.T.B.T.", "", "", "", "", ""}},
     {"MAZURCA", 2, 3, 60, 0, 0, {"", "", "", "", "xxxXXX", ""}},
     {"BARRAVENTO", 2, 3, 72, 0, 0, {"B.ttbb", "", "", "", "", ""}},
     {"FREE", 2, 4, 90, 0, 1, {"", "", "", "", "", ""}},
     {"THREE", 3, 4, 84, 0, 0, {"", "B...S...S...", "", "", "X.x.X.x.X.x.", "O..........."}},
     {"VALSA", 3, 2, 120, 0, 0, {"", "", "", "", "X.X.x.", ""}},
+    {"TOADA", 3, 2, 100, 0, 0, {"B.T.T.", "", "", "", "", ""}},
     {"FREE", 3, 4, 90, 0, 1, {"", "", "", "", "", ""}},
     {"FOUR", 4, 4, 92, 0, 0, {"", "B...S...B.b.S...", "", "", "x.X.x.X.x.X.x.X.", "O.......M......."}},
     {"JOURNEY", 4, 2, 116, 0, 0, {"BbbbBbbb", "", "B.......", "", "", ""}},
@@ -100,6 +109,7 @@ static const rdef_t RDEF[] = {
     {"AFRO 12/8", 4, 3, 100, 0, 0, {"S..TT.S..TT.", "", "B.....b.....", "X.X.XX.X.X.X", "X.xX.xX.xX.x", ""}},
     {"MARCHA", 4, 2, 120, 0, 0, {"", "", "", "", "x.x.x.X.", ""}},
     {"IJEXA", 4, 2, 96, 0, 0, {"T.ttB.t.", "", "", "", "x.x.x.x.", ""}},
+    {"IJEXA CANTO", 4, 4, 88, 0, 0, {"B.T.S.TTB.T.S...", "", "", "", "", ""}},
     {"FREE", 4, 4, 90, 0, 1, {"", "", "", "", "", ""}},
     {"FIVE", 5, 2, 110, 0, 0, {"", "B.s.s.B.S.", "", "", "XxXxXxXxXx", "O........."}},
     {"FREE", 5, 2, 90, 0, 1, {"", "", "", "", "", ""}},
@@ -140,8 +150,9 @@ static void rhythm_default(uint32_t k)
 enum { PG_HOME, PG_SOUND, PG_SETUP, NPAGES };
 static const char *const PAGE_NAME[NPAGES] = {"HOME", "SOUND", "SETUP"};
 static const uint8_t PAGE_BTN[NPAGES] = {B_HOME, B_ENV, B_GLO};
+#define BTN_USED (((1u << NB) - 1u) & ~(1u << B_FX | 1u << B_LFO))   /* FX and LFO do nothing: dark */
 enum { CLICK_OFF, CLICK_REC, CLICK_ON };
-#define SET_MAGIC 0x32534452u            /* "RDS2": the settings record; another magic loads defaults */
+#define SET_MAGIC 0x33534452u            /* "RDS3": the settings record; another magic loads defaults */
 typedef struct {
     uint32_t magic;
     uint8_t rhythm, inst, page;
@@ -174,7 +185,7 @@ static struct {
     volatile uint32_t beats;             /* beats played (SEQ's light) */
     uint32_t rnd;
 } seq;
-static struct {                          /* the black keys' strokes, from the main loop to the audio interrupt */
+static struct {                          /* the black keys' strokes (0: a hand on it), from the main loop to the audio */
     uint8_t inst[16], art[16], vel[16];
     uint16_t delay[16];
     volatile uint32_t w, r;
@@ -278,8 +289,12 @@ void app_render(int32_t *lr, uint32_t n, uint32_t master_q12)
     uint32_t i, done = 0;
     while (padq.r != padq.w) {           /* the black keys played since the last block */
         uint32_t k = padq.r % 16u;
-        dr_hit(padq.inst[k], padq.art[k], (float)padq.vel[k] * (1.0f / 127.0f), padq.delay[k]);
-        seq.hits[padq.inst[k]]++;
+        if (!padq.art[k])                /* stroke 0: a hand on it */
+            dr_choke(padq.inst[k]);
+        else {
+            dr_hit(padq.inst[k], padq.art[k], (float)padq.vel[k] * (1.0f / 127.0f), padq.delay[k]);
+            seq.hits[padq.inst[k]]++;
+        }
         padq.r++;
     }
     while (done < n) {
@@ -317,6 +332,7 @@ static struct {
     char msg[2][24];                     /* a short message over the header */
     uint32_t msg_until;
     uint16_t msg_rgb;
+    uint8_t msg_title;                   /* the message is a rhythm's name: as large as a title */
     uint32_t keys, btn;
     uint8_t keypage;                     /* the white keys' page of steps */
     uint32_t clear_t;                    /* EDIT once: a second press within 2 s clears the instrument */
@@ -326,6 +342,10 @@ static struct {
     uint32_t beats_seen, beat_until;
     int32_t drawn_step;
     float bend;                          /* the udu's bass, from its key's pressure: semitones */
+    uint32_t tri_down;                   /* the triangle's key: when it went down, */
+    int32_t tri_step;                    /* the step it recorded (-1: none), */
+    uint8_t tri_rhythm;                  /* in which rhythm */
+    uint32_t glow;                       /* the buttons glowing at the last input (the host's checks) */
     uint8_t redraw;
 } ui;
 
@@ -363,8 +383,9 @@ void app_say(const char *a, const char *b)
     for (i = 0; i < 23u && b && b[i]; i++)
         ui.msg[1][i] = b[i];
     ui.msg[1][i] = 0;
-    ui.msg_until = plat_ms() + 1300u;
+    ui.msg_until = plat_ms() + 2000u;
     ui.msg_rgb = 0;
+    ui.msg_title = 0;
     ui.redraw = 1;
     if (ann_on()) {                          /* and to a screen reader (announce.c, fm1-reader) */
         t[0] = 0;
@@ -417,10 +438,18 @@ static void sound_apply(uint32_t i) { dr_inst(i, &set.snd[i]); }
 
 static void inst_step(int32_t d)
 {
+    char t[24];
     set.inst = (uint8_t)((set.inst + NINST + (uint32_t)(d > 0 ? 1 : NINST - 1)) % NINST);
     ui.clear_t = 0;
+    ui.msg_until = 0;                    /* the title says it, large, in its colour: no message over it */
     changed();
-    say_inst(INST[set.inst].name, (cur()->mute >> set.inst & 1u) ? "MUTED" : "");
+    if (ann_on()) {                      /* a screen reader hears it */
+        t[0] = 0;
+        text_cat(t, INST[set.inst].name);
+        if (cur()->mute >> set.inst & 1u)
+            text_cat(t, " MUTED");
+        ann_say(t, 0, ANN_NOW);
+    }
 }
 
 static void keypage_fit(void)
@@ -461,7 +490,6 @@ static void rhythm_select(uint32_t k)
 {
     uint32_t i;
     int any = 0;
-    char t[16];
     if (!RDEF[k].free)
         rhythm_default(k);
     set.rhythm = (uint8_t)k;
@@ -475,12 +503,9 @@ static void rhythm_select(uint32_t k)
                 break;
             }
     changed();
-    int_text(RDEF[k].beats, t);
-    text_cat(t, " BEATS");
-    if (!any)
-        text_cat(t, ", EMPTY");
-    app_say(t, RDEF[k].name);
+    app_say(RDEF[k].name, any ? "" : "EMPTY");   /* its beats are in the footer already */
     ui.msg_until = plat_ms() + RHY_SAY_MS;   /* time to read it while turning on */
+    ui.msg_title = 1;
 }
 
 /* PRESET: the next rhythm with the same beats (round) */
@@ -549,26 +574,27 @@ static void tap(void)
 }
 
 /* -------------------------------------------------------------- the knobs --- */
-enum { KN_BPM, KN_DIV, KN_SWING, KN_HUMAN, KN_LEVEL, KN_TUNE, KN_DECAY, KN_BEND, KN_CLICK, KN_COUNT, KN_LIGHT,
-       KN_VEL, KN_NONE };
+enum { KN_BPM, KN_DIV, KN_SWING, KN_HUMAN, KN_LEVEL, KN_TUNE, KN_DECAY, KN_WIRES, KN_BEND, KN_CLICK, KN_COUNT,
+       KN_LIGHT, KN_VEL, KN_NONE };
 static const uint8_t PAGE_KNOB[NPAGES][4] = {
     {KN_BPM, KN_DIV, KN_SWING, KN_HUMAN},
     {KN_NONE, KN_NONE, KN_NONE, KN_NONE},   /* SOUND: the instrument's own (SOUND_KNOB) */
     {KN_CLICK, KN_COUNT, KN_LIGHT, KN_VEL},
 };
-/* SOUND: what a player of each can change. The djembe's head is tuned by its ropes and muted by a hand; an udu comes
- * smaller or larger, and the palm over its opening lowers its bass; the maracas shake short or long, the triangle is
- * let ring or held; the cajon and the clapsticks only play louder or softer */
+/* SOUND: what a player of each can change. The djembe's head is tuned by its ropes and muted by a hand; the cajon's
+ * snare wires are set tighter or slacker (or off), and a heel on its front deadens it; an udu comes smaller or larger,
+ * and the palm over its opening lowers its bass; the maracas shake short or long, the triangle is let ring or held;
+ * the clapsticks only play louder or softer */
 static const uint8_t SOUND_KNOB[NINST][4] = {
     {KN_LEVEL, KN_TUNE, KN_DECAY, KN_NONE},
-    {KN_LEVEL, KN_NONE, KN_NONE, KN_NONE},
+    {KN_LEVEL, KN_WIRES, KN_DECAY, KN_NONE},
     {KN_LEVEL, KN_TUNE, KN_BEND, KN_NONE},
     {KN_LEVEL, KN_NONE, KN_NONE, KN_NONE},
     {KN_LEVEL, KN_DECAY, KN_NONE, KN_NONE},
     {KN_LEVEL, KN_DECAY, KN_NONE, KN_NONE},
 };
 static const char *const KNOB_NAME[KN_NONE] = {"TEMPO", "STEPS", "SWING", "HUMAN", "LEVEL", "TUNE", "DECAY",
-                                               "PRESSURE BEND", "CLICK", "COUNT-IN", "LIGHTS", "VELOCITY"};
+                                               "SNARES", "PRESSURE BEND", "CLICK", "COUNT-IN", "LIGHTS", "VELOCITY"};
 #define TUNE_MAX 3.0f                    /* semitones either way */
 
 static uint32_t page_knob(uint32_t page, uint32_t k)
@@ -598,6 +624,14 @@ static void knob_text(uint32_t k, char *t)
             text_cat(t, ".5");
         break;
     case KN_DECAY: int_text((int32_t)(s->decay * 100.0f + 0.5f), t); text_cat(t, "%"); break;
+    case KN_WIRES:
+        if (s->wires < 0.005f)
+            text_cat(t, "OFF");
+        else {
+            int_text((int32_t)(s->wires * 100.0f + 0.5f), t);
+            text_cat(t, "%");
+        }
+        break;
     case KN_BEND:
         if (set.bend) {
             t[0] = '-';
@@ -624,6 +658,7 @@ static int32_t knob_fill(uint32_t k, int32_t w)   /* a value's bar, 0..w; -1: no
     case KN_LEVEL: f = s->level; break;
     case KN_TUNE: f = (s->tune + TUNE_MAX) / (2.0f * TUNE_MAX); break;
     case KN_DECAY: f = (s->decay - 0.1f) / 0.9f; break;
+    case KN_WIRES: f = s->wires; break;
     case KN_BEND: f = (float)set.bend / 6.0f; break;
     default: return -1;
     }
@@ -648,6 +683,7 @@ static void knob_turn(uint32_t k, int32_t d)
     case KN_LEVEL: s->level = fm_clampf(s->level + 0.05f * (float)d, 0.0f, 1.0f); break;
     case KN_TUNE: s->tune = fm_clampf(s->tune + 0.5f * (float)d, -TUNE_MAX, TUNE_MAX); break;
     case KN_DECAY: s->decay = fm_clampf(s->decay + 0.05f * (float)d, 0.1f, 1.0f); break;
+    case KN_WIRES: s->wires = fm_clampf(s->wires + 0.05f * (float)d, 0.0f, 1.0f); break;
     case KN_BEND: set.bend = (uint8_t)clamp((int32_t)set.bend + d, 0, 6); break;
     case KN_CLICK: set.click = (uint8_t)clamp((int32_t)set.click + (d > 0 ? 1 : -1), CLICK_OFF, CLICK_ON); break;
     case KN_COUNT: set.countin ^= 1u; break;
@@ -694,7 +730,7 @@ static int flam_held(void) { return (int)(plat_buttons() >> B_ARP & 1u); }
 
 /* REC: a stroke onto the nearest step (the one sounding, or the next; the next is then not played again this time
  * round). During the count-in, only in its last half step: onto the first step */
-static void record(uint32_t inst, uint32_t art, uint32_t vel, uint32_t flam)
+static int32_t record(uint32_t inst, uint32_t art, uint32_t vel, uint32_t flam)   /* its step; -1: not recorded */
 {
     rhythm_t *r = cur();
     uint32_t f = plat_lock(), ns = nsteps(r), count = seq.count, target, ahead = 0;
@@ -702,10 +738,10 @@ static void record(uint32_t inst, uint32_t art, uint32_t vel, uint32_t flam)
     float left = seq.left, len = seq.len;
     plat_unlock(f);
     if (!seq.rec || !seq.playing)
-        return;
+        return -1;
     if (count) {
         if (count != 1u || left >= len * 0.5f)
-            return;
+            return -1;
         target = 0;
         ahead = 1;
     } else if (step < 0) {
@@ -720,6 +756,7 @@ static void record(uint32_t inst, uint32_t art, uint32_t vel, uint32_t flam)
     if (ahead)
         seq.skip[inst] = (uint8_t)(target + 1u);
     changed();
+    return (int32_t)target;
 }
 
 /* a white key: its step's next stroke for the instrument (after the last: none); with ARP held, the djembe's step a
@@ -750,8 +787,29 @@ static void step_key(uint32_t w, uint32_t k)
 static void pad_key(uint32_t b, uint32_t k)
 {
     uint32_t vel = key_vel(k), flam = PAD[b][0] == I_DJEMBE && flam_held();
+    int32_t s;
     pad_play(PAD[b][0], PAD[b][1], vel, flam);
-    record(PAD[b][0], PAD[b][1], vel, flam);
+    s = record(PAD[b][0], PAD[b][1], vel, flam);
+    if (b == TRIANGLE_PAD) {             /* how long it is held tells open from muted */
+        ui.tri_down = plat_ms();
+        ui.tri_step = s;
+        ui.tri_rhythm = set.rhythm;
+    }
+}
+
+/* the triangle's key let go: the hand closes on it; let go at once, the stroke recorded is a muted one */
+static void triangle_release(void)
+{
+    rhythm_t *r = cur();
+    pad_stroke(I_TRIANGLE, 0, 0, 0);
+    if (ui.tri_step >= 0 && ui.tri_rhythm == set.rhythm && plat_ms() - ui.tri_down < TAP_MS) {
+        uint32_t v = r->step[I_TRIANGLE][ui.tri_step];
+        if (ART(v) == 1u) {
+            r->step[I_TRIANGLE][ui.tri_step] = STEP(2u, VEL(v), FLAM(v));
+            changed();
+        }
+    }
+    ui.tri_step = -1;
 }
 
 /* ------------------------------------------------------------------ input --- */
@@ -847,6 +905,8 @@ static void input(void)
     for (i = 0; i < 11u; i++)            /* a black key down: a stroke */
         if ((keys >> BLACK[i] & 1u) && !(ui.keys >> BLACK[i] & 1u))
             pad_key(i, BLACK[i]);
+    if (!(keys >> BLACK[TRIANGLE_PAD] & 1u) && (ui.keys >> BLACK[TRIANGLE_PAD] & 1u))
+        triangle_release();
     for (k = 0; k < NB; k++)
         if ((btn >> k & 1u) && !(ui.btn >> k & 1u))
             button(k);
@@ -930,9 +990,12 @@ static void input(void)
         if (ui.keypage + 1u < npages(r))
             mid_btn |= 1u << B_OCTUP;
     }
-    dim_btn = ~lit_btn & ((1u << NB) - 1u) & ~(1u << B_PLAY);
+    dim_btn = ~lit_btn & BTN_USED & ~(1u << B_PLAY);   /* the ones that do something glow, the others stay dark */
+    if (npages(r) < 2u)
+        dim_btn &= ~(1u << B_OCTDN | 1u << B_OCTUP);
     if (!(lit_btn & (1u << B_PLAY | LED_PLAY_GREEN)))
         dim_btn |= LED_PLAY_GREEN;       /* PLAY glows green */
+    ui.glow = dim_btn;
     plat_lights(lit_btn, lit_keys, dim_btn, dim_keys, set.lights);
     plat_lights_mid(mid_btn, mid_keys);
 }
@@ -972,12 +1035,15 @@ static void text_c(int32_t cx, int32_t y, const felucca_font_t *f, const char *s
     cv_text(cx - text_w(f, s) / 2, y, f, s, c);
 }
 
-/* the header: the instrument (or the page) large in its colour, the six instruments as dots; or a message */
+/* the header: the instrument (or the page) large in its colour (grey while muted); or a message */
 static void header(void)
 {
     const rhythm_t *r = cur();
-    uint32_t i;
-    if (plat_ms() < ui.msg_until) {
+    if (plat_ms() < ui.msg_until && ui.msg_title) {   /* a rhythm's name, large, in white */
+        int32_t x = cv_text(8, 2, &FONT_L, ui.msg[0], C_WHITE) + 10;
+        if (ui.msg[1][0])
+            cv_text(x, 11, &FONT_B, ui.msg[1], C_GRAY);
+    } else if (plat_ms() < ui.msg_until) {
         int32_t x = cv_text(8, 6, &FONT_M, ui.msg[0], C_WHITE) + 10;
         const felucca_font_t *f = x + text_w(&FONT_M, ui.msg[1]) > 236 ? &FONT_B : &FONT_M;
         cv_text(x, f == &FONT_M ? 6 : 11, f, ui.msg[1], ui.msg_rgb ? ui.msg_rgb : C_HI);
@@ -985,19 +1051,7 @@ static void header(void)
         cv_text(8, 2, &FONT_L, "SETUP", C_WHITE);
     } else {
         int muted = (int)(r->mute >> set.inst & 1u);
-        cv_text(8, 2, text_w(&FONT_L, INST[set.inst].name) > 150 ? &FONT_M : &FONT_L, INST[set.inst].name,
-                muted ? C_DIM : INST[set.inst].rgb);
-        if (set.page == PG_HOME)
-            for (i = 0; i < NINST; i++) {
-                int32_t x = 160 + (int32_t)i * 13;
-                uint16_t c = (r->mute >> i & 1u) ? C_DIM : INST[i].rgb;
-                if (has_strokes(r, i))
-                    cv_rect(x, 10, 10, 10, c);
-                else
-                    frame(x, 10, 10, 10, 1, c);
-                if (i == set.inst)
-                    cv_rect(x, 24, 10, 3, C_WHITE);
-            }
+        cv_text(8, 2, &FONT_L, INST[set.inst].name, muted ? C_DIM : INST[set.inst].rgb);
     }
     cv_rect(0, 36, 240, 1, C_LINE);
 }
@@ -1042,22 +1096,36 @@ static void draw_steps(void)
     }
 }
 
+/* the footer: the tempo and the beats large, the rhythm's name, and what it is doing (a green triangle playing, a
+ * red dot recording, the beats to go counting in) */
 static void footer(void)
 {
     const rhythm_t *r = cur();
+    const char *name = RDEF[set.rhythm].name;
     char t[16];
-    int32_t x;
+    int32_t x, i;
     int_text(r->bpm, t);
     x = cv_text(8, 204, &FONT_M, t, C_WHITE);
-    cv_text(x + 4, 212, &FONT_XS, "BPM", C_GRAY);
-    text_c(124, 208, &FONT_B, RDEF[set.rhythm].name, C_GRAY);
+    x = cv_text(x + 3, 212, &FONT_XS, "BPM", C_GRAY);
+    int_text(r->beats, t);
+    x = cv_text(x + 10, 204, &FONT_M, t, C_HI);
+    x = cv_text(x + 3, 212, &FONT_XS, "BEATS", C_GRAY);
+    if (text_w(&FONT_B, name) <= 210 - x - 6)
+        cv_text(210 - text_w(&FONT_B, name), 208, &FONT_B, name, C_WHITE);
+    else
+        cv_text(210 - text_w(&FONT_XS, name), 210, &FONT_XS, name, C_WHITE);
     if (seq.count) {                     /* counting in: the beats to go */
         int_text((int32_t)((seq.count + r->div - 1u) / r->div), t);
         cv_text(232 - text_w(&FONT_M, t), 204, &FONT_M, t, C_REC);
-    } else if (seq.rec)
-        cv_text(232 - text_w(&FONT_M, "REC"), 204, &FONT_M, "REC", C_REC);
-    else if (seq.playing)
-        cv_text(232 - text_w(&FONT_M, "PLAY"), 204, &FONT_M, "PLAY", C_GO);
+    } else if (seq.rec) {
+        cv_rect(218, 209, 14, 14, C_REC);
+        cv_rect(218, 209, 2, 2, C_BLACK);    /* the corners off: a dot */
+        cv_rect(230, 209, 2, 2, C_BLACK);
+        cv_rect(218, 221, 2, 2, C_BLACK);
+        cv_rect(230, 221, 2, 2, C_BLACK);
+    } else if (seq.playing)
+        for (i = 0; i < 13; i++)         /* a triangle, pointing right */
+            cv_rect(219 + i, 208 + i / 2, 1, 16 - (i / 2) * 2, C_GO);
 }
 
 /* a page of four values, one a row: the name, the value large, a thick bar in the instrument's colour */
@@ -1074,8 +1142,8 @@ static void draw_page(void)
         t[0] = 'K';
         t[1] = (char)('1' + i);
         t[2] = 0;
-        x = cv_text(8, y + 6, &FONT_XS, t, C_DIM) + 6;
-        cv_text(x, y + 4, &FONT_B, KNOB_NAME[kn], C_GRAY);
+        x = cv_text(8, y + 8, &FONT_XS, t, C_DIM) + 6;
+        cv_text(x, y, &FONT_M, KNOB_NAME[kn], C_GRAY);
         knob_text(kn, t);
         cv_text(232 - text_w(&FONT_M, t), y, &FONT_M, t, C_WHITE);
         if ((f = knob_fill(kn, 224)) >= 0) {
@@ -1127,7 +1195,8 @@ void app_init(void)
              && set.countin <= 1u && set.lights >= 1u && set.lights <= 2u && set.fixed <= 1u && set.bend <= 6u;
     for (i = 0; ok && i < NINST; i++)
         ok = set.snd[i].level >= 0.0f && set.snd[i].level <= 1.0f && set.snd[i].tune >= -TUNE_MAX
-             && set.snd[i].tune <= TUNE_MAX && set.snd[i].decay >= 0.1f && set.snd[i].decay <= 1.0f;
+             && set.snd[i].tune <= TUNE_MAX && set.snd[i].decay >= 0.1f && set.snd[i].decay <= 1.0f
+             && set.snd[i].wires >= 0.0f && set.snd[i].wires <= 1.0f;
     if (!ok)
         settings_default();
     ok = plat_store_load(OBJ_RHYTHMS, &rhy, RHY_A) == (int)RHY_A && rhy.magic == RHY_MAGIC
@@ -1149,6 +1218,7 @@ void app_init(void)
 void app_ui_init(void)
 {
     touch_on(1);                         /* velocity: the keys' readings on */
+    ui.tri_step = -1;
     lcd_fill(0, 0, 240, 240, C_BLACK);
     ui.drawn_step = -2;
     ui.redraw = 1;
@@ -1222,13 +1292,19 @@ int app_expect(const char *what, int *got)
         *got = (int)FLAM(r->step[set.inst][atoi(what + 4) % NSTEPS]);
     else if (!strcmp(what, "bend"))      /* the udu's bass: its glide now, tenths of a semitone */
         *got = (int)(dr_bent(I_UDU) * 10.0f + (dr_bent(I_UDU) < 0.0f ? -0.5f : 0.5f));
+    else if (!strcmp(what, "wires"))     /* the instrument's snare wires, % */
+        *got = (int)(set.snd[set.inst].wires * 100.0f + 0.5f);
     else if (!strcmp(what, "tune"))      /* the instrument's tuning, tenths of a semitone */
         *got = (int)(set.snd[set.inst].tune * 10.0f + (set.snd[set.inst].tune < 0.0f ? -0.5f : 0.5f));
     else if (what[0] == 'v' && what[1] >= '0' && what[1] <= '9')   /* vN: its velocity */
         *got = ART(r->step[set.inst][atoi(what + 1) % NSTEPS]) ? (int)VEL(r->step[set.inst][atoi(what + 1) % NSTEPS]) : 0;
     else if (!strncmp(what, "hits", 4))  /* hitsI: instrument I's strokes played since boot */
         *got = (int)seq.hits[atoi(what + 4) % NINST];
-    else if (!strcmp(what, "msg"))       /* a message is on the screen */
+    else if (!strncmp(what, "glow", 4)) {   /* glowFX, glowLFO, glowOCT: that button glows (OCT: OCT- or OCT+) */
+        uint32_t m = !strcmp(what + 4, "FX") ? 1u << B_FX : !strcmp(what + 4, "LFO") ? 1u << B_LFO
+                     : 1u << B_OCTDN | 1u << B_OCTUP;
+        *got = (ui.glow & m) != 0u;
+    } else if (!strcmp(what, "msg"))       /* a message is on the screen */
         *got = ui.msg_until && (int32_t)(ui.msg_until - plat_ms()) > 0;
     else if (!strcmp(what, "strokes")) { /* the instrument's steps with a stroke, in the bar */
         uint32_t s;

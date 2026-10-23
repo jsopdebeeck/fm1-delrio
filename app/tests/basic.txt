@@ -14,6 +14,11 @@ expect v1 <80
 expect s2 0
 shot home.png
 
+# only the buttons that do something glow: not FX, LFO, nor OCT- / OCT+ with one page of keys
+expect glowFX 0
+expect glowLFO 0
+expect glowOCT 0
+
 # SELECT: the instruments, round
 turn SELECT 1
 expect inst 1
@@ -68,23 +73,23 @@ peakreset
 # ALGORITHM: the beats, and the first rhythm with that many; PRESET goes round the rhythms with those beats
 turn ALGO 1
 expect beats 3
-expect rhythm 6
+expect rhythm 8
 turn ALGO 9
 expect beats 8
-expect rhythm 22
+expect rhythm 26
 turn ALGO -6
 expect beats 2
 expect rhythm 0
 expect inst 0
 turn PRESET 1
 expect rhythm 1
-turn PRESET 4
-expect rhythm 5
+turn PRESET 6
+expect rhythm 7
 expect beats 2
 turn PRESET 1
 expect rhythm 0
 turn PRESET -1
-expect rhythm 5
+expect rhythm 7
 turn PRESET 1
 expect rhythm 0
 # the rhythm's beats and name stay on the screen 4 s, to be read while turning
@@ -169,12 +174,37 @@ tap PLAY
 expect playing 0
 expect rec 0
 
+# the triangle's key: held, it rings; let go, the hand closes on it (nothing else sounds now)
+turn SELECT -1
+expect inst 5
+key b10 down
+wait 300
+expect voices >0
+key b10 up
+wait 60
+expect voices 0
+# REC: a short tap is recorded muted (step 2, early in it), a held one open (step 3)
+tap REC
+expect count 0
+wait 1100
+tapkey b10
+expect s2 2
+wait 400
+key b10 down
+wait 400
+key b10 up
+expect s3 1
+tap PLAY
+expect playing 0
+turn SELECT 1
+expect inst 0
+
 # 4 beats, then AFRO 12/8: the clapsticks' bell
 turn ALGO 2
 expect beats 4
-expect rhythm 9
+expect rhythm 12
 turn PRESET 4
-expect rhythm 13
+expect rhythm 16
 expect beats 4
 expect div 3
 expect bpm 100
@@ -188,13 +218,14 @@ turn SELECT -3
 # 8 beats (FREE) of 4 steps: two pages of keys (OCT+ / OCT-), 16 steps each
 turn ALGO 4
 expect beats 8
-expect rhythm 22
+expect rhythm 26
 # (passing FIVE and SEVEN, the cajon came to be shown: FREE has nothing to show instead)
 expect inst 1
 turn SELECT -1
 expect inst 0
 turn K2 2
 expect div 4
+expect glowOCT 1
 tap OCT+
 expect keypage 1
 tapkey w0
@@ -237,9 +268,16 @@ expect tune 30
 turn K2 -6
 expect tune 0
 shot sound.png
-# the cajon has its level only
+# the cajon: its snare wires (OFF at 0), and the heel's decay; no tuning
 turn SELECT 1
-turn K2 3
+expect wires 100
+turn K2 -4
+expect wires 80
+turn K2 -30
+expect wires 0
+shot sound-cajon.png
+turn K2 20
+expect wires 100
 expect tune 0
 turn SELECT 1
 shot sound-udu.png
@@ -262,7 +300,7 @@ tap SAVE
 expect dirty 0
 reboot
 wait 600
-expect rhythm 22
+expect rhythm 26
 expect beats 8
 expect s16 1
 expect countin 0
@@ -272,7 +310,7 @@ expect playing 0
 turn ALGO -4
 expect beats 4
 turn PRESET 5
-expect rhythm 14
+expect rhythm 17
 expect beats 4
 expect div 2
 expect inst 4
@@ -284,38 +322,50 @@ expect s0 0
 tap SAVE
 reboot
 wait 600
-expect rhythm 14
+expect rhythm 17
 expect s0 0
 expect strokes 3
 # a written rhythm comes as written: what was changed in it (a stroke, the tempo), away and back, is gone
 turn K1 10
 expect bpm 130
 turn PRESET 1
-expect rhythm 15
+expect rhythm 18
 expect bpm 96
 turn PRESET -1
-expect rhythm 14
+expect rhythm 17
 expect bpm 120
 expect strokes 4
 # 2 beats: MAZURCA (the maracas only, in 6/8), BARRAVENTO (the djembe only): the instrument shown follows
 turn ALGO -2
 expect rhythm 0
-turn PRESET 3
-expect rhythm 3
+turn PRESET 5
+expect rhythm 5
 expect div 3
 expect inst 4
 expect strokes 6
 turn PRESET 1
-expect rhythm 4
+expect rhythm 6
 expect inst 0
 expect strokes 5
 # a FREE one stays as the player left it
 turn PRESET 1
-expect rhythm 5
+expect rhythm 7
 expect strokes 0
 tapkey w0
 expect s0 1
 turn PRESET -1
 turn PRESET 1
-expect rhythm 5
+expect rhythm 7
 expect s0 1
+# the circles' grooves on the djembe: IJEXA CANTO (4 beats), TOADA (3)
+turn ALGO 2
+turn PRESET 7
+expect rhythm 19
+expect div 4
+expect inst 0
+expect strokes 8
+turn ALGO -1
+turn PRESET 2
+expect rhythm 10
+expect div 2
+expect strokes 3

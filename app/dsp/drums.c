@@ -13,13 +13,13 @@
 typedef struct {
     const int16_t *pcm;
     uint32_t len, delay, age, hold;
-    float pos, inc, g, env, fall;
+    float pos, inc, g, env, fall, wires, lp;   /* lp: the split for the wires (below ~1.8 kHz) */
     uint8_t on, inst, art, stopping;
 } voice_t;
 
 static voice_t V[NV];
 static dr_inst_t P[DR_NINST];
-static float SR = 44100.0f, stop_fall;
+static float SR = 44100.0f, stop_fall, split_k;
 static uint32_t age_now;
 static uint8_t take_next[DR_NINST][DR_NART];
 static volatile float bend_to[DR_NINST];   /* the glide: where it goes (main loop), where it is (audio) */
@@ -36,10 +36,12 @@ void dr_init(float sample_rate)
     uint32_t i;
     SR = sample_rate;
     stop_fall = fm_expf(-1.0f / (0.004f * SR));   /* stopped: gone in a few ms */
+    split_k = 1.0f - fm_expf(-6.2831853f * 1800.0f / SR);   /* a one-pole split at 1.8 kHz */
     for (i = 0; i < DR_NINST; i++) {
         P[i].level = 0.8f;
         P[i].tune = 0.0f;
         P[i].decay = 1.0f;
+        P[i].wires = 1.0f;
         bend_to[i] = bend_now[i] = 0.0f;
         bend_art[i] = 0;
     }
@@ -114,6 +116,8 @@ void dr_hit(uint32_t inst, uint32_t art, float vel, uint32_t delay)
     g = fm_clampf(vel, 0.0f, 1.0f);
     g = g * fm_sqrtf(g) * p->level * s->gain;   /* the velocity's curve: soft strokes softer */
     v->g = g;
+    v->wires = fm_clampf(p->wires, 0.0f, 1.0f);
+    v->lp = 0.0f;
     v->pcm = s->pcm;
     v->len = s->len;
     v->pos = 0.0f;
@@ -135,6 +139,14 @@ void dr_hit(uint32_t inst, uint32_t art, float vel, uint32_t delay)
     v->art = (uint8_t)art;
     v->stopping = 0;
     v->on = 1;
+}
+
+void dr_choke(uint32_t inst)
+{
+    uint32_t i;
+    for (i = 0; i < NV; i++)
+        if (V[i].on && V[i].inst == inst && !V[i].stopping)
+            stop(&V[i]);
 }
 
 void dr_click(int accent, uint32_t delay)
@@ -186,6 +198,10 @@ void dr_render(float *out, uint32_t n)
             }
             f = v->pos - (float)j;
             s = ((float)v->pcm[j] + (float)(v->pcm[j + 1u] - v->pcm[j]) * f) * (1.0f / 32768.0f) * v->env;
+            if (v->wires < 0.999f) {     /* less of what is above the split: the wires slackened */
+                v->lp += (s - v->lp) * split_k;
+                s = v->lp + (s - v->lp) * v->wires;
+            }
             out[i] += s * v->g;
             v->pos += v->inc;
             if (v->hold)

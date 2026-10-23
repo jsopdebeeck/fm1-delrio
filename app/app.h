@@ -27,7 +27,8 @@ void app_say(const char *a, const char *b);   /* a short message on the screen a
 /* the host simulator's checks (host/plat_host.c "expect"): inst, rhythm, beats, div, bpm, swing, human, playing,
  * rec, count (count-in steps left), step (the step sounding), page, keypage, muted, dirty, voices, click, countin,
  * sN (the selected instrument's stroke at step N: 0 none, 1..3), vN (its velocity), flamN (a flam there), strokes
- * (its steps with a stroke), msg (a message on the screen), tune (its tuning, tenths of a semitone), bend (the udu's bass glide now, tenths),
+ * (its steps with a stroke), msg (a message on the screen), glowFX / glowLFO / glowOCT (that button glows), wires
+ * (its snare wires, %), tune (its tuning, tenths of a semitone), bend (the udu's bass glide now, tenths),
  * hitsI (instrument I's strokes played since boot) */
 #define APP_HOST_EXPECT
 int app_expect(const char *what, int *got);

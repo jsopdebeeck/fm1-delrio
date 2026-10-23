@@ -84,6 +84,9 @@ a { color: var(--accent); }
 .help h2 { font: 600 1.1rem "Barlow Semi Condensed", "Barlow", sans-serif; margin: 0 0 .3rem; }
 .help p, .help ul { margin: 0; max-width: 60ch; }
 .help ul { padding-left: 1.1rem; }
+.help li { margin: .25rem 0; }
+.help li > ul { margin: .15rem 0 .35rem; color: var(--muted); }
+.help ul + ul, .help p + ul, .help ul + p { margin-top: .6rem; }
 .credit { color: var(--muted); font-size: .85rem; margin: 1.4rem 0 0; }
 kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); border: 1px solid var(--rule); border-radius: 4px; padding: 0 .3em; color: var(--ink); }
 </style>
@@ -139,67 +142,136 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
   <div>
     <h2>Playing</h2>
     <ul>
-      <li><b>Black keys</b>, left to right: djembe bass, tone, slap · cajon bass, slap · udu bass, tone, slap ·
-        clapsticks, maracas · triangle. Harder is louder.</li>
-      <li><b>White keys</b>: the steps of the instrument SELECT shows. A press puts its first stroke there, the next
-        press the next stroke, and after the last, none. Bright: a stroke. Dim: an empty step, a little brighter on
-        each beat's first step.</li>
-      <li><b>PLAY</b> plays the bar in a loop, <b>PLAY</b> again stops. The step sounding is the moving light, and the
-        white frame on the screen.</li>
-      <li><b>REC</b> records what the black keys play, each stroke onto the nearest step, over what is there. From a
-        stop, a bar is counted in first (clicks). <b>REC</b> again stops recording; the loop goes on.</li>
-      <li><b>ARP</b> held makes the djembe's strokes flams (a soft grace stroke just before): on a white key, that step
-        becomes a flam or stops being one; on a djembe black key, the stroke is played (and recorded) as a flam. On the
-        screen a flam has a small letter before its own.</li>
-      <li>On the FM-1, pressing the udu's bass key harder lowers its bass, as a palm closing the pot's opening. This
-        page plays every key at the same strength and without pressure.</li>
+      <li><b>Black keys</b>, left to right: the instruments (harder is louder)
+        <ul>
+          <li><b>Djembe</b>: bass, tone, slap</li>
+          <li><b>Cajon</b>: bass, slap</li>
+          <li><b>Udu</b>: bass, tone, slap</li>
+          <li><b>Clapsticks</b>, then <b>maracas</b></li>
+          <li><b>Triangle</b>: held, it rings; let go, the hand closes on it. A short tap is a muted stroke, and
+            <b>REC</b> records it so.</li>
+        </ul>
+      </li>
+      <li><b>White keys</b>: the steps of the instrument <b>SELECT</b> shows
+        <ul>
+          <li>A press: its first stroke. The next press: the next stroke. After the last: none.</li>
+          <li>Bright: a stroke. Dim: an empty step, a little brighter on each beat's first step.</li>
+        </ul>
+      </li>
+      <li><b>PLAY</b>: plays the bar in a loop. <b>PLAY</b> again: stops.
+        <ul>
+          <li>The step sounding: the moving light on the keys, the white frame on the screen.</li>
+        </ul>
+      </li>
+      <li><b>REC</b>: records what the black keys play, each stroke onto the nearest step
+        <ul>
+          <li>From a stop: one bar counted in first (clicks).</li>
+          <li><b>REC</b> again: stops recording; the loop goes on.</li>
+        </ul>
+      </li>
+      <li><b>ARP</b> held: the djembe's strokes become flams (a soft grace stroke just before)
+        <ul>
+          <li>On a white key: that step becomes a flam, or stops being one.</li>
+          <li>On a djembe black key: the stroke is played, and recorded, as a flam.</li>
+          <li>On the screen: a small letter before the stroke's own.</li>
+        </ul>
+      </li>
+      <li><b>Udu bass key</b> pressed harder: its bass goes lower, as a palm closing the pot's opening
+        <ul>
+          <li>On the FM-1 only: this page plays every key at the same strength, without pressure.</li>
+        </ul>
+      </li>
     </ul>
   </div>
   <div>
     <h2>One control per setting</h2>
     <ul>
-      <li><b>SELECT</b>: the instrument (its colour on the screen). <b>ALGORITHM</b>: the beats in the bar, 2 to 8,
-        and the first rhythm with that many. <b>PRESETS</b>: the rhythms with those beats, round.</li>
-      <li><b>SEL</b>: the instrument muted or on. <b>EDIT</b> twice: its strokes cleared.</li>
-      <li><b>SEQ</b>: tap the tempo (it blinks the beat). <b>ARP</b> held: flams on the djembe. <b>OCT−</b> /
-        <b>OCT+</b>: the keys' page of steps, when the bar has more steps than the 16 white keys.</li>
-      <li><b>SAVE</b> keeps everything (lit when something changed). <b>MASTER</b>: the volume.</li>
+      <li><b>SELECT</b>: the instrument (its colour on the screen)</li>
+      <li><b>ALGORITHM</b>: the beats in the bar, 2 to 8, and the first rhythm with that many</li>
+      <li><b>PRESETS</b>: the rhythms with those beats, round</li>
+      <li><b>SEL</b>: the instrument muted, or on</li>
+      <li><b>EDIT</b> twice: the instrument's strokes cleared</li>
+      <li><b>SEQ</b>: tap the tempo (it blinks the beat)</li>
+      <li><b>ARP</b> held: flams on the djembe</li>
+      <li><b>OCT−</b> / <b>OCT+</b>: the keys' page of steps, when the bar has more than 16 steps</li>
+      <li><b>SAVE</b>: keeps everything (lit when something changed)</li>
+      <li><b>MASTER</b>: the volume</li>
+      <li><b>FX</b>, <b>LFO</b>: not used (dark)</li>
     </ul>
   </div>
   <div>
     <h2>Pages, set with KNOB 1–4</h2>
     <ul>
-      <li><b>HOME</b>, the steps: tempo, steps a beat (2, 3 or 4), swing (with 2 or 4 steps a beat; 3 already
-        swings), human feel.</li>
-      <li><b>ENV</b> SOUND, the selected instrument, with only what a player of it can change: its level; the tuning
-        of the djembe and the udu (3 semitones either way); the decay of the djembe, the maracas and the triangle; for
-        the udu, how far pressing its bass key lowers the bass.</li>
-      <li><b>GLO</b> SETUP: the click (off, while recording, always), the count-in, the keys' lights, the velocity
-        (from the keys, or fixed).</li>
+      <li><b>HOME</b>: the steps
+        <ul>
+          <li><b>KNOB 1</b>: the tempo</li>
+          <li><b>KNOB 2</b>: the steps a beat (2, 3 or 4)</li>
+          <li><b>KNOB 3</b>: the swing (with 2 or 4 steps a beat; 3 swings already)</li>
+          <li><b>KNOB 4</b>: the human feel</li>
+        </ul>
+      </li>
+      <li><b>ENV</b>: SOUND, the selected instrument, only what a player of it can change
+        <ul>
+          <li><b>Djembe</b>: level, tune (3 semitones either way), decay</li>
+          <li><b>Udu</b>: level, tune (3 semitones either way), pressure bend</li>
+          <li><b>Maracas</b>, <b>triangle</b>: level, decay</li>
+          <li><b>Cajon</b>: level, snares (its wires: tighter, slacker, off), decay (a heel on its front)</li>
+          <li><b>Clapsticks</b>: level</li>
+        </ul>
+      </li>
+      <li><b>GLO</b>: SETUP
+        <ul>
+          <li><b>KNOB 1</b>: the click (off, while recording, always)</li>
+          <li><b>KNOB 2</b>: the count-in (off, one bar)</li>
+          <li><b>KNOB 3</b>: the keys' lights (low, high)</li>
+          <li><b>KNOB 4</b>: the velocity (from the keys, or fixed)</li>
+        </ul>
+      </li>
     </ul>
   </div>
   <div>
-    <h2>Rhythms (ALGORITHM, then PRESETS)</h2>
+    <h2>Rhythms: ALGORITHM, then PRESETS</h2>
     <ul>
-      <li><b>2 beats</b>: HEARTBEAT, BAIAO (the zabumba and the triangle), SAMBA, MAZURCA (Santo Daime's maracá, 6/8),
-        BARRAVENTO (Umbanda's atabaque on the djembe, 6/8).</li>
-      <li><b>3 beats</b>: THREE, VALSA (Santo Daime's maracá).</li>
-      <li><b>4 beats</b>: FOUR, JOURNEY (steady shamanic drumming), SHAKER, CLAVE, AFRO 12/8 (the bell on the
-        clapsticks), MARCHA (Santo Daime's maracá), IJEXA (Umbanda's atabaque on the djembe: Tum its bass, Ta its
-        tone).</li>
-      <li><b>5 beats</b>: FIVE. <b>7 beats</b>: SEVEN. <b>6 and 8 beats</b>: your own only.</li>
-      <li>Each number of beats ends with a <b>FREE</b> rhythm to fill.</li>
+      <li><b>2 beats</b>: HEARTBEAT, BAIAO, XOTE, SAMBA, MARCHA 2/4, MAZURCA, BARRAVENTO, FREE</li>
+      <li><b>3 beats</b>: THREE, VALSA, TOADA, FREE</li>
+      <li><b>4 beats</b>: FOUR, JOURNEY, SHAKER, CLAVE, AFRO 12/8, MARCHA, IJEXA, IJEXA CANTO, FREE</li>
+      <li><b>5 beats</b>: FIVE, FREE</li>
+      <li><b>6 beats</b>: FREE</li>
+      <li><b>7 beats</b>: SEVEN, FREE</li>
+      <li><b>8 beats</b>: FREE</li>
     </ul>
-    <p>A rhythm comes as it is written: its beats, steps, tempo and strokes. What you change lasts until you choose
-      another; the FREE ones keep what you put in them (SAVE keeps them when the FM-1 is off). The instrument shown
-      is one the rhythm plays.</p>
+    <ul>
+      <li>A written rhythm comes as it is written: its steps, tempo and strokes. What you change lasts until you choose
+        another.</li>
+      <li>A <b>FREE</b> rhythm keeps what you put in it; <b>SAVE</b> keeps it when the FM-1 is off.</li>
+      <li>The instrument shown is one the rhythm plays.</li>
+    </ul>
+  </div>
+  <div>
+    <h2>Where they come from</h2>
+    <ul>
+      <li><b>Santo Daime</b>, the maracá: MARCHA, VALSA, MAZURCA</li>
+      <li><b>Umbanda</b>, the atabaque on the djembe (Tum its bass, Ta its tone): IJEXA, BARRAVENTO</li>
+      <li><b>Brazil</b>: BAIAO (the zabumba and the triangle), SAMBA</li>
+      <li><b>The neo-ayahuasca circles</b>, the djembe under their cantos (practical adaptations, not canonical
+        transcriptions): IJEXA CANTO, XOTE, MARCHA 2/4, TOADA, and BAIAO's djembe</li>
+    </ul>
+    <p>For a canto such as Jiboia, choose by ear:</p>
+    <ul>
+      <li><b>IJEXA CANTO</b>: it drags and sways, in call and answer</li>
+      <li><b>BAIAO</b> or <b>MARCHA 2/4</b>: it pushes you to dance</li>
+      <li><b>TOADA</b>: it is ternary</li>
+    </ul>
   </div>
   <div>
     <h2>From the computer's keyboard</h2>
-    <p>Click the device first. Keys go by their place, not their letter (shown for QWERTY): <kbd>1</kbd>…<kbd>0</kbd>
-      and <kbd>-</kbd> the black keys (the instruments), <kbd>Q</kbd>…<kbd>I</kbd> and <kbd>A</kbd>…<kbd>K</kbd> the
-      16 white keys (the steps); <kbd>P</kbd> PLAY, <kbd>O</kbd> REC, <kbd>Esc</kbd> HOME, <kbd>Z</kbd> / <kbd>X</kbd>
-      the keys' page, <kbd>↑</kbd> <kbd>↓</kbd> the instrument.</p>
+    <p>Click the device first. Keys go by their place, not their letter (shown for QWERTY):</p>
+    <ul>
+      <li><kbd>1</kbd>…<kbd>0</kbd>, <kbd>-</kbd>: the black keys (the instruments)</li>
+      <li><kbd>Q</kbd>…<kbd>I</kbd>, <kbd>A</kbd>…<kbd>K</kbd>: the white keys (the steps)</li>
+      <li><kbd>P</kbd>: PLAY · <kbd>O</kbd>: REC · <kbd>Esc</kbd>: HOME</li>
+      <li><kbd>Z</kbd> / <kbd>X</kbd>: the keys' page · <kbd>↑</kbd> <kbd>↓</kbd>: the instrument</li>
+    </ul>
   </div>
 </section>
 <p class="credit">Sounds: the cajon, clapsticks (claves), maracas (the large shaker's hits) and triangle from VCSL by Versilian Studios

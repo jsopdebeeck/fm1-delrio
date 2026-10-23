@@ -27,6 +27,7 @@ typedef struct {
     float level;                         /* 0 .. 1 */
     float tune;                          /* semitones, -12 .. +12 */
     float decay;                         /* 0.1 .. 1: 1 rings as recorded, less shortens it */
+    float wires;                         /* 0 .. 1: its sound above ~1.8 kHz (the cajon's snare wires), 1 as recorded */
 } dr_inst_t;
 
 void dr_init(float sample_rate);
@@ -36,6 +37,7 @@ void dr_bend(uint32_t inst, uint32_t art, float semis);
 /* audio interrupt: a stroke (art 1..) at velocity 0..1, starting delay samples into the next render */
 void dr_hit(uint32_t inst, uint32_t art, float vel, uint32_t delay);
 void dr_click(int accent, uint32_t delay);   /* the metronome: a high tick on the bar's first beat */
+void dr_choke(uint32_t inst);            /* a hand on the instrument: what it has sounding stops (in a few ms) */
 void dr_panic(void);                     /* any context: silence now */
 void dr_render(float *out, uint32_t n);  /* mono, about -1 .. 1 */
 uint32_t dr_active(void);                /* voices sounding (the host's checks) */
