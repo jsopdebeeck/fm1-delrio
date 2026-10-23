@@ -1793,21 +1793,21 @@ static void draw(void)
 
 
 /* ------------------------------------------------------------- the opening --- */
-/* at start: the picture (art/opening.webp) in big pixels, 80 x 80 of 32 colours, 3 x 3 on the screen each; its maned
- * wolf (the lobo-guara of the cerrado) walks into it from the left, slowing, and stands as he stands in it; then the
- * picture a moment. A key, a button or a knob ends it at once. tools/opening.py cuts him out of it (opening.h): the
- * scene without him, his body; his legs are drawn here, each two bones from hip or shoulder to foot. They walk: each
- * foot on the ground while he goes over it (it does not slide), then lifted and brought forward, the four in turn
- * (near hind, near fore, far hind, far fore); a fore leg's knee bends forward, a hind leg's back. At the end they
- * settle where the picture has them */
+/* at start: the cerrado at dusk (art/opening-scene.webp) in big pixels, 80 x 80 of 32 colours, 3 x 3 on the screen
+ * each, under the name; a maned wolf (the lobo-guara, art/opening.webp) walks into it from the left, slowing, and
+ * stands, clear of the sun; then the scene a moment. A key, a button or a knob ends it at once. tools/opening.py
+ * makes the scene and cuts his body out of his picture (opening.h); his legs are drawn here, each two bones from hip
+ * or shoulder to foot. They walk: each foot on the ground while he goes over it (it does not slide), then lifted and
+ * brought forward, the four in turn (near hind, near fore, far hind, far fore); a fore leg's knee bends forward, a
+ * hind leg's back. At the end they settle as his picture has them */
 #include "opening.h"
 #define WALK_MS 2800u                    /* in from the left, */
-#define INTRO_MS 4000u                   /* then the picture, still */
-#define WALK_PX 70                       /* from out of sight, in the picture's pixels */
+#define INTRO_MS 4000u                   /* then the scene, still */
+#define WALK_PX 60                       /* from out of sight, in the scene's pixels */
 #define STRIDE 16.0f                     /* the ground a leg's step covers */
 #define DUTY 0.62f                       /* of it, the foot on the ground */
 #define LIFT 3.0f                        /* a foot lifted, at the most */
-#define GROUND 66.0f                     /* where his feet stand */
+#define GROUND (66.0f + OP_DY)           /* where his feet stand */
 #define SETTLE 0.7f                      /* from this much of the walk, his legs settle to the picture's */
 
 static uint16_t op_pal[OP_FAR_FUR + 1u];   /* OP_PAL, as the canvas holds it */
@@ -1837,9 +1837,9 @@ static void op_leg(uint32_t k, float dx, float went, float b, uint16_t c, uint16
     static const float OFF[4] = {0.5f, 0.75f, 0.0f, 0.25f};   /* each leg's turn in the step */
     const int8_t *g = OP_LEG[k];
     int fore = (int)(k & 1u);
-    float hx = (float)g[0] + dx, hy = (float)g[1], p = went / STRIDE + OFF[k], rel, lift = 0.0f;
+    float hx = (float)g[0] + dx, hy = (float)(g[1] + OP_DY), p = went / STRIDE + OFF[k], rel, lift = 0.0f;
     float lw = fm_sqrtf((GROUND - hy) * (GROUND - hy) + 20.0f) * 0.5f;   /* a walking leg's bones */
-    float l1 = lw + b * (op_len(g[0], g[1], g[2], g[3]) - lw), l2 = lw + b * (op_len(g[2], g[3], g[4], g[5]) - lw);
+    float l1 = lw + b * (op_len(g[0], g[1], g[2], g[3]) - lw), l2 = lw + b * (op_len(g[2], g[3], g[4], g[5]) - lw);   /* (the same lengths a little lower) */
     float fx, fy, vx, vy, d, a, h, sgn = fore ? -1.0f : 1.0f;
     p -= fm_floorf(p);
     if (p < DUTY)                        /* on the ground: it goes back under him as he goes on */
@@ -1852,7 +1852,7 @@ static void op_leg(uint32_t k, float dx, float went, float b, uint16_t c, uint16
     fx = hx + (fore ? 1.0f : -1.0f) + rel;
     fy = GROUND - lift;
     fx += b * ((float)g[4] + dx - fx);   /* settling: the picture's foot */
-    fy += b * ((float)g[5] - fy);
+    fy += b * ((float)(g[5] + OP_DY) - fy);
     vx = fx - hx;
     vy = fy - hy;
     d = fm_sqrtf(vx * vx + vy * vy);
@@ -1878,28 +1878,27 @@ static void draw_intro(uint32_t t)
 {
     float u = t < WALK_MS ? (float)t / (float)WALK_MS : 1.0f, left = (1.0f - u) * (1.0f - u);   /* slowing */
     float b = u > SETTLE ? (u - SETTLE) / (1.0f - SETTLE) : 0.0f;
-    int32_t bx = -(int32_t)((float)WALK_PX * left + 0.5f), top, x, y;
+    int32_t bx = OP_STOP - (int32_t)((float)WALK_PX * left + 0.5f), top, x, y;
     uint32_t k;
     b = b * b * (3.0f - 2.0f * b);
     for (top = 0; top < 240; top += 120) {
         band(top);
-        for (y = 0; y < 120; y++) {      /* the scene (the picture, once he stands in it), 3 x 3 a pixel */
-            const uint8_t *src = (t < WALK_MS ? OP_SCENE : OP_PIC) + (uint32_t)((top + y) / 3) * OP_N;
+        for (y = 0; y < 120; y++) {      /* the scene, 3 x 3 a pixel */
+            const uint8_t *src = OP_SCENE + (uint32_t)((top + y) / 3) * OP_N;
             uint16_t *row = cv_px + (uint32_t)y * 240u;
             for (x = 0; x < 240; x += 3)
                 row[x] = row[x + 1] = row[x + 2] = op_pal[src[x / 3]];
         }
-        if (t < WALK_MS) {
-            for (k = 0; k < 4u; k++)     /* his legs, the far ones darker; then his body over their tops */
-                op_leg(k, (float)bx, (float)(WALK_PX + bx), b, OP_PAL[k < 2u ? OP_FAR : OP_NEAR],
-                       OP_PAL[k < 2u ? OP_FAR_FUR : OP_NEAR_FUR]);
-            for (y = 0; y < OP_BODY_H; y++)
-                for (x = 0; x < OP_BODY_W; x++) {
-                    uint32_t i = OP_BODY[y * OP_BODY_W + x];
-                    if (i != OP_CLEAR)
-                        op_dot(OP_BODY_X + x + bx, OP_BODY_Y + y, OP_PAL[i]);
-                }
-        }
+        text_c(120, 9, &FONT_L, APP_NAME, RGB(250, 232, 196));   /* the name, in the screen's letters */
+        for (k = 0; k < 4u; k++)         /* his legs, the far ones darker; then his body over their tops */
+            op_leg(k, (float)bx, (float)(WALK_PX + bx - OP_STOP), b, OP_PAL[k < 2u ? OP_FAR : OP_NEAR],
+                   OP_PAL[k < 2u ? OP_FAR_FUR : OP_NEAR_FUR]);
+        for (y = 0; y < OP_BODY_H; y++)
+            for (x = 0; x < OP_BODY_W; x++) {
+                uint32_t i = OP_BODY[y * OP_BODY_W + x];
+                if (i != OP_CLEAR)
+                    op_dot(OP_BODY_X + x + bx, OP_BODY_Y + y + OP_DY, OP_PAL[i]);
+            }
         cv_blit(0, (uint32_t)top);
     }
 }

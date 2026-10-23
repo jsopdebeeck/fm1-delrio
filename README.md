@@ -71,8 +71,9 @@ the tempo, the beats and the rhythm at the bottom; a page of large sliders. [All
     tempo (a push, then a pull, each a beat), KNOB 3 the level.
   - Both are synthesised as they play: no samples.
 - **A minimal screen, large type, a colour per instrument.** At start, a maned wolf (the lobo-guará of the cerrado)
-  walks into a picture of the cerrado at dusk in big pixels (80 x 80, 32 colours), his four legs stepping in turn,
-  and stands in it; a key, a button or a knob skips it. The picture is Jess Del Rio's (`app/art/opening.webp`); `app/tools/opening.py` cuts the wolf out of it.
+  walks into the cerrado at dusk, in big pixels (80 x 80, 32 colours), his four legs stepping in turn, and stops
+  before the setting sun; a key, a button or a knob skips it. The pictures are Jess Del Rio's (`app/art/`);
+  `app/tools/opening.py` makes the scene and cuts the wolf out.
 - **A screen reader can follow it** (fm1-reader, over USB).
 
 ### The rhythms
