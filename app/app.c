@@ -1705,7 +1705,9 @@ static void draw_solo(void)
         else if (set.sh_kind != SH_NOTES) {   /* a chord: its name */
             shruti_name(t);
             text_c(120, 112, &FONT_M, t, col);
-        } else if (n > 8u) {
+        } else if (n <= 4u)              /* the reeds one by one: said so, where there is room */
+            text_c(120, 112, &FONT_M, "NOTES", C_GRAY);
+        else if (n > 8u) {
             t[0] = '+';
             int_text((int32_t)(n - 8u), t + 1);
             text_c(120, 138, &FONT_B, t, C_GRAY);
@@ -1945,7 +1947,7 @@ static void settings_default(void)
     set.other_inst = I_BERIMBAU;
     set.tp_preset = 2;                   /* RAGA */
     set.tp_jawari = 75;
-    set.sh_kind = SH_SAPA;               /* on C4: the reeds above */
+    set.sh_kind = SH_NOTES;              /* the reeds one by one (SA PA would play the same on C4) */
     set.sh_root = 7;
     set.sh_tempo = 40;                   /* a push and a pull in 3 s */
 }

@@ -595,15 +595,23 @@ wait 400
 peakreset
 wait 300
 expect peak_db_max <-60
-# the shruti: its reeds, Sa Pa Sa' at first (SA PA on C4); a key, the chord on it (F3 C4 F4)
+# the shruti: its reeds one by one at first, Sa Pa Sa' open (C4 G4 C5); a key opens one, again closes it
 tap FX
 expect mode 3
+expect kind 0
+expect notes 3
+tapkey w0
+expect notes 4
+tapkey w0
+expect notes 3
+# PRESETS: the chord a key plays: SA PA (on C4: the same reeds; a key, on F3: F3 C4 F4), the major, the minor;
+# round to the reeds one by one
+turn PRESET 1
 expect kind 1
 expect notes 3
 tapkey w0
 expect root 0
 expect notes 3
-# PRESETS: the major chord, the minor, then the reeds one by one (a key opens one, again closes it)
 turn PRESET 1
 expect kind 2
 expect notes 4
