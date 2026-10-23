@@ -1,12 +1,12 @@
 # DelRio in the host simulator: ./build.sh --host, then
 #   app/build/host/delrio_host app/tests/basic.txt app/build/host
 wait 600
-# the opening: the maned wolf pacing across the dusk; it ends by itself
+# the opening: the maned wolf walking into the picture, then the picture; it ends by itself
 expect intro 1
 shot intro.png
 wait 1400
 shot intro2.png
-wait 1500
+wait 2200
 expect intro 0
 # at first: the djembe, HEARTBEAT (2 beats of 4 steps, 64 BPM)
 expect inst 0
@@ -42,28 +42,36 @@ release OCT-
 expect bpm 59
 tap OCT+
 
-# LFO: the rhythms listed, one further each press, without choosing; held, the one shown is chosen
+# LFO: the rhythms listed from the one chosen; the list stays, KNOB 3 goes through it (not the swing), nothing
+# chosen; LFO held chooses the one shown
 tap LFO
 expect list 1
-expect listi 1
-expect rhythm 0
-tap LFO
+expect listi 0
+turn K3 2
 expect listi 2
+expect rhythm 0
+expect swing 0
 shot list.png
+wait 6500
+expect list 1
 press LFO
 wait 600
 release LFO
 expect list 0
 expect rhythm 2
 expect beats 2
-# round: from the last, the first; the list goes after a while, nothing chosen
+# round: before the first, the last; LFO again closes the list, nothing chosen; a page button closes it too
 turn PRESET -2
 expect rhythm 0
 tap LFO
-expect listi 1
-wait 6200
+turn K3 -1
+expect listi 30
+tap LFO
 expect list 0
 expect rhythm 0
+tap LFO
+tap HOME
+expect list 0
 
 # SELECT: the instruments, round
 turn SELECT 1
@@ -580,6 +588,7 @@ turn PRESET 1
 expect tpp 0
 expect cycle 70
 tap LFO
+turn K3 1
 expect listi 1
 press LFO
 wait 600

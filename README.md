@@ -58,8 +58,8 @@ the tempo, the beats and the rhythm at the bottom; a page of large sliders. [All
   - SAVE: keep everything.
   - FX: the kit, the berimbau, the tanpura or the shruti box.
   - OCT− / OCT+: the tempo, 5 BPM a press, 10 held.
-  - LFO: the presets listed, with their beats, one further each press, without changing anything; held, the one shown
-    is chosen.
+  - LFO: the presets listed, with their beats, from the one chosen; the list stays, KNOB 3 goes through it without
+    changing anything; LFO held chooses the one shown, LFO again closes the list.
 - **Two drones, each played alone (FX):**
   - TANPURA: four strings plucked in turn, buzzing on their bridge (the jawari). A key sets Sa; ALGORITHM tunes the
     first string (Pa, Ma or Ni); PRESETS sets its character: MEDITATION (slow, a soft jawari), MANTRA (round), RAGA
@@ -71,7 +71,8 @@ the tempo, the beats and the rhythm at the bottom; a page of large sliders. [All
     tempo (a push, then a pull, each a beat), KNOB 3 the level.
   - Both are synthesised as they play: no samples.
 - **A minimal screen, large type, a colour per instrument.** At start, a maned wolf (the lobo-guará of the cerrado)
-  paces across the dusk in big pixels; a key, a button or a knob skips it.
+  walks into a picture of the cerrado at dusk in big pixels (80 x 80, 32 colours), his four legs stepping in turn,
+  and stands in it; a key, a button or a knob skips it. The picture is Jess Del Rio's (`app/art/opening.webp`); `app/tools/opening.py` cuts the wolf out of it.
 - **A screen reader can follow it** (fm1-reader, over USB).
 
 ### The rhythms

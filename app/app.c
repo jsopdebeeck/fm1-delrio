@@ -421,7 +421,7 @@ static struct {
     uint32_t down_at[3];                 /* OCT-, OCT+, LFO: when each went down; */
     uint8_t held_long;                   /* each held long enough (its long press done) */
     uint8_t list_i;                      /* the presets' list (LFO): the one shown, */
-    uint32_t list_until;                 /* until when */
+    uint8_t list_on;                     /* the list on the screen */
     uint8_t intro;                       /* the opening is playing (app_ui_init), since intro_t0 */
     uint32_t intro_t0;
     int32_t intro_drawn;                 /* its step on the screen */
@@ -1008,7 +1008,7 @@ static void mode_step(void)
     ui.drone_on = 0;
     drone_apply();
     rhythm_box_fit();
-    ui.list_until = 0;
+    ui.list_on = 0;
     if (drone() && set.page == PG_SOUND)
         set.page = PG_HOME;              /* a drone's settings are on its own screen */
     ui.keypage = 0;
@@ -1070,10 +1070,10 @@ static void drone_preset(uint32_t i)
 }
 
 /* -------------------------------------------------------- the presets' list --- */
-/* LFO: the mode's presets listed (the kit's rhythms, the berimbau's toques, the tanpura's tunings, the shruti's
- * chords), one further each press, round, without choosing; held, the one shown is chosen */
+/* LFO: the mode's presets listed (the kit's rhythms, the berimbau's toques, the tanpura's characters, the shruti's
+ * chords), from the one chosen; the list stays, KNOB 3 goes through it (round), nothing chosen; LFO held chooses the
+ * one shown, LFO again closes the list */
 #define LONG_MS 500u                     /* a press held this long: a long one */
-#define LIST_MS 6000u                    /* the list stays this long after the last press */
 
 static uint32_t list_n(void)
 {
@@ -1094,12 +1094,12 @@ static const char *list_name(uint32_t i)
 
 static uint32_t list_beats(uint32_t i) { return drone() ? 0u : RDEF[i + (berimbau() ? NRHY_KIT : 0u)].beats; }
 
-static int list_shown(void) { return ui.list_until && (int32_t)(ui.list_until - plat_ms()) > 0; }
+static int list_shown(void) { return ui.list_on; }
 
-static void list_next(void)
+static void list_show(uint32_t i)        /* the list on the screen, i in the middle */
 {
-    ui.list_i = (uint8_t)(((list_shown() ? ui.list_i : list_now()) + 1u) % list_n());
-    ui.list_until = plat_ms() + LIST_MS;
+    ui.list_i = (uint8_t)i;
+    ui.list_on = 1;
     ui.msg_until = 0;
     ui.redraw = 1;
     if (ann_on()) {                      /* a screen reader hears it: its name, its beats */
@@ -1115,24 +1115,33 @@ static void list_next(void)
     }
 }
 
+static void list_scroll(int32_t d)        /* KNOB 3, the list shown */
+{
+    list_show((ui.list_i + (uint32_t)((int32_t)list_n() * 8 + d)) % list_n());
+}
+
 static void list_choose(void)
 {
     uint32_t i = ui.list_i;
-    ui.list_until = 0;
+    ui.list_on = 0;
     if (drone())
         drone_preset(i);
     else
         rhythm_select(i + (berimbau() ? NRHY_KIT : 0u));
 }
 
-/* OCT- / OCT+: the tempo, 5 BPM a press, 10 held; LFO: the list, held: its choice */
+/* OCT- / OCT+: the tempo, 5 BPM a press, 10 held; LFO: the list shown or closed, held: the one shown chosen */
 static void hold_action(uint32_t b, int held)
 {
     if (b == B_LFO) {
-        if (!held)
-            list_next();
-        else if (list_shown())
-            list_choose();
+        if (held) {
+            if (list_shown())
+                list_choose();
+        } else if (list_shown()) {
+            ui.list_on = 0;
+            ui.redraw = 1;
+        } else
+            list_show(list_now());
     } else if (!drone())
         bpm_set((int32_t)cur()->bpm + (b == B_OCTUP ? 1 : -1) * (held ? 10 : 5));
 }
@@ -1194,10 +1203,12 @@ static void solo_button(uint32_t b)
         break;
     case B_HOME:
         set.page = PG_HOME;
+        ui.list_on = 0;
         ui.redraw = 1;
         break;
     case B_GLO:
         set.page = PG_SETUP;
+        ui.list_on = 0;
         ui.redraw = 1;
         break;
     case B_EDIT:                         /* the shruti: twice, every reed closed */
@@ -1237,6 +1248,8 @@ static void solo_input(uint32_t keys, uint32_t btn)
             drone_preset((list_now() + (e > 0 ? 1u : list_n() - 1u)) % list_n());
         else if (k == EN_ALGO && set.mode == MODE_TANPURA)
             tanpura_first(e > 0 ? 1 : -1);
+        else if (k == EN_K3 && list_shown())
+            list_scroll(e);
         else if (k >= EN_K1)
             solo_knob(k - EN_K1, e);
     }
@@ -1280,8 +1293,9 @@ static void button(uint32_t b)
     uint32_t i;
     rhythm_t *r = cur();
     for (i = 0; i < NPAGES; i++)
-        if (b == PAGE_BTN[i]) {
+        if (b == PAGE_BTN[i]) {          /* (the presets' list closed: the page shown) */
             set.page = (uint8_t)i;
+            ui.list_on = 0;
             ui.redraw = 1;
             return;
         }
@@ -1384,6 +1398,8 @@ static void input(void)
             meter_step(e > 0 ? 1 : -1);
         else if (k == EN_PRESET)
             rhythm_step(e > 0 ? 1 : -1);
+        else if (k == EN_K3 && list_shown())   /* the presets' list: KNOB 3 goes through it */
+            list_scroll(e);
         else
             knob_turn(page_knob(set.page, k - EN_K1), e);
     }
@@ -1777,131 +1793,112 @@ static void draw(void)
 
 
 /* ------------------------------------------------------------- the opening --- */
-/* at start: a maned wolf (the lobo-guara of the cerrado) paces across the dusk in big pixels, under the name, its
- * near legs and its far ones swinging in pairs as it does; a key, a button or a knob ends it at once */
-#define WOLF_W 36
-#define WOLF_H 31
-#define WOLF_PX 5                        /* one of its pixels: 5 x 5 on the screen */
-#define GROUND_Y 200
-#define INTRO_MS 3400u                   /* 5 px every 40 ms: across the screen and out */
-/* o rust, r its darker back, k black (the near legs, the mane, the muzzle), g the far legs, w white */
-static const char *const WOLF_TOP[17] = {
-    "..........................o..o......",
-    ".........................ow.ow......",
-    ".........................ow.ow......",
-    ".........................owwow......",
-    "........................ooooooo.....",
-    "........................oooookooo...",
-    ".......................koooooooooooo",
-    ".......................kkooooooooook",
-    "......................kkkkwwwokkk...",
-    "......................kkkkwwww......",
-    "..........rrrrrrrrrrrrkkkkkwww......",
-    "......ooooooooooooooooookkkkwo......",
-    ".....oooooooooooooooooooooooooo.....",
-    "....ooooooooooooooooooooooooooo.....",
-    "...ooooooooooooooooooooooooooooo....",
-    "...oooo.oooooooooooooooooooooooo....",
-    "...oooo..ooooooooooooooooooooooo....",
-};
-static const char *const WOLF_LEGS[4][14] = {
-    {
-        "...oooo...kko.........okkooooo......",
-        "...oooo....kk..........kkg..........",
-        "...wwww....gkk.........gkk..........",
-        "...www.....gkk........ggkk..........",
-        "....ww.....ggkk.......ggkk..........",
-        "..........ggkk........ggkk..........",
-        ".........gg.kk........ggkk..........",
-        "........gg..kk.......gg..kk.........",
-        ".......gg..kk........gg..kk.........",
-        ".......g....k........gg..kk.........",
-        ".......g....k........g....k.........",
-        ".......g.....k......g.....k.........",
-        ".......g.....k......g.....k.........",
-        ".......gg.....kk....gg.....kk.......",
-    },
-    {
-        "...oooo...kko.........okkooooo......",
-        "...oooo...kkg..........kkg..........",
-        "...wwww....kkg.........kkg..........",
-        "...www......kk.........kk...........",
-        "....ww......kk.........kk...........",
-        "...........kk..........kk...........",
-        "..........kk...........kk...........",
-        "..........kk...........kk...........",
-        ".........kk............kk...........",
-        ".........k.............kk...........",
-        ".........gk............k............",
-        "..........k............gk...........",
-        "..........gk...........gk...........",
-        "..........gkk..........gkk..........",
-    },
-    {
-        "...oooo...kko.........okkooooo......",
-        "...oooo...kkgg........kkgg..........",
-        "...wwww...kkgg........kkgg..........",
-        "...www....kk.gg.......kk.gg.........",
-        "....ww....kk..gg.....kk..gg.........",
-        ".........kk...gg.....kk..gg.........",
-        "........kk...gg......kk..gg.........",
-        ".......kk...gg......kk....gg........",
-        "......kk....gg......kk....gg........",
-        "......k......g......kk....gg........",
-        "......k......g......k.....g.........",
-        "......k.......g.....k......g........",
-        "......k.......g....k........g.......",
-        "......kk.......gg..kk.......gg......",
-    },
-    {
-        "...oooo...kko.........okkooooo......",
-        "...oooo...kkgg.........kkg..........",
-        "...wwww...kkgg........kkgg..........",
-        "...www.....kkg........kkgg..........",
-        "....ww.....kkgg.......kkgg..........",
-        "..........kkgg........kkgg..........",
-        "..........kkgg........kkgg..........",
-        ".........kkgg.........kkgg..........",
-        "........kkgg..........kkgg..........",
-        "........k.g...........kkgg..........",
-        "........k..g..........k.g...........",
-        ".........k.g..........k.g...........",
-        ".........k..g.........k..g..........",
-        ".........kk.gg........kk.gg.........",
-    },
-};
+/* at start: the picture (art/opening.webp) in big pixels, 80 x 80 of 32 colours, 3 x 3 on the screen each; its maned
+ * wolf (the lobo-guara of the cerrado) walks into it from the left, slowing, and stands as he stands in it; then the
+ * picture a moment. A key, a button or a knob ends it at once. tools/opening.py cuts him out of it (opening.h): the
+ * scene without him, his body; his legs are drawn here, each two bones from hip or shoulder to foot. They walk: each
+ * foot on the ground while he goes over it (it does not slide), then lifted and brought forward, the four in turn
+ * (near hind, near fore, far hind, far fore); a fore leg's knee bends forward, a hind leg's back. At the end they
+ * settle where the picture has them */
+#include "opening.h"
+#define WALK_MS 2800u                    /* in from the left, */
+#define INTRO_MS 4000u                   /* then the picture, still */
+#define WALK_PX 70                       /* from out of sight, in the picture's pixels */
+#define STRIDE 16.0f                     /* the ground a leg's step covers */
+#define DUTY 0.62f                       /* of it, the foot on the ground */
+#define LIFT 3.0f                        /* a foot lifted, at the most */
+#define GROUND 66.0f                     /* where his feet stand */
+#define SETTLE 0.7f                      /* from this much of the walk, his legs settle to the picture's */
 
-static uint16_t wolf_rgb(char c)
+static uint16_t op_pal[OP_FAR_FUR + 1u];   /* OP_PAL, as the canvas holds it */
+
+static void op_dot(int32_t x, int32_t y, uint16_t c) { cv_rect(x * 3, y * 3, 3, 3, c); }   /* a big pixel */
+
+/* a bone, two big pixels wide; the upper one three at its top, in fur down to fur (0 .. 1) of it, then the leg's */
+static void op_bone(float x0, float y0, float x1, float y1, int upper, float fur, uint16_t c, uint16_t cf)
 {
-    return c == 'o' ? RGB(214, 100, 42) : c == 'r' ? RGB(150, 62, 26) : c == 'k' ? RGB(24, 20, 18)
-           : c == 'g' ? RGB(78, 62, 54) : RGB(242, 236, 222);
+    int32_t n = (int32_t)(fm_maxf(fm_fabsf(x1 - x0), fm_fabsf(y1 - y0)) + 1.0f), i;
+    for (i = 0; i <= n; i++) {
+        float t = (float)i / (float)n;
+        int32_t x = (int32_t)fm_floorf(x0 + (x1 - x0) * t + 0.5f), y = (int32_t)fm_floorf(y0 + (y1 - y0) * t + 0.5f);
+        uint16_t k = t < fur ? cf : c;
+        op_dot(x, y, k);
+        op_dot(x + 1, y, k);
+        if (upper && t < 0.5f)
+            op_dot(x - 1, y, k);
+    }
+}
+
+static float op_len(float x0, float y0, float x1, float y1) { return fm_sqrtf((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0)); }
+
+/* leg k (OP_LEG's order) with him dx along: its foot where the walk puts it, then (b, 0 .. 1) where the picture does */
+static void op_leg(uint32_t k, float dx, float went, float b, uint16_t c, uint16_t cf)
+{
+    static const float OFF[4] = {0.5f, 0.75f, 0.0f, 0.25f};   /* each leg's turn in the step */
+    const int8_t *g = OP_LEG[k];
+    int fore = (int)(k & 1u);
+    float hx = (float)g[0] + dx, hy = (float)g[1], p = went / STRIDE + OFF[k], rel, lift = 0.0f;
+    float lw = fm_sqrtf((GROUND - hy) * (GROUND - hy) + 20.0f) * 0.5f;   /* a walking leg's bones */
+    float l1 = lw + b * (op_len(g[0], g[1], g[2], g[3]) - lw), l2 = lw + b * (op_len(g[2], g[3], g[4], g[5]) - lw);
+    float fx, fy, vx, vy, d, a, h, sgn = fore ? -1.0f : 1.0f;
+    p -= fm_floorf(p);
+    if (p < DUTY)                        /* on the ground: it goes back under him as he goes on */
+        rel = STRIDE * DUTY * (0.5f - p / DUTY);
+    else {                               /* lifted, brought forward */
+        float q = (p - DUTY) / (1.0f - DUTY);
+        rel = STRIDE * DUTY * (q - 0.5f);
+        lift = LIFT * fm_sinf(3.14159265f * q);
+    }
+    fx = hx + (fore ? 1.0f : -1.0f) + rel;
+    fy = GROUND - lift;
+    fx += b * ((float)g[4] + dx - fx);   /* settling: the picture's foot */
+    fy += b * ((float)g[5] - fy);
+    vx = fx - hx;
+    vy = fy - hy;
+    d = fm_sqrtf(vx * vx + vy * vy);
+    if (d < 0.5f)
+        return;
+    if (d > l1 + l2 - 0.01f) {           /* out of reach: the leg straight towards it */
+        float s = (l1 + l2 - 0.01f) / d;
+        vx *= s;
+        vy *= s;
+        d = l1 + l2 - 0.01f;
+    }
+    a = (l1 * l1 - l2 * l2 + d * d) / (2.0f * d);
+    h = fm_sqrtf(fm_maxf(0.0f, l1 * l1 - a * a));
+    {
+        float kx = hx + vx * a / d - sgn * vy * h / d, ky = hy + vy * a / d + sgn * vx * h / d;
+        op_bone(hx, hy, kx, ky, 1, 0.45f, c, cf);   /* rust fur at the top, then black */
+        op_bone(kx, ky, hx + vx, hy + vy, 0, 0.0f, c, c);
+        op_dot((int32_t)fm_floorf(hx + vx + 0.5f) + 2, (int32_t)fm_floorf(hy + vy + 0.5f), c);   /* the paw */
+    }
 }
 
 static void draw_intro(uint32_t t)
 {
-    int32_t top, i, j, x0 = WOLF_PX * ((int32_t)(t / 40u) - WOLF_W), y0 = GROUND_Y - WOLF_H * WOLF_PX;
-    const char *const *legs = WOLF_LEGS[t / 120u % 4u];
+    float u = t < WALK_MS ? (float)t / (float)WALK_MS : 1.0f, left = (1.0f - u) * (1.0f - u);   /* slowing */
+    float b = u > SETTLE ? (u - SETTLE) / (1.0f - SETTLE) : 0.0f;
+    int32_t bx = -(int32_t)((float)WALK_PX * left + 0.5f), top, x, y;
+    uint32_t k;
+    b = b * b * (3.0f - 2.0f * b);
     for (top = 0; top < 240; top += 120) {
         band(top);
-        for (i = 0; i < 10; i++)         /* the dusk: deep blue above, the glow at the horizon */
-            cv_rect(0, i * 20, 240, 20, RGB(26 + i * 23, 24 + i * 12, 66 + i / 2));
-        for (j = -6; j <= 6; j++)        /* the sun setting, in blocks */
-            for (i = -6; i <= 6; i++)
-                if (i * i + j * j <= 40 && 196 + j * WOLF_PX < GROUND_Y)
-                    cv_rect(176 + i * WOLF_PX, 196 + j * WOLF_PX, WOLF_PX, WOLF_PX, RGB(252, 206, 108));
-        cv_rect(0, GROUND_Y, 240, 40, RGB(70, 54, 28));   /* the ground, the cerrado's grass */
-        cv_rect(0, GROUND_Y + 15, 240, 5, RGB(52, 40, 22));
-        for (i = 0; i < 16; i++) {
-            cv_rect(i * 15 + i * 7 % 10, GROUND_Y - WOLF_PX, WOLF_PX, WOLF_PX, RGB(196, 160, 72));
-            if (i % 3 == 0)
-                cv_rect(i * 15 + i * 7 % 10 + WOLF_PX, GROUND_Y - 2 * WOLF_PX, WOLF_PX, 2 * WOLF_PX, RGB(170, 136, 58));
+        for (y = 0; y < 120; y++) {      /* the scene (the picture, once he stands in it), 3 x 3 a pixel */
+            const uint8_t *src = (t < WALK_MS ? OP_SCENE : OP_PIC) + (uint32_t)((top + y) / 3) * OP_N;
+            uint16_t *row = cv_px + (uint32_t)y * 240u;
+            for (x = 0; x < 240; x += 3)
+                row[x] = row[x + 1] = row[x + 2] = op_pal[src[x / 3]];
         }
-        text_c(120, 12, &FONT_L, APP_NAME, C_WHITE);
-        for (j = 0; j < WOLF_H; j++) {
-            const char *row = j < 17 ? WOLF_TOP[j] : legs[j - 17];
-            for (i = 0; i < WOLF_W; i++)
-                if (row[i] != '.')
-                    cv_rect(x0 + i * WOLF_PX, y0 + j * WOLF_PX, WOLF_PX, WOLF_PX, wolf_rgb(row[i]));
+        if (t < WALK_MS) {
+            for (k = 0; k < 4u; k++)     /* his legs, the far ones darker; then his body over their tops */
+                op_leg(k, (float)bx, (float)(WALK_PX + bx), b, OP_PAL[k < 2u ? OP_FAR : OP_NEAR],
+                       OP_PAL[k < 2u ? OP_FAR_FUR : OP_NEAR_FUR]);
+            for (y = 0; y < OP_BODY_H; y++)
+                for (x = 0; x < OP_BODY_W; x++) {
+                    uint32_t i = OP_BODY[y * OP_BODY_W + x];
+                    if (i != OP_CLEAR)
+                        op_dot(OP_BODY_X + x + bx, OP_BODY_Y + y, OP_PAL[i]);
+                }
         }
         cv_blit(0, (uint32_t)top);
     }
@@ -1909,12 +1906,12 @@ static void draw_intro(uint32_t t)
 
 static void intro_frame(uint32_t now)
 {
-    uint32_t t = now - ui.intro_t0;
-    if (t >= INTRO_MS) {                 /* out of sight: the rhythm box */
+    uint32_t t = now - ui.intro_t0, step = (t < WALK_MS ? t : WALK_MS) / 40u;
+    if (t >= INTRO_MS) {                 /* the rhythm box */
         ui.intro = 0;
         ui.redraw = 1;
-    } else if ((int32_t)(t / 40u) != ui.intro_drawn) {
-        ui.intro_drawn = (int32_t)(t / 40u);
+    } else if ((int32_t)step != ui.intro_drawn) {   /* every 40 ms while he walks; once, standing */
+        ui.intro_drawn = (int32_t)step;
         draw_intro(t);
     }
 }
@@ -1991,12 +1988,15 @@ void app_init(void)
 
 void app_ui_init(void)
 {
+    uint32_t i;
     touch_on(1);                         /* velocity: the keys' readings on */
     ui.tri_step = -1;
     lcd_fill(0, 0, 240, 240, C_BLACK);
     ui.drawn_step = -2;
     ui.redraw = 1;
-    ui.intro = 1;                        /* the opening first */
+    for (i = 0; i <= OP_FAR_FUR; i++)    /* the opening first */
+        op_pal[i] = swap16(OP_PAL[i]);
+    ui.intro = 1;
     ui.intro_t0 = plat_ms();
     ui.intro_drawn = -1;
 }
@@ -2013,10 +2013,6 @@ void app_frame(void)
     }
     if (ui.msg_until && now >= ui.msg_until) {
         ui.msg_until = 0;
-        ui.redraw = 1;
-    }
-    if (ui.list_until && (int32_t)(now - ui.list_until) >= 0) {
-        ui.list_until = 0;
         ui.redraw = 1;
     }
     if (set.mode == MODE_TANPURA && ui.drone_on && dn_string() != ui.string_drawn) {   /* the next string plucked */
