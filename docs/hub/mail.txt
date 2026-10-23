@@ -1,0 +1,15 @@
+To: zven@thefirmwarehub.com
+Subject: The Firmware Hub: my firmware
+
+Name of the firmware: FM-1_DelRio
+Your name (as it should appear): Jess Del Rio
+Repository: https://github.com/jsopdebeeck/fm1-delrio (releases: https://github.com/jsopdebeeck/fm1-delrio/releases)
+Identity (FM-1_...): FM-1_48, then the version: FM-1_48000500 is 0.5, the latest release
+Licence: MPL-2.0 (the sounds keep their own licences, listed in app/kit/CREDITS.txt)
+What it does (two or three sentences): A rhythm box of ceremony percussion: djembe, cajon, udu, clapsticks, maracas and triangle, their real strokes on the black keys, a step sequencer on the white keys and 31 rhythms from the literature, grouped by beats. Played alone (FX), the berimbau with its caxixi and its capoeira toques, a tanpura with its buzzing jawari, and a shruti box whose chords breathe with the bellows. A maned wolf walks across the screen at start.
+Picture (link or attached): https://raw.githubusercontent.com/jsopdebeeck/fm1-delrio/main/docs/hub/delrio-wolf.png (its opening screen, 240 x 240 shown 4 times: https://raw.githubusercontent.com/jsopdebeeck/fm1-delrio/main/docs/hub/delrio-wolf-240.png); four of its screens: https://raw.githubusercontent.com/jsopdebeeck/fm1-delrio/main/docs/hub/delrio-screens.png
+Play in the browser / editor / video (optional): none yet
+Tested on a real FM-1, leaving it again works: yes
+
+Thank you for the hub.
+Jess Del Rio
