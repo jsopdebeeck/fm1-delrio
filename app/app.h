@@ -1,23 +1,19 @@
-/* SPDX-License-Identifier: MPL-2.0
- * Copyright (C) 2026 Charles Vestal */
-/* NEW: a new FM-1 firmware, started from fm1-base's template (the smallest complete fm1-base firmware).
- * This header is the app's half of the contract with the platform (device/unity.c, host/plat_host.c). */
+/* SPDX-License-Identifier: MPL-2.0 */
+/* NEW: a rhythm box of ceremony percussion on the FM-1: djembe, cajon, udu, clapsticks, maracas and triangle. The
+ * white keys are the selected instrument's steps, the black keys play the six instruments. This header is the app's
+ * half of the contract with the platform (fm1-base: device/unity.c, host/plat_host.c). */
 #pragma once
 #include <stdint.h>
 #include "plat.h"
 
 #define APP_NAME "NEW"
-#define APP_SPLASH_RGB RGB(242, 120, 72)
+#define APP_SPLASH_RGB RGB(240, 140, 40)
 #define APP_BLOCK 256u                   /* frames per audio block: 5.8 ms at 44.1 kHz */
-#define APP_TOUCH                        /* velocity and pressure from the keys (lib/touch.h) */
-#define APP_BTDEV                        /* Bluetooth MIDI devices (lib/btdev.h) */
-#define APP_BLE_AT_BOOT (!template_ble_off())   /* Bluetooth at power-on: as the player left it (REC held) */
-int template_ble_off(void);
+#define APP_TOUCH                        /* velocity from the keys (lib/touch.h) */
 
-/* the store: the app's objects, the panel calibration (the platform's) and Bluetooth's address and pairing among
- * them, and their flash offsets */
-enum { OBJ_SETTINGS, OBJ_PANEL, OBJ_BLE, OBJ_NOBJ };
-#define APP_STORE_MAP {0xFC000u, 0xDC000u, 0xDE000u}
+/* the store: the settings, the panel calibration (the platform's) and the rhythms */
+enum { OBJ_SETTINGS, OBJ_PANEL, OBJ_RHYTHMS, OBJ_NOBJ };
+#define APP_STORE_MAP {0xFC000u, 0xDC000u, 0xDA000u}
 
 /* the contract: the platform calls these */
 void app_init(void);                     /* boot: the engine, then the saved settings (or defaults) */
@@ -28,6 +24,10 @@ void app_frame(void);                    /* the UI: input and a redraw, about 60
 void app_input_only(void);               /* between frames: input only */
 void app_say(const char *a, const char *b);   /* a short message on the screen and to a screen reader */
 
-/* the host simulator's checks (host/plat_host.c "expect"): octave, wave, note (-1 none), dirty, turnsN */
+/* the host simulator's checks (host/plat_host.c "expect"): inst, rhythm, beats, div, bpm, swing, human, playing,
+ * rec, count (count-in steps left), step (the step sounding), page, keypage, muted, dirty, voices, click, countin,
+ * sN (the selected instrument's stroke at step N: 0 none, 1..3), vN (its velocity), flamN (a flam there), strokes
+ * (its steps with a stroke), tune (its tuning, tenths of a semitone), bend (the udu's bass glide now, tenths),
+ * hitsI (instrument I's strokes played since boot) */
 #define APP_HOST_EXPECT
 int app_expect(const char *what, int *got);

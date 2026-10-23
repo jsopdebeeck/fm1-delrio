@@ -3,5 +3,12 @@
 # url: https://example.org/fm1-new/words/
 # (to replace with the published site's address before a release)
 NEW	new
-K1 OCTAVE	knob 1, octave
-K2 WAVE	knob 2, wave
+BPM	beats a minute
+CAJON	cajon
+UDU	oo-doo
+DJEMBE	jembay
+12/8	twelve eight
+L 	left
+R 	right
+COUNT-IN	count in
+A BEAT	a beat

@@ -1,0 +1,56 @@
+# The kit and the rhythms, to listen to: ./build.sh --host, then
+#   app/build/host/new_host app/tests/demo.txt app/build/host
+# kit.wav: every stroke in turn, the black keys left to right; rhythms.wav: two bars of each rhythm
+wait 600
+master 3000
+wav kit.wav
+tapkey b0 110
+wait 500
+tapkey b1 110
+wait 500
+tapkey b2 110
+wait 500
+tapkey b3 110
+wait 500
+tapkey b4 110
+wait 500
+tapkey b5 110
+wait 700
+tapkey b6 110
+wait 500
+tapkey b7 110
+wait 500
+tapkey b8 110
+wait 400
+tapkey b9 110
+wait 200
+tapkey b9 80
+wait 400
+tapkey b10 110
+wait 1600
+wavstop
+wav rhythms.wav
+tap PLAY
+wait 3800
+shot playing.png
+turn PRESET 1
+wait 4200
+turn PRESET 1
+wait 5200
+turn PRESET 1
+wait 5200
+turn PRESET 1
+wait 5300
+turn PRESET 1
+wait 4900
+shot clave.png
+turn PRESET 1
+wait 4900
+shot afro.png
+turn PRESET 1
+wait 5600
+turn PRESET 1
+wait 5700
+tap PLAY
+wait 1500
+wavstop

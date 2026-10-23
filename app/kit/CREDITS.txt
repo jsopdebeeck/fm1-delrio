@@ -1,0 +1,3 @@
+The cajon, clapsticks (claves), maracas (the large shaker's hits) and triangle: VCSL, the Versilian Community Sample Library, by Versilian Studios (CC0 1.0).
+The udu's bass: "122-Udu" by klemmy, freesound.org/s/203349 (CC BY 3.0). Its tone and slap: from "Pong Pop" by AncientOracle, freesound.org/s/476883 (CC BY 4.0), cut.
+The djembe: synthesised by tools/synth.py.

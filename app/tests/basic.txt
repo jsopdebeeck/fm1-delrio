@@ -1,112 +1,236 @@
 # NEW in the host simulator: ./build.sh --host, then
 #   app/build/host/new_host app/tests/basic.txt app/build/host
 wait 600
-shot boot.png
-key 7 down
-wait 50
-expect note 60
-expect midi_out 1
-shot key.png
-key 7 up
-wait 50
-expect note -1
-tap OCT+
-wait 30
-expect octave 1
-expect dirty 1
-turn PRESET 1
-wait 30
-expect wave 1
-turn K3 3
+# at first: the djembe, HEARTBEAT (2 beats of 4 steps, 64 BPM)
+expect inst 0
+expect rhythm 0
+expect beats 2
+expect div 4
+expect bpm 64
+expect page 0
+expect s0 1
+expect s1 1
+expect v1 <80
+expect s2 0
+shot home.png
+
+# SELECT: the instruments, round
+turn SELECT 1
+expect inst 1
+turn SELECT 5
+expect inst 0
+turn SELECT -1
+expect inst 5
+turn SELECT 1
+expect inst 0
+
+# a white key: its step's next stroke (bass, tone, slap), then none; stopped, it sounds
+expect hits0 0
+tapkey w2
+expect s2 1
+tapkey w2
+expect s2 2
+tapkey w2
+expect s2 3
+tapkey w2
+expect s2 0
+expect hits0 3
+tapkey w2 40
+expect s2 1
+expect v2 <46
+tapkey w2
+tapkey w2
+tapkey w2
+expect s2 0
+# past the bar's 8 steps: nothing
+tapkey w8
+expect s8 0
+expect strokes 4
+
+# a black key: its instrument's stroke (cajon bass), not recorded
+tapkey b3
+expect hits1 1
+turn SELECT 1
+expect strokes 0
+turn SELECT -1
+
+# PLAY: the bar in a loop; PLAY again stops
+tap PLAY
+expect playing 1
+wait 2000
+expect hits0 >9
+expect hits2 >0
+tap PLAY
+expect playing 0
 wait 300
-expect turns5 3
-press FX
-wait 30
-shot controls.png
-release FX
+peakreset
+
+# ALGORITHM: the beats; KNOB 2 (home): the steps a beat; KNOB 1: the tempo
+turn ALGO 1
+expect beats 3
+turn ALGO 9
+expect beats 8
+turn ALGO -6
+expect beats 2
+turn K2 -1
+expect div 3
+turn K2 1
+expect div 4
+turn K1 6
+expect bpm 70
+turn K3 2
+expect swing 10
+turn K3 -2
+expect swing 0
+
+# SEQ: the tempo from the taps (500 ms apart: 120)
+tap SEQ
+wait 420
+tap SEQ
+wait 420
+tap SEQ
+wait 420
+tap SEQ
+expect bpm >117
+expect bpm <123
+
+# SEL: the instrument muted, then on
+tap SEL
+expect muted 1
+tap SEL
+expect muted 0
+
+# EDIT once asks, twice clears the instrument
+tap EDIT
+expect strokes 4
+tap EDIT
+expect strokes 0
+
+# REC from a stop: a bar counted in, then recording; the black keys go onto the nearest step
+expect countin 1
+tap REC
+expect rec 1
+expect playing 1
+expect count >0
+wait 1100
+expect count 0
+tapkey b0
+expect strokes 1
+tap REC
+expect rec 0
+expect playing 1
+tap PLAY
+expect playing 0
+
+# the nearest step, exactly: no count-in, 60 BPM, 2 steps a beat (500 ms a step)
+tap GLO
+expect page 2
+turn K2 -1
+expect countin 0
+tap HOME
+turn K2 -2
+expect div 2
+turn K1 -60
+expect bpm 60
+tap EDIT
+tap EDIT
+expect strokes 0
+tap REC
+expect count 0
+# step 2 runs 1000 .. 1500 ms: a stroke early in it goes onto it, late in it onto step 3
+wait 1100
+tapkey b1
+expect s2 2
+wait 230
+tapkey b2
+expect s3 3
+tap PLAY
+expect playing 0
+expect rec 0
+
+# PRESET: the rhythms; AFRO 12/8 has the clapsticks' bell
+turn PRESET 6
+expect rhythm 6
+expect beats 4
+expect div 3
+expect bpm 100
+turn SELECT 3
+expect s0 1
+expect s1 0
+expect s2 1
+expect strokes 7
+turn SELECT -3
+
+# 8 beats of 3: two pages of keys (OCT+ / OCT-), 5 whole beats on the first (steps 0..14)
+turn ALGO 4
+expect beats 8
+tap OCT+
+expect keypage 1
+tapkey w0
+expect s15 1
+tap OCT-
+expect keypage 0
+
+# no swing with 3 steps a beat (the rhythm swings already)
+turn K3 2
+expect swing 0
+
+# ARP held: the djembe's step a flam (an empty one gets its bass, a flam); again, not; ARP let go, the strokes go on
+press ARP
+tapkey w1
+expect s1 1
+expect flam1 1
+tapkey w1
+expect s1 1
+expect flam1 0
+release ARP
+tapkey w1
+expect s1 2
+expect flam1 0
+press ARP
+tapkey w1
+release ARP
+expect s1 2
+expect flam1 1
+shot flam.png
+
+# ENV: the instrument's SOUND page, with what a player of it can change: the djembe's tuning (half steps, 3 at most)
+tap ENV
+expect page 1
+turn K2 2
+expect tune 10
+turn K2 9
+expect tune 30
+turn K2 -6
+expect tune 0
+shot sound.png
+# the cajon has its level only
+turn SELECT 1
+turn K2 3
+expect tune 0
+turn SELECT 1
+shot sound-udu.png
+turn SELECT -2
+tap GLO
+shot setup.png
+tap HOME
+
+# the udu's bass key pressed: its bass lower, as far as the pressure goes (3 semitones at most); let go, back up
+key b5 down 100 90
+wait 300
+expect bend <-5
+expect bend >-31
+key b5 up
+wait 300
+expect bend >-2
+
+# SAVE, then a reboot finds it all again
 tap SAVE
-wait 30
 expect dirty 0
-expect store_writes 1
 reboot
 wait 600
-expect octave 1
-expect wave 1
-midi 90 3C 64
-wait 30
-expect note 60
-wav note.wav
-wait 200
-wavstop
-expect peak_db_min -30
-midi 80 3C 00
-listen
-wait 100
-said NEW. OCTAVE +1. WAVE TRIANGLE
-tap ARP
-wait 30
-said BUTTON ARP
-# MASTER turned while a note plays: the gain glides, so no sample jumps further than the wave itself does
-midi 90 45 64
-wait 100
-wav master.wav
-master 4096
-wait 20
-master 300
-wait 20
-master 4096
-wait 50
-wavstop
-midi 80 45 00
-# velocity and pressure (lib/touch.c): a key landing at 40 plays at about 40; pressed 80 % more, it has pressure
-key 7 down 40
-wait 60
-expect vel >30
-expect vel <50
-key 7 up
-wait 50
-key 7 down 100 80
-wait 600
-expect prs >40
-shot touch.png
-key 7 up
-wait 50
-# REC held a second: Bluetooth off (and saved: off after a restart too), then on again
-listen
-wait 1200
-press REC
-wait 1100
-release REC
-wait 50
-said BLUETOOTH OFF
-expect ble 0
-tap SAVE
-wait 30
-reboot
-wait 1200
-expect ble 0
-press REC
-wait 1100
-release REC
-wait 1200
-said BLUETOOTH ON
-expect ble 2
-# REC: look for Bluetooth MIDI devices, connect to the one found, let it go (lib/btdev)
-tap REC
-said BLE SCANNING
-wait 700
-said DEVICE BLE MIDI
-tap REC
-said CONNECTING BLE MIDI
-wait 500
-said DEVICE CONNECTED
-expect ble_dev 4
-tap REC
-said BLE DISCONNECTED
-wait 100
-expect ble_dev 0
-unsaid LOST
-# each port's messages counted (plat_midi_count): this is the fifth from USB in this script
-midi USB 90 40 50
-wait 20
-expect midi_in_usb 5
+expect rhythm 6
+expect beats 8
+expect s15 1
+expect countin 0
+expect playing 0
