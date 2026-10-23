@@ -121,56 +121,13 @@ Where they come from:
   - BAIAO or MARCHA 2/4 when it pushes you to dance;
   - TOADA when it is ternary.
 
-## Try it in the browser
+## Install
 
-The same C code runs in the browser (WebAssembly), on a drawing of the FM-1's panel:
+From [The Firmware Hub](https://thefirmwarehub.com/), or with the `.fwsc` of the
+[latest release](https://github.com/jsopdebeeck/fm1-delrio/releases/latest).
 
-```sh
-./build.sh --web
-python3 -m http.server -d app/build/emu 8770      # then http://localhost:8770
-```
-
-Click "Switch on". The computer's keys play the panel:
-
-- `1` … `0` and `-`: the black keys;
-- `Q` … `I` and `A` … `K`: the white keys;
-- `P`: PLAY, `O`: REC, `↑` `↓`: the instrument.
-
-## Build, test, install
-
-It is built on [fm1-base](https://github.com/charlesvestal/fm1-base) (in `base/`, a git submodule):
-
-```sh
-git clone --recursive https://github.com/jsopdebeeck/fm1-delrio
-```
-
-| Command | What |
-| --- | --- |
-| `./build.sh --host` | the host simulator; then `app/build/host/delrio_host app/tests/basic.txt app/build/host` runs the checks |
-| `./build.sh --web` | the browser emulator, in `app/build/emu/` |
-| `./build.sh` | the firmware, `app/build/delrio.fwsc` |
-| `./build.sh --site 0.1` | a release, the emulator and a local site in `app/build/site/`, with fm1-base's web installer |
-
-**What it needs:**
-
-- Python with Pillow and numpy (`~/.venvs/fm1` by default, or set `PYTHON`).
-- Emscripten for `--web` (`~/.fm1/emsdk` by default, or set `EMSDK`).
-- For the firmware:
-  - JieLi's toolchain (`base/tools/get_toolchain.sh`);
-  - three files of JieLi's AC79 SDK (`AC79_SDK`; see fm1-base's `tools/build.py` for their SHA-256);
-  - Docker.
-
-**Installing:**
-
-1. Serve `app/build/site/` locally.
-2. Open its `emu/` in Chrome or Edge, and click **Install on the FM-1**.
-3. The installer writes over USB (Web MIDI). It asks for a backup first and can put M-VAVE's own firmware back.
-
-**What it keeps:** its own settings and rhythms (SAVE), in its own place in the FM-1's flash. It does not read other
+It keeps only its own settings and rhythms (SAVE), in its own place in the FM-1's flash. It does not read other
 firmwares' projects or samples.
-
-**Status:** an early version. It runs in the simulator and the browser (318 checks pass), and the firmware builds.
-It installs on an FM-1 (version 0.1, from the web installer).
 
 ## The sounds
 
