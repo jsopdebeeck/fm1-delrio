@@ -141,7 +141,7 @@ Click "Switch on". The computer's keys play the panel:
 It is built on [fm1-base](https://github.com/charlesvestal/fm1-base) (in `base/`, a git submodule):
 
 ```sh
-git clone --recursive https://github.com/jsopdebeeck/fm1-new
+git clone --recursive https://github.com/jsopdebeeck/fm1-delrio
 ```
 
 | Command | What |
