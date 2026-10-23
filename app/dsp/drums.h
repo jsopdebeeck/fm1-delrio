@@ -1,16 +1,17 @@
 /* SPDX-License-Identifier: MPL-2.0 */
 /* The kit's voice: recorded (or synthesised) strokes played back, each instrument at its level, tuned and shortened as
  * the app allows it; a stroke's pitch can glide while it rings (the udu's bass, the palm over the opening); the
- * triangle's muted stroke stops its ringing; a stroke with several takes plays them in turn. And the metronome's
+ * triangle's muted stroke stops its ringing, the berimbau's and the maracas' next stroke the one before; a stroke with several takes plays them in turn. And the metronome's
  * click. The audio interrupt calls everything here but dr_inst and dr_bend (the main loop's).
  * Compiled apart at -O2 (fm1.toml o2): only fastmath.h, no libm, no doubles. */
 #pragma once
 #include <stdint.h>
 
-#define DR_NINST 6u                      /* app.c's instruments, in its order */
+#define DR_NINST 8u                      /* app.c's instruments, in its order: the kit's six, the berimbau, its caxixi */
 #define DR_NART 3u                       /* strokes an instrument has at most */
 #define DR_MARACAS 4u                    /* one pair of hands: a stroke stops the one before (short at a fast tempo) */
 #define DR_TRIANGLE 5u                   /* its muted stroke (2) stops the open one ringing */
+#define DR_BERIMBAU 6u                   /* one wire: a stroke stops the one before */
 
 /* a stroke (tools/kit.py writes them, dsp/kit_samples.c): 16-bit mono at its own rate */
 typedef struct {

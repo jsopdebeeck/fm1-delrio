@@ -2,7 +2,8 @@
 
 A firmware that turns the M-VAVE FM-1 into a small rhythm box of hand percussion, made to accompany songs in a
 circle: **djembe, cajon, udu, clapsticks, maracas and triangle**. Choose a rhythm, set the tempo, press PLAY and sing;
-or play the instruments on the keys, record them into the loop, and shape them step by step.
+or play the instruments on the keys, record them into the loop, and shape them step by step. Three more instruments
+are each played alone: **the berimbau** with its toques, and two drones, **the tanpura** and **the shruti box**.
 
 "NEW" is its working name (it shows on the FM-1's splash screen).
 
@@ -27,15 +28,22 @@ the tempo, the beats and the rhythm at the bottom; a page of large sliders. [All
   the page.
 - **PLAY loops the rhythm; REC records what you play on the black keys**, each stroke onto the nearest step, over
   what is there. From a stop, a bar is counted in first. The sequencer runs in the audio interrupt, to the sample.
-- **27 rhythms, grouped by their beats.** ALGORITHM chooses the beats; PRESETS goes round the rhythms with those beats,
+- **31 rhythms, grouped by their beats.** ALGORITHM chooses the beats; PRESETS goes round the rhythms with those beats,
   each coming as it is written. Each number of beats has a FREE rhythm of your own.
+- **The berimbau, played alone (FX)**, as the kit is played:
+  - its black keys: DOM (the wire struck free), DIM (the stone pressed on it, a tone higher), TSCH (the stone resting
+    on it, a buzz), then the caxixi; the same again, for the other hand;
+  - its toques: ANGOLA, SB PEQUENO, SB GRANDE, BANGUELA, CAVALARIA, JOGO DE DENTRO and SB REGIONAL, and a FREE one;
+  - SELECT: the berimbau or its caxixi, each with its steps;
+  - the strokes recorded from Calango's berimbau.
 - **Only what a player can change.** Each instrument's SOUND page has only what is real for it:
   - djembe: level, tuning (its ropes), decay (a hand on the head);
   - cajon: level, snare wires (down to off), decay (a heel on the front);
   - udu: level, size (tuning), how far a pressed key lowers the bass (a palm closing the opening);
   - maracas: level, a short or long shake;
   - triangle: level, ring;
-  - clapsticks: level.
+  - berimbau: level, tuning (its wire);
+  - clapsticks, caxixi: level.
 - **Played like the instruments.**
   - The triangle rings while its key is held, and the hand closes on it when let go. A short tap is a muted stroke.
   - Pressing the udu's bass key harder lowers its pitch.
@@ -47,7 +55,14 @@ the tempo, the beats and the rhythm at the bottom; a page of large sliders. [All
   - EDIT twice: clear.
   - SEQ: tap tempo.
   - SAVE: keep everything.
-  - FX and LFO do nothing, so they stay dark.
+  - FX: the kit, the berimbau, the tanpura or the shruti box.
+  - LFO does nothing, so it stays dark.
+- **Two drones, each played alone (FX):**
+  - TANPURA: four strings plucked in turn, buzzing on their bridge (the jawari). A key sets Sa; the knobs set the first
+    string (Pa, Ma or Ni), the cycle, the register, the level.
+  - SHRUTI: the shruti box's reeds. The keys open and close the notes, which stay held while the bellows breathe;
+    KNOB 1 sets how much they breathe (steady at 0), KNOB 2 the level.
+  - Both are synthesised as they play: no samples.
 - **A minimal screen, large type, a colour per instrument.**
 - **A screen reader can follow it** (fm1-reader, over USB).
 
@@ -55,13 +70,20 @@ the tempo, the beats and the rhythm at the bottom; a page of large sliders. [All
 
 | Beats | Rhythms |
 | --- | --- |
-| 2 | HEARTBEAT, BAIAO, XOTE, SAMBA, MARCHA 2/4, MAZURCA, BARRAVENTO, FREE |
+| 2 | HEARTBEAT, BAIAO, XOTE, SAMBA, MARCHA 2/4, MAZURCA, BARRAVENTO, JOROPO, FREE |
 | 3 | THREE, VALSA, TOADA, FREE |
-| 4 | FOUR, JOURNEY, SHAKER, CLAVE, AFRO 12/8, MARCHA, IJEXA, IJEXA CANTO, FREE |
+| 4 | FOUR, JOURNEY, SHAKER, CLAVE, AFRO 12/8, MARCHA, IJEXA, IJEXA CANTO, KUKU, FREE |
 | 5 | FIVE, FREE |
-| 6 | FREE |
+| 6 | LANDO, BULERIAS, FREE |
 | 7 | SEVEN, FREE |
 | 8 | FREE |
+
+The berimbau's toques:
+
+| Beats | Toques |
+| --- | --- |
+| 4 | ANGOLA, SB PEQUENO, SB GRANDE, BANGUELA, CAVALARIA, JOGO DE DENTRO, FREE |
+| 8 | SB REGIONAL, FREE |
 
 Where they come from:
 
@@ -72,9 +94,20 @@ Where they come from:
 - **Brazil:**
   - BAIAO: the zabumba, and the triangle closed with the off-beats open (ANPPOM 2018).
   - SAMBA: the surdo and the ganzá.
+- **Each instrument's own:**
+  - KUKU: the Mandinka djembe's accompaniment, "B.TT..S.B.TT..S." (M. Gąsewicz, "A rhythm notation for djembe and
+    dundun drums", BachoTeX 2023).
+  - LANDO: the Afro-Peruvian cajon, "B . F . B B | . F B . F B" in 6/4, F a flam (Wikipedia, "Landó (music)"; Thomann's
+    cajon guide).
+  - BULERIAS: the flamenco cajon's slaps on the compás's accents, 3, 6, 8, 10 and 12 of 12 (K. Kocoshis, *Percussive
+    Notes*, 2025).
+  - JOROPO: the llanero maracas, six eighths accented as 6/8 (Radio Nacional de Colombia).
 - **The urban neo-ayahuasca circles:** IJEXA CANTO, XOTE, MARCHA 2/4, TOADA, and BAIAO's djembe are the grooves they
   play on the djembe under their cantos. They are practical adaptations, not canonical transcriptions: the Huni Kuin's
   own cantos are carried by the voice, with a maracá at most.
+- **The berimbau's toques**, as the Cordão de Ouro teaches them (*Toques do berimbau*, Flensburg 2020): counted
+  "0 – 1 – 2 – 3", the two chiados (TSCH) on 0, then the DOM and the DIM on the beats. SB REGIONAL is Mestre Bimba's,
+  over two counts: "tsch tsch DOM, tsch DIM, tsch tsch DOM DOM DIM".
 - **Choosing for a canto such as Jiboia**, by ear:
   - IJEXA CANTO when it drags and sways;
   - BAIAO or MARCHA 2/4 when it pushes you to dance;
@@ -125,19 +158,20 @@ git clone --recursive https://github.com/jsopdebeeck/fm1-new
 2. Open its `emu/` in Chrome or Edge, and click **Install on the FM-1**.
 3. The installer writes over USB (Web MIDI). It asks for a backup first and can put M-VAVE's own firmware back.
 
-**Status:** an early version. It runs in the simulator and the browser (172 checks pass), and the firmware builds.
+**Status:** an early version. It runs in the simulator and the browser (270 checks pass), and the firmware builds.
 It has not yet been installed on an FM-1.
 
 ## The sounds
 
-`app/kit/` holds one WAV per stroke. `app/tools/kit.py build` turns them into `app/dsp/kit_samples.c` (about 375 KB of
-the FM-1's flash).
+`app/kit/` holds one WAV per stroke. `app/tools/kit.py build` turns them into `app/dsp/kit_samples.c` (about 436 KB of
+the FM-1's flash). The tanpura and the shruti box use no samples: they are synthesised as they play.
 
 | Instrument | Source | Licence |
 | --- | --- | --- |
 | Cajon, clapsticks (claves), maracas (a large shaker's hits), triangle | [VCSL](https://github.com/sgossner/VCSL), the Versilian Community Sample Library, by Versilian Studios | CC0 1.0 |
 | Udu, bass | ["122-Udu" by klemmy](https://freesound.org/s/203349/) | CC BY 3.0 |
 | Udu, tone and slap | ["Pong Pop" by AncientOracle](https://freesound.org/s/476883/), cut | CC BY 4.0 |
+| Berimbau (DOM, DIM, TSCH) and caxixi | ["Calango1berimbau"](https://freesound.org/s/26393/) and ["Calango2berimbau"](https://freesound.org/s/26394/) by brfindla, played by Calango, cut | CC0 1.0 |
 | Djembe | synthesised by `app/tools/synth.py` | |
 
 Any stroke can be replaced by your own recording: drop a WAV named after it (`djembe_bass.wav`, `triangle_muted.wav`…)

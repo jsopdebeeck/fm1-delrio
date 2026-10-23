@@ -1,6 +1,7 @@
 # The kit and the rhythms, to listen to: ./build.sh --host, then
 #   app/build/host/new_host app/tests/demo.txt app/build/host
-# kit.wav: every stroke in turn, the black keys left to right; rhythms.wav: two bars of each rhythm
+# kit.wav: every stroke in turn, the black keys left to right; rhythms.wav: two bars of each rhythm; berimbau.wav:
+# its strokes (DOM, DIM, TSCH, the caxixi), then each toque twice round
 wait 600
 master 3000
 wav kit.wav
@@ -53,4 +54,33 @@ turn PRESET 1
 wait 5700
 tap PLAY
 wait 1500
+wavstop
+tap FX
+wav berimbau.wav
+tapkey b0 110
+wait 600
+tapkey b1 110
+wait 600
+tapkey b2 110
+wait 600
+tapkey b3 110
+wait 400
+tapkey b4 110
+wait 800
+tap PLAY
+wait 8000
+turn PRESET 1
+wait 6300
+turn PRESET 1
+wait 4800
+turn PRESET 1
+wait 7300
+turn PRESET 1
+wait 4300
+turn PRESET 1
+wait 6900
+turn ALGO 1
+wait 8900
+tap PLAY
+wait 800
 wavstop

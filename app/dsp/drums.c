@@ -93,7 +93,8 @@ void dr_hit(uint32_t inst, uint32_t art, float vel, uint32_t delay)
     take = take_next[inst][a] % n;       /* the takes in turn: a shaker's down and up */
     take_next[inst][a] = (uint8_t)((take + 1u) % n);
     s = &DR_SAMPLES[DR_FIRST[inst][a] + take];
-    if ((inst == DR_TRIANGLE && art == 2u) || inst == DR_MARACAS)   /* the hand on the triangle; the maracas' next stroke */
+    /* the hand on the triangle; the maracas' next stroke; the berimbau's one wire struck again */
+    if ((inst == DR_TRIANGLE && art == 2u) || inst == DR_MARACAS || inst == DR_BERIMBAU)
         for (i = 0; i < NV; i++)
             if (V[i].on && V[i].inst == inst && !V[i].stopping)
                 stop(&V[i]);

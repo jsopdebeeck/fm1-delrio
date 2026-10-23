@@ -8,9 +8,9 @@ usb_audio_in = true            # the rhythm box recordable over USB
 usb_audio_out = false
 words = "words.tsv"
 include = ["dsp"]
-o2 = ["dsp/drums.c", "dsp/kit_samples.c"]   # the voice at -O2, and its sounds (tools/kit.py)
+o2 = ["dsp/drums.c", "dsp/kit_samples.c", "dsp/drone.c"]   # the voices at -O2, the kit's sounds (tools/kit.py)
 # the site (tools/make_site.py, tools/publish_site.sh)
 tagline = "a rhythm box of ceremony percussion for the FM-1"
 repo = ""
 licence = "MPL-2.0"
-credits = "Built on fm1-base and felucca-bsp, from Felucca by Leo Kuroshita (Hügelton Instruments). The cajon, clapsticks, maracas and triangle: VCSL by Versilian Studios (CC0). The udu: klemmy (CC BY 3.0) and AncientOracle (CC BY 4.0) on freesound.org."   # a sentence for the installer's footer: what your firmware is built from
+credits = "Built on fm1-base and felucca-bsp, from Felucca by Leo Kuroshita (Hügelton Instruments). The cajon, clapsticks, maracas and triangle: VCSL by Versilian Studios (CC0). The udu: klemmy (CC BY 3.0) and AncientOracle (CC BY 4.0) on freesound.org. The berimbau: brfindla and Calango (CC0)."   # a sentence for the installer's footer: what your firmware is built from

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MPL-2.0
-"""The djembe's and the udu's strokes, synthesised: each a few decaying partials, as a drum head or a clay pot rings,
-over a short noise of the hand. For the strokes the kit has no recording of: writes 16-bit mono WAVs at 44100 Hz into
+"""Strokes synthesised, for the instruments the kit has no recording of: the djembe's and the udu's (a few decaying
+partials, as a drum head or a clay pot rings, over a short noise of the hand), the berimbau's and its caxixi's. For the strokes the kit has no recording of: writes 16-bit mono WAVs at 44100 Hz into
 the kit's folder (tools/kit.py makes the firmware's samples from them).
 
   synth.py [NAME ...] [--out app/kit]     the strokes named, or else those the kit's folder has no WAV for
@@ -12,6 +12,10 @@ the kit's folder (tools/kit.py makes the firmware's samples from them).
   udu_bass      the pot's air through the side hole, its pitch rising as the palm leaves the hole
   udu_tone      the clay's modes: fingers on the belly
   udu_slap      a short pop on the top opening
+  berimbau_dom  the steel wire struck open (solto), the gourd's air under it
+  berimbau_dim  the stone pressed on the wire (preso): a tone higher, shorter
+  berimbau_tsch the stone resting lightly on it (chiado): a short buzz
+  caxixi_shake_1, caxixi_shake_2   the basket rattle, forward and back
 Needs numpy."""
 import argparse
 import wave
@@ -114,8 +118,73 @@ def udu_slap():
                       noise(d, 300, 4000, 0.45, 0.008)), 0.5)
 
 
+def bandpass(y, f, q):
+    """a resonance: a biquad band-pass (constant peak gain), as the gourd is"""
+    w = 2 * np.pi * f / SR
+    al = np.sin(w) / (2 * q)
+    b0, b2, a0, a1, a2 = al, -al, 1 + al, -2 * np.cos(w), 1 - al
+    out = np.zeros_like(y)
+    x1 = x2 = y1 = y2 = 0.0
+    for i, x in enumerate(y):
+        v = (b0 * x + b2 * x2 - a1 * y1 - a2 * y2) / a0
+        x2, x1, y2, y1 = x1, x, y1, v
+        out[i] = v
+    return out
+
+
+def wire(d, f0, ring, damp, bright):
+    """the steel wire struck near its end by the stick: its partials a little stretched (stiffness), the higher ones
+    dying sooner, the gourd's resonance under them, the stick's click on top"""
+    t = t_of(d)
+    y = np.zeros_like(t)
+    for k in range(1, 48):
+        fk = k * f0 * np.sqrt(1 + 0.00012 * k * k)
+        if fk > SR * 0.45:
+            break
+        a = k ** -0.7 * (1.0 + bright * (k >= 5))
+        y += a * np.sin(2 * np.pi * fk * t + rng.uniform(0, 6.28)) * np.exp(-t / (ring / (1 + damp * (k - 1))))
+    y = 0.55 * y + 1.6 * bandpass(y, 380.0, 3.0)
+    return attack(mix(y / np.abs(y).max(), noise(d, 1800, 7000, 0.35, 0.003)), 0.4)
+
+
+def berimbau_dom():
+    return wire(0.8, 110.0, 0.9, 0.05, 0.3)
+
+
+def berimbau_dim():
+    return wire(0.5, 110.0 * 2 ** (2 / 12), 0.42, 0.11, 0.6)
+
+
+def berimbau_tsch():
+    d = 0.15
+    t = t_of(d)
+    buzz = noise(d, 1500, 6500, 1.0, 0.035) * (0.6 + 0.4 * np.sign(np.sin(2 * np.pi * 110.0 * t)))   # the coin rattling
+    return attack(mix(0.5 * wire(d, 110.0, 0.05, 0.3, 0.8), buzz), 0.3)
+
+
+def shake(d, grains, amp, tau):
+    """the seeds hitting the basket: short grains of bright noise, close together"""
+    n = int(d * SR)
+    y = np.zeros(n)
+    for _ in range(grains):
+        at = int(abs(rng.normal(0.010, 0.008)) * SR)
+        g = noise(0.02, 3000, 11000, amp * rng.uniform(0.4, 1.0), 0.004)
+        y[at:at + len(g)] += g[:max(0, n - at)]
+    return attack(y * np.exp(-t_of(d) / tau), 0.3)
+
+
+def caxixi_shake_1():
+    return shake(0.12, 26, 1.0, 0.045)
+
+
+def caxixi_shake_2():
+    return shake(0.10, 16, 0.6, 0.035)
+
+
 STROKES = {"djembe_bass": djembe_bass, "djembe_tone": djembe_tone, "djembe_slap": djembe_slap,
-           "udu_bass": udu_bass, "udu_tone": udu_tone, "udu_slap": udu_slap}
+           "udu_bass": udu_bass, "udu_tone": udu_tone, "udu_slap": udu_slap,
+           "berimbau_dom": berimbau_dom, "berimbau_dim": berimbau_dim, "berimbau_tsch": berimbau_tsch,
+           "caxixi_shake_1": caxixi_shake_1, "caxixi_shake_2": caxixi_shake_2}
 
 
 def write(path, y):

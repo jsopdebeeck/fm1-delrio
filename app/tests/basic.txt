@@ -14,8 +14,8 @@ expect v1 <80
 expect s2 0
 shot home.png
 
-# only the buttons that do something glow: not FX, LFO, nor OCT- / OCT+ with one page of keys
-expect glowFX 0
+# only the buttons that do something glow: FX (the modes), not LFO, nor OCT- / OCT+ with one page of keys
+expect glowFX 1
 expect glowLFO 0
 expect glowOCT 0
 
@@ -73,23 +73,23 @@ peakreset
 # ALGORITHM: the beats, and the first rhythm with that many; PRESET goes round the rhythms with those beats
 turn ALGO 1
 expect beats 3
-expect rhythm 8
+expect rhythm 9
 turn ALGO 9
 expect beats 8
-expect rhythm 26
+expect rhythm 30
 turn ALGO -6
 expect beats 2
 expect rhythm 0
 expect inst 0
 turn PRESET 1
 expect rhythm 1
-turn PRESET 6
-expect rhythm 7
+turn PRESET 7
+expect rhythm 8
 expect beats 2
 turn PRESET 1
 expect rhythm 0
 turn PRESET -1
-expect rhythm 7
+expect rhythm 8
 turn PRESET 1
 expect rhythm 0
 # the rhythm's beats and name stay on the screen 4 s, to be read while turning
@@ -97,6 +97,10 @@ wait 3000
 expect msg 1
 wait 1200
 expect msg 0
+# (passing MAZURCA and JOROPO, the maracas came to be shown; HEARTBEAT has them too)
+expect inst 4
+turn SELECT -4
+expect inst 0
 # KNOB 2 (home): the steps a beat; KNOB 1: the tempo
 turn K2 -1
 expect div 3
@@ -202,9 +206,9 @@ expect inst 0
 # 4 beats, then AFRO 12/8: the clapsticks' bell
 turn ALGO 2
 expect beats 4
-expect rhythm 12
+expect rhythm 13
 turn PRESET 4
-expect rhythm 16
+expect rhythm 17
 expect beats 4
 expect div 3
 expect bpm 100
@@ -218,7 +222,7 @@ turn SELECT -3
 # 8 beats (FREE) of 4 steps: two pages of keys (OCT+ / OCT-), 16 steps each
 turn ALGO 4
 expect beats 8
-expect rhythm 26
+expect rhythm 30
 # (passing FIVE and SEVEN, the cajon came to be shown: FREE has nothing to show instead)
 expect inst 1
 turn SELECT -1
@@ -300,7 +304,7 @@ tap SAVE
 expect dirty 0
 reboot
 wait 600
-expect rhythm 26
+expect rhythm 30
 expect beats 8
 expect s16 1
 expect countin 0
@@ -310,7 +314,7 @@ expect playing 0
 turn ALGO -4
 expect beats 4
 turn PRESET 5
-expect rhythm 17
+expect rhythm 18
 expect beats 4
 expect div 2
 expect inst 4
@@ -322,17 +326,17 @@ expect s0 0
 tap SAVE
 reboot
 wait 600
-expect rhythm 17
+expect rhythm 18
 expect s0 0
 expect strokes 3
 # a written rhythm comes as written: what was changed in it (a stroke, the tempo), away and back, is gone
 turn K1 10
 expect bpm 130
 turn PRESET 1
-expect rhythm 18
+expect rhythm 19
 expect bpm 96
 turn PRESET -1
-expect rhythm 17
+expect rhythm 18
 expect bpm 120
 expect strokes 4
 # 2 beats: MAZURCA (the maracas only, in 6/8), BARRAVENTO (the djembe only): the instrument shown follows
@@ -348,24 +352,203 @@ expect rhythm 6
 expect inst 0
 expect strokes 5
 # a FREE one stays as the player left it
-turn PRESET 1
-expect rhythm 7
+turn PRESET 2
+expect rhythm 8
 expect strokes 0
 tapkey w0
 expect s0 1
 turn PRESET -1
 turn PRESET 1
-expect rhythm 7
+expect rhythm 8
 expect s0 1
 # the circles' grooves on the djembe: IJEXA CANTO (4 beats), TOADA (3)
 turn ALGO 2
 turn PRESET 7
-expect rhythm 19
+expect rhythm 20
 expect div 4
 expect inst 0
 expect strokes 8
 turn ALGO -1
 turn PRESET 2
-expect rhythm 10
+expect rhythm 11
 expect div 2
 expect strokes 3
+# each instrument's own: KUKU (the djembe), LANDO and BULERIAS (the cajon, 6 beats), JOROPO (the maracas)
+turn ALGO 1
+turn PRESET 8
+expect rhythm 21
+expect inst 0
+expect strokes 8
+turn ALGO 2
+expect beats 6
+expect rhythm 25
+expect inst 1
+expect strokes 8
+expect s2 2
+expect flam2 1
+expect flam4 0
+turn PRESET 1
+expect rhythm 26
+expect strokes 5
+expect s11 2
+turn ALGO -4
+turn PRESET 7
+expect rhythm 7
+expect inst 4
+expect strokes 6
+expect div 3
+
+# FX: the kit, the berimbau, then the drones, each played alone (what was playing stops)
+tap PLAY
+expect playing 1
+tap FX
+expect mode 1
+expect playing 0
+# the berimbau: its toques, ANGOLA first (tsch tsch DOM DIM, the pause); its own instruments, the berimbau and the
+# caxixi; ARP (the djembe's flams) dark
+expect rhythm 31
+expect inst 6
+expect beats 4
+expect div 2
+expect bpm 60
+expect strokes 4
+expect s0 3
+expect s1 3
+expect s2 1
+expect s4 2
+expect s6 0
+expect glowARP 0
+expect glowFX 1
+shot berimbau.png
+turn SELECT 1
+expect inst 7
+expect strokes 1
+expect s6 1
+turn SELECT 1
+expect inst 6
+turn SELECT -1
+expect inst 7
+turn SELECT -1
+expect inst 6
+# its black keys: DOM DIM TSCH, the caxixi twice, again; the last key none
+peakreset
+tapkey b0
+expect hits6 1
+wait 100
+expect peak_db_max >-24
+tapkey b3
+expect hits7 1
+tapkey b4
+expect hits7 2
+tapkey b5
+expect hits6 2
+tapkey b10
+expect hits6 2
+expect hits7 2
+# PRESET: the toques with its beats (round); ALGORITHM: the beats it has a toque in, 4 and 8
+turn PRESET 1
+expect rhythm 32
+expect bpm 76
+turn PRESET -2
+expect rhythm 37
+expect strokes 0
+turn PRESET 1
+expect rhythm 31
+turn ALGO 1
+expect rhythm 38
+expect beats 8
+expect strokes 10
+turn ALGO 1
+expect rhythm 38
+turn ALGO -1
+expect rhythm 31
+turn ALGO -1
+expect rhythm 31
+# PLAY: the toque in a loop, the berimbau and the caxixi sounding
+peakreset
+tap PLAY
+wait 4200
+expect playing 1
+expect hits7 >2
+expect peak_db_max >-24
+shot berimbau-playing.png
+tap PLAY
+# its FREE toque: a white key, its next stroke (DOM, DIM, TSCH, none)
+turn PRESET -1
+expect rhythm 37
+tapkey w0
+expect s0 1
+tapkey w0
+expect s0 2
+tapkey w0
+expect s0 3
+tapkey w0
+expect s0 0
+tapkey w2
+expect s2 1
+# the tanpura
+tap FX
+expect mode 2
+expect drone 0
+expect glowLFO 0
+shot tanpura.png
+# the tanpura: PLAY, its four strings plucked in turn, the jawari buzzing
+peakreset
+tap PLAY
+expect drone 1
+wait 3500
+expect string >-1
+expect peak_db_max >-30
+shot tanpura-playing.png
+# a key: its note is Sa (F3: F); KNOB 1, the first string (Ma)
+tapkey w0
+expect sa 5
+turn K1 1
+expect first 1
+tap PLAY
+expect drone 0
+wait 400
+peakreset
+wait 300
+expect peak_db_max <-60
+# the shruti: its reeds, Sa Pa Sa' at first; a key opens one, again closes it
+tap FX
+expect mode 3
+expect notes 3
+tapkey w0
+expect notes 4
+tapkey w0
+expect notes 3
+peakreset
+tap PLAY
+expect drone 1
+wait 1500
+expect peak_db_max >-30
+shot shruti-playing.png
+tap EDIT
+tap EDIT
+expect notes 0
+tap PLAY
+expect drone 0
+# SAVE, a reboot: the shruti still shown, silent until PLAY
+tap SAVE
+reboot
+wait 600
+expect mode 3
+expect drone 0
+expect notes 0
+# the kit as it was left (JOROPO, the maracas); the berimbau too (its FREE toque, as written on it)
+tap FX
+expect mode 0
+expect rhythm 7
+expect inst 4
+tap FX
+expect mode 1
+expect rhythm 37
+expect inst 6
+expect s2 1
+expect strokes 1
+tap FX
+tap FX
+tap FX
+expect mode 0

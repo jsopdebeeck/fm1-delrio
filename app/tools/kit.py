@@ -35,10 +35,12 @@ KIT = [
     ("clapsticks", 44100, [("hit", 0.30)]),
     ("maracas", 44100, [("shake", 0.25)]),
     ("triangle", 44100, [("open", 1.60), ("muted", 0.35)]),
+    ("berimbau", 22050, [("dom", 0.40), ("dim", 0.32), ("tsch", 0.28)]),   # the berimbau mode's (FX)
+    ("caxixi", 32000, [("shake", 0.16)]),
 ]
 # each stroke's level against its instrument's others, dB (normalised to the same peak, a short stroke sounds softer)
 TRIM = {"djembe_tone": 1.5, "djembe_slap": 6.0, "cajon_bass": 3.0, "cajon_slap": 5.0, "udu_bass": -1.5,
-        "udu_tone": 2.0, "udu_slap": 3.0}
+        "udu_tone": 2.0, "udu_slap": 3.0, "berimbau_tsch": 4.0, "caxixi_shake": 3.0}
 VCSL = {                                   # kit name: VCSL file (in its folder, any depth)
     "cajon_bass": "Cajon_hit3_f_rr1.wav",
     "cajon_slap": "Cajon_hit1_f_rr1.wav",
