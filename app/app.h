@@ -11,9 +11,9 @@
 #define APP_BLOCK 256u                   /* frames per audio block: 5.8 ms at 44.1 kHz */
 #define APP_TOUCH                        /* velocity from the keys (lib/touch.h) */
 
-/* the store: the settings, the panel calibration (the platform's) and the rhythms */
-enum { OBJ_SETTINGS, OBJ_PANEL, OBJ_RHYTHMS, OBJ_NOBJ };
-#define APP_STORE_MAP {0xFC000u, 0xDC000u, 0xDA000u}
+/* the store: the settings, the panel calibration (the platform's) and the rhythms (two objects, ten in each) */
+enum { OBJ_SETTINGS, OBJ_PANEL, OBJ_RHYTHMS, OBJ_RHYTHMS2, OBJ_NOBJ };
+#define APP_STORE_MAP {0xFC000u, 0xDC000u, 0xDA000u, 0xD8000u}
 
 /* the contract: the platform calls these */
 void app_init(void);                     /* boot: the engine, then the saved settings (or defaults) */
@@ -27,7 +27,7 @@ void app_say(const char *a, const char *b);   /* a short message on the screen a
 /* the host simulator's checks (host/plat_host.c "expect"): inst, rhythm, beats, div, bpm, swing, human, playing,
  * rec, count (count-in steps left), step (the step sounding), page, keypage, muted, dirty, voices, click, countin,
  * sN (the selected instrument's stroke at step N: 0 none, 1..3), vN (its velocity), flamN (a flam there), strokes
- * (its steps with a stroke), tune (its tuning, tenths of a semitone), bend (the udu's bass glide now, tenths),
+ * (its steps with a stroke), msg (a message on the screen), tune (its tuning, tenths of a semitone), bend (the udu's bass glide now, tenths),
  * hitsI (instrument I's strokes played since boot) */
 #define APP_HOST_EXPECT
 int app_expect(const char *what, int *got);

@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: MPL-2.0
 # Build NEW with fm1-base (base/, a git submodule).
 #   ./build.sh [--release X.Y] [--host | --web]
+#   ./build.sh --site [X.Y]      the release X.Y (default 0.1), the emulator and the site beside them in app/build/site:
+#                                its emu/ has "Install on the FM-1", which opens its install/ (Chrome or Edge: Web MIDI)
 #   JIELI_TOOLCHAIN  JieLi Linux toolchain (default: ~/.jieli/toolchain)
 #   AC79_SDK         JieLi AC79 SDK checkout (default: ~/fw-AC79_AIoT_SDK)
 #   PYTHON           a Python with Pillow (default: ~/.venvs/fm1/bin/python if it exists, else python3)
@@ -21,4 +23,10 @@ case " $* " in *" --web "*)
 esac
 [ -f base/tools/build.py ] || { echo "build.sh: no fm1-base in base/ (git submodule update --init --recursive)"; exit 1; }
 "$PY" -c 'import PIL' 2>/dev/null || { echo "build.sh: $PY has no Pillow (python3 -m venv ~/.venvs/fm1 && ~/.venvs/fm1/bin/pip install Pillow numpy)"; exit 1; }
+if [ "$1" = "--site" ]; then
+	V="${2:-0.1}"
+	"$0" --release "$V"
+	"$0" --web
+	exec "$PY" base/tools/make_site.py app "app/build/new-$V.fwsc" "$V" app/build/site
+fi
 exec "$PY" base/tools/build.py app "$@"

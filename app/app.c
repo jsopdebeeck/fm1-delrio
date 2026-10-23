@@ -3,7 +3,8 @@
  * with its strokes; a rhythm is a bar of 2 to 8 beats, 2 to 4 steps a beat, and each instrument's strokes on its steps.
  * The white keys are the selected instrument's steps (a press: its next stroke, then none); the black keys play the
  * instruments, grouped as they are: djembe 3, cajon 2, udu 3, clapsticks and maracas, triangle. Each setting has one
- * control: SELECT the instrument, ALGORITHM the beats, PRESET the rhythm, PLAY plays it in a loop (PLAY again stops),
+ * control: SELECT the instrument, ALGORITHM the beats (2 to 8), PRESET the rhythm among those with that many beats
+ * (each as it is written; each number of beats has a FREE one, the player's own), PLAY plays it in a loop (PLAY again stops),
  * REC records what the black keys play onto the nearest step (from a stop, after a bar counted in), SEL mutes the
  * instrument, EDIT twice clears it, SEQ taps the tempo, ARP held makes the djembe's strokes flams (a step's, a black
  * key's), OCT- / OCT+ the keys' page of steps when a bar has more than the 16 white keys, SAVE keeps everything, MASTER
@@ -45,7 +46,7 @@ enum { I_DJEMBE, I_CAJON, I_UDU };
 
 /* ---------------------------------------------------------------- the rhythms --- */
 #define NSTEPS 32u                       /* 8 beats of 4 */
-#define NRHY 12u
+#define NRHY 23u                         /* kept in two store objects */
 #define ART(v) ((uint32_t)(v) >> 6)      /* a step: its stroke (0 none, 1..3) in the top two bits, */
 #define FLAM(v) ((uint32_t)(v) >> 5 & 1u)   /* a flam (the djembe's) in the next, */
 #define VEL(v) (((uint32_t)(v) & 31u) * 4u + 3u)   /* its velocity (3..127) below */
@@ -60,33 +61,58 @@ typedef struct {
     uint8_t rsv[2];
     uint8_t step[NINST][NSTEPS];
 } rhythm_t;
-#define RHY_MAGIC 0x32594852u            /* "RHY2" */
+#define RHY_MAGIC 0x34594852u            /* "RHY4" */
 static struct {
     uint32_t magic;
     rhythm_t r[NRHY];
 } rhy;
 
 /* the rhythms at first: one string an instrument, a character a step: the stroke's letter (capital: strong, small:
- * soft), "." none */
+ * soft), "." none. From the literature:
+ *   MARCHA, VALSA, MAZURCA: Santo Daime's three rhythms, as its maracá plays them (f soft, F strong): marcha f f f F,
+ *     valsa F F f, mazurca (6/8) f f f F F F (Jornal Grande Bahia, "Abaixo o maracá. Viva o maracá", 2016)
+ *   IJEXA, BARRAVENTO: Umbanda's atabaque toques on the djembe, Tum its bass, Ta its tone, the marking stroke (M)
+ *     strong: Ijexá "Ta TaTa Tum Ta", Barravento (6/8) "Tum TaTa TumTum" (Templo Tata Possum, Curso de Atabaque, 2024)
+ *   BAIAO: the zabumba on the first beat's first and fourth sixteenths (here the djembe's bass), the triangle's
+ *     sixteenths closed, open on the off-beats (ANPPOM 2018); SAMBA: the surdo soft on 1, strong on 2 (the cajon's
+ *     bass), the ganzá's sixteenths (the maracas) */
 typedef struct {
     const char *name;
     uint8_t beats, div, bpm, swing;
+    uint8_t free;                        /* the player's own: kept as left, not written again when chosen */
     const char *pat[NINST];              /* djembe, cajon, udu, clapsticks, maracas, triangle */
 } rdef_t;
-static const rdef_t RDEF[NRHY] = {
-    {"HEARTBEAT", 2, 4, 64, 0, {"Bb..Bb..", "", "B.......", "", "..x...x.", ""}},
-    {"JOURNEY", 4, 2, 116, 0, {"BbbbBbbb", "", "B.......", "", "", ""}},
-    {"SHAKER", 4, 4, 76, 0, {"", "", "B.......b.......", "", "XxxxXxxxXxxxXxxx", "O..............."}},
-    {"THREE", 3, 4, 84, 0, {"", "B...S...S...", "", "", "X.x.X.x.X.x.", "O..........."}},
-    {"FOUR", 4, 4, 92, 0, {"", "B...S...B.b.S...", "", "", "x.X.x.X.x.X.x.X.", "O.......M......."}},
-    {"CLAVE", 4, 4, 100, 0, {"....T.T.....T.TS", "B.......B.......", "", "X..X..X...X.X...", "x.x.x.x.x.x.x.x.", ""}},
-    {"AFRO 12/8", 4, 3, 100, 0, {"S..TT.S..TT.", "", "B.....b.....", "X.X.XX.X.X.X", "X.xX.xX.xX.x", ""}},
-    {"FIVE", 5, 2, 110, 0, {"", "B.s.s.B.S.", "", "", "XxXxXxXxXx", "O........."}},
-    {"SEVEN", 7, 2, 150, 0, {"", "B...S...B...S.", "", "X...X...X.....", "x.x.x.x.x.x.x.", ""}},
-    {"FREE 1", 4, 4, 90, 0, {"", "", "", "", "", ""}},
-    {"FREE 2", 3, 4, 90, 0, {"", "", "", "", "", ""}},
-    {"FREE 3", 4, 3, 90, 0, {"", "", "", "", "", ""}},
+/* grouped by their beats (ALGORITHM), each group ending with its FREE one (PRESET goes round a group) */
+static const rdef_t RDEF[] = {
+    {"HEARTBEAT", 2, 4, 64, 0, 0, {"Bb..Bb..", "", "B.......", "", "..x...x.", ""}},
+    {"BAIAO", 2, 4, 100, 0, 0, {"B..B....", "", "", "", "", "MMOMMMOM"}},
+    {"SAMBA", 2, 4, 100, 0, 0, {"", "b...B...", "", "", "xxxXxxxX", ""}},
+    {"MAZURCA", 2, 3, 60, 0, 0, {"", "", "", "", "xxxXXX", ""}},
+    {"BARRAVENTO", 2, 3, 72, 0, 0, {"B.ttbb", "", "", "", "", ""}},
+    {"FREE", 2, 4, 90, 0, 1, {"", "", "", "", "", ""}},
+    {"THREE", 3, 4, 84, 0, 0, {"", "B...S...S...", "", "", "X.x.X.x.X.x.", "O..........."}},
+    {"VALSA", 3, 2, 120, 0, 0, {"", "", "", "", "X.X.x.", ""}},
+    {"FREE", 3, 4, 90, 0, 1, {"", "", "", "", "", ""}},
+    {"FOUR", 4, 4, 92, 0, 0, {"", "B...S...B.b.S...", "", "", "x.X.x.X.x.X.x.X.", "O.......M......."}},
+    {"JOURNEY", 4, 2, 116, 0, 0, {"BbbbBbbb", "", "B.......", "", "", ""}},
+    {"SHAKER", 4, 4, 76, 0, 0, {"", "", "B.......b.......", "", "XxxxXxxxXxxxXxxx", "O..............."}},
+    {"CLAVE", 4, 4, 100, 0, 0, {"....T.T.....T.TS", "B.......B.......", "", "X..X..X...X.X...", "x.x.x.x.x.x.x.x.", ""}},
+    {"AFRO 12/8", 4, 3, 100, 0, 0, {"S..TT.S..TT.", "", "B.....b.....", "X.X.XX.X.X.X", "X.xX.xX.xX.x", ""}},
+    {"MARCHA", 4, 2, 120, 0, 0, {"", "", "", "", "x.x.x.X.", ""}},
+    {"IJEXA", 4, 2, 96, 0, 0, {"T.ttB.t.", "", "", "", "x.x.x.x.", ""}},
+    {"FREE", 4, 4, 90, 0, 1, {"", "", "", "", "", ""}},
+    {"FIVE", 5, 2, 110, 0, 0, {"", "B.s.s.B.S.", "", "", "XxXxXxXxXx", "O........."}},
+    {"FREE", 5, 2, 90, 0, 1, {"", "", "", "", "", ""}},
+    {"FREE", 6, 2, 90, 0, 1, {"", "", "", "", "", ""}},
+    {"SEVEN", 7, 2, 150, 0, 0, {"", "B...S...B...S.", "", "X...X...X.....", "x.x.x.x.x.x.x.", ""}},
+    {"FREE", 7, 2, 90, 0, 1, {"", "", "", "", "", ""}},
+    {"FREE", 8, 2, 90, 0, 1, {"", "", "", "", "", ""}},
 };
+typedef char rdef_one_each[sizeof RDEF / sizeof RDEF[0] == NRHY ? 1 : -1];   /* a rhythm for each place */
+
+/* the rhythms in two store objects: the first half with the magic, then the second */
+#define RHY_A (sizeof rhy.magic + NRHY / 2u * sizeof(rhythm_t))
+#define RHY_B ((NRHY - NRHY / 2u) * sizeof(rhythm_t))
 
 static void rhythm_default(uint32_t k)
 {
@@ -403,21 +429,6 @@ static void keypage_fit(void)
         ui.keypage = (uint8_t)(npages(cur()) - 1u);
 }
 
-static void beats_step(int32_t d)
-{
-    rhythm_t *r = cur();
-    char t[12];
-    int32_t b = clamp((int32_t)r->beats + d, 2, 8);
-    if (b == r->beats)
-        return;
-    r->beats = (uint8_t)b;
-    keypage_fit();
-    changed();
-    int_text(b, t);
-    text_cat(t, " BEATS");
-    app_say(t, "");
-}
-
 static void div_step(int32_t d)
 {
     rhythm_t *r = cur();
@@ -433,17 +444,69 @@ static void div_step(int32_t d)
     app_say("STEPS", t);
 }
 
-static void rhythm_step(int32_t d)
+static int has_strokes(const rhythm_t *r, uint32_t i)
 {
-    int32_t k = clamp((int32_t)set.rhythm + d, 0, (int32_t)NRHY - 1);
-    char t[8];
-    if (k == set.rhythm)
-        return;
+    uint32_t s;
+    for (s = 0; s < nsteps(r); s++)
+        if (ART(r->step[i][s]))
+            return 1;
+    return 0;
+}
+
+#define RHY_SAY_MS 4000u                 /* a rhythm chosen: its beats and name stay this long */
+
+/* a rhythm chosen: a written one comes as it is written (its steps, tempo, swing and strokes: what was changed in it
+ * is gone); a FREE one as the player left it. The instrument shown is one it plays. Said: its beats, its name */
+static void rhythm_select(uint32_t k)
+{
+    uint32_t i;
+    int any = 0;
+    char t[16];
+    if (!RDEF[k].free)
+        rhythm_default(k);
     set.rhythm = (uint8_t)k;
     ui.keypage = 0;
+    for (i = 0; i < NINST; i++)
+        any |= has_strokes(cur(), i);
+    if (any && !has_strokes(cur(), set.inst))
+        for (i = 0; i < NINST; i++)
+            if (has_strokes(cur(), i)) {
+                set.inst = (uint8_t)i;
+                break;
+            }
     changed();
-    int_text(k + 1, t);
+    int_text(RDEF[k].beats, t);
+    text_cat(t, " BEATS");
+    if (!any)
+        text_cat(t, ", EMPTY");
     app_say(t, RDEF[k].name);
+    ui.msg_until = plat_ms() + RHY_SAY_MS;   /* time to read it while turning on */
+}
+
+/* PRESET: the next rhythm with the same beats (round) */
+static void rhythm_step(int32_t d)
+{
+    uint32_t k = set.rhythm, n;
+    for (n = 0; n < NRHY; n++) {
+        k = (k + (d > 0 ? 1u : NRHY - 1u)) % NRHY;
+        if (RDEF[k].beats == RDEF[set.rhythm].beats)
+            break;
+    }
+    if (k != set.rhythm)
+        rhythm_select(k);
+}
+
+/* ALGORITHM: the beats, 2 to 8: the first rhythm with that many */
+static void meter_step(int32_t d)
+{
+    int32_t b = clamp((int32_t)RDEF[set.rhythm].beats + d, 2, 8);
+    uint32_t k;
+    if (b == RDEF[set.rhythm].beats)
+        return;
+    for (k = 0; k < NRHY && RDEF[k].beats != (uint32_t)b; k++)
+        ;
+    if (k < NRHY)
+        rhythm_select(k);
 }
 
 static void bpm_set(int32_t v)
@@ -757,7 +820,8 @@ static void button(uint32_t b)
         }
         break;
     case B_SAVE:
-        if (plat_store_save(OBJ_SETTINGS, &set, sizeof set) == 0 && plat_store_save(OBJ_RHYTHMS, &rhy, sizeof rhy) == 0) {
+        if (plat_store_save(OBJ_SETTINGS, &set, sizeof set) == 0 && plat_store_save(OBJ_RHYTHMS, &rhy, RHY_A) == 0
+            && plat_store_save(OBJ_RHYTHMS2, &rhy.r[NRHY / 2u], RHY_B) == 0) {
             set_dirty = 0;
             app_say("SAVED", "");
         } else {
@@ -792,7 +856,7 @@ static void input(void)
         if (k == EN_SELECT)
             inst_step(e);
         else if (k == EN_ALGO)
-            beats_step(e > 0 ? 1 : -1);
+            meter_step(e > 0 ? 1 : -1);
         else if (k == EN_PRESET)
             rhythm_step(e > 0 ? 1 : -1);
         else
@@ -906,15 +970,6 @@ static void frame(int32_t x, int32_t y, int32_t w, int32_t h, int32_t t, uint16_
 static void text_c(int32_t cx, int32_t y, const felucca_font_t *f, const char *s, uint16_t c)   /* centred */
 {
     cv_text(cx - text_w(f, s) / 2, y, f, s, c);
-}
-
-static int has_strokes(const rhythm_t *r, uint32_t i)
-{
-    uint32_t s;
-    for (s = 0; s < nsteps(r); s++)
-        if (ART(r->step[i][s]))
-            return 1;
-    return 0;
 }
 
 /* the header: the instrument (or the page) large in its colour, the six instruments as dots; or a message */
@@ -1075,9 +1130,10 @@ void app_init(void)
              && set.snd[i].tune <= TUNE_MAX && set.snd[i].decay >= 0.1f && set.snd[i].decay <= 1.0f;
     if (!ok)
         settings_default();
-    ok = plat_store_load(OBJ_RHYTHMS, &rhy, sizeof rhy) == (int)sizeof rhy && rhy.magic == RHY_MAGIC;
+    ok = plat_store_load(OBJ_RHYTHMS, &rhy, RHY_A) == (int)RHY_A && rhy.magic == RHY_MAGIC
+         && plat_store_load(OBJ_RHYTHMS2, &rhy.r[NRHY / 2u], RHY_B) == (int)RHY_B;
     for (i = 0; ok && i < NRHY; i++)
-        ok = rhy.r[i].beats >= 2u && rhy.r[i].beats <= 8u && rhy.r[i].div >= 2u && rhy.r[i].div <= 4u
+        ok = rhy.r[i].beats == RDEF[i].beats && rhy.r[i].div >= 2u && rhy.r[i].div <= 4u
              && rhy.r[i].bpm >= 40u && rhy.r[i].bpm <= 240u && rhy.r[i].swing <= 100u && rhy.r[i].human <= 100u;
     if (!ok) {
         rhy.magic = RHY_MAGIC;
@@ -1172,6 +1228,8 @@ int app_expect(const char *what, int *got)
         *got = ART(r->step[set.inst][atoi(what + 1) % NSTEPS]) ? (int)VEL(r->step[set.inst][atoi(what + 1) % NSTEPS]) : 0;
     else if (!strncmp(what, "hits", 4))  /* hitsI: instrument I's strokes played since boot */
         *got = (int)seq.hits[atoi(what + 4) % NINST];
+    else if (!strcmp(what, "msg"))       /* a message is on the screen */
+        *got = ui.msg_until && (int32_t)(ui.msg_until - plat_ms()) > 0;
     else if (!strcmp(what, "strokes")) { /* the instrument's steps with a stroke, in the bar */
         uint32_t s;
         *got = 0;

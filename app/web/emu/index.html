@@ -117,6 +117,8 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
   <span class="cpu" id="cpu"></span>
   <button id="reset" type="button" aria-describedby="reset-why">Factory reset</button>
   <span id="reset-why" class="sr">Forget what was saved and start again from the factory settings</span>
+  <button id="install" type="button" aria-describedby="install-why">Install on the FM-1</button>
+  <span id="install-why" class="sr">Opens the installer, which writes this firmware to an FM-1 connected over USB</span>
 </div>
 
 <details class="speak" id="speak">
@@ -156,8 +158,8 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
   <div>
     <h2>One control per setting</h2>
     <ul>
-      <li><b>SELECT</b>: the instrument (its colour on the screen). <b>ALGORITHM</b>: the beats in the bar, 2 to 8.
-        <b>PRESETS</b>: the rhythm.</li>
+      <li><b>SELECT</b>: the instrument (its colour on the screen). <b>ALGORITHM</b>: the beats in the bar, 2 to 8,
+        and the first rhythm with that many. <b>PRESETS</b>: the rhythms with those beats, round.</li>
       <li><b>SEL</b>: the instrument muted or on. <b>EDIT</b> twice: its strokes cleared.</li>
       <li><b>SEQ</b>: tap the tempo (it blinks the beat). <b>ARP</b> held: flams on the djembe. <b>OCT−</b> /
         <b>OCT+</b>: the keys' page of steps, when the bar has more steps than the 16 white keys.</li>
@@ -177,9 +179,20 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
     </ul>
   </div>
   <div>
-    <h2>Rhythms</h2>
-    <p>HEARTBEAT, JOURNEY (steady shamanic drumming), SHAKER, THREE, FOUR, CLAVE, AFRO 12/8 (the bell on the
-      clapsticks), FIVE, SEVEN, and FREE 1–3 to fill. Each keeps its own beats, steps, tempo, swing and strokes.</p>
+    <h2>Rhythms (ALGORITHM, then PRESETS)</h2>
+    <ul>
+      <li><b>2 beats</b>: HEARTBEAT, BAIAO (the zabumba and the triangle), SAMBA, MAZURCA (Santo Daime's maracá, 6/8),
+        BARRAVENTO (Umbanda's atabaque on the djembe, 6/8).</li>
+      <li><b>3 beats</b>: THREE, VALSA (Santo Daime's maracá).</li>
+      <li><b>4 beats</b>: FOUR, JOURNEY (steady shamanic drumming), SHAKER, CLAVE, AFRO 12/8 (the bell on the
+        clapsticks), MARCHA (Santo Daime's maracá), IJEXA (Umbanda's atabaque on the djembe: Tum its bass, Ta its
+        tone).</li>
+      <li><b>5 beats</b>: FIVE. <b>7 beats</b>: SEVEN. <b>6 and 8 beats</b>: your own only.</li>
+      <li>Each number of beats ends with a <b>FREE</b> rhythm to fill.</li>
+    </ul>
+    <p>A rhythm comes as it is written: its beats, steps, tempo and strokes. What you change lasts until you choose
+      another; the FREE ones keep what you put in them (SAVE keeps them when the FM-1 is off). The instrument shown
+      is one the rhythm plays.</p>
   </div>
   <div>
     <h2>From the computer's keyboard</h2>
@@ -753,6 +766,15 @@ $("mute").addEventListener("click", () => {
   $("mute").setAttribute("aria-pressed", on ? "true" : "false");
   if (gain) gain.gain.value = on ? 0 : 1;
 });
+// NEW: the installer sits beside the emulator in the firmware's site (./build.sh --site: emu/ and install/); it
+// writes the FM-1 over Web MIDI, which only Chrome and Edge have, and which a page inside claude.ai may not use
+$("install").addEventListener("click", async () => {
+  const there = await fetch("../install/", { method: "HEAD", cache: "no-cache" }).then((r) => r.ok, () => false);
+  if (there) location.href = "../install/";
+  else showAlert("The installer is not beside this page. On the computer the FM-1 is plugged into: ./build.sh --site, " +
+                 "then open the site in Chrome or Edge (a page inside claude.ai cannot use MIDI).");
+});
+
 $("reset").addEventListener("click", () => {
   if ($("reset").dataset.armed) {
     try { localStorage.removeItem(STORE_KEY); } catch {}

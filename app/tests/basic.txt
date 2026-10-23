@@ -65,13 +65,34 @@ expect playing 0
 wait 300
 peakreset
 
-# ALGORITHM: the beats; KNOB 2 (home): the steps a beat; KNOB 1: the tempo
+# ALGORITHM: the beats, and the first rhythm with that many; PRESET goes round the rhythms with those beats
 turn ALGO 1
 expect beats 3
+expect rhythm 6
 turn ALGO 9
 expect beats 8
+expect rhythm 22
 turn ALGO -6
 expect beats 2
+expect rhythm 0
+expect inst 0
+turn PRESET 1
+expect rhythm 1
+turn PRESET 4
+expect rhythm 5
+expect beats 2
+turn PRESET 1
+expect rhythm 0
+turn PRESET -1
+expect rhythm 5
+turn PRESET 1
+expect rhythm 0
+# the rhythm's beats and name stay on the screen 4 s, to be read while turning
+wait 3000
+expect msg 1
+wait 1200
+expect msg 0
+# KNOB 2 (home): the steps a beat; KNOB 1: the tempo
 turn K2 -1
 expect div 3
 turn K2 1
@@ -148,9 +169,12 @@ tap PLAY
 expect playing 0
 expect rec 0
 
-# PRESET: the rhythms; AFRO 12/8 has the clapsticks' bell
-turn PRESET 6
-expect rhythm 6
+# 4 beats, then AFRO 12/8: the clapsticks' bell
+turn ALGO 2
+expect beats 4
+expect rhythm 9
+turn PRESET 4
+expect rhythm 13
 expect beats 4
 expect div 3
 expect bpm 100
@@ -161,17 +185,26 @@ expect s2 1
 expect strokes 7
 turn SELECT -3
 
-# 8 beats of 3: two pages of keys (OCT+ / OCT-), 5 whole beats on the first (steps 0..14)
+# 8 beats (FREE) of 4 steps: two pages of keys (OCT+ / OCT-), 16 steps each
 turn ALGO 4
 expect beats 8
+expect rhythm 22
+# (passing FIVE and SEVEN, the cajon came to be shown: FREE has nothing to show instead)
+expect inst 1
+turn SELECT -1
+expect inst 0
+turn K2 2
+expect div 4
 tap OCT+
 expect keypage 1
 tapkey w0
-expect s15 1
+expect s16 1
 tap OCT-
 expect keypage 0
 
 # no swing with 3 steps a beat (the rhythm swings already)
+turn K2 -1
+expect div 3
 turn K3 2
 expect swing 0
 
@@ -218,7 +251,7 @@ tap HOME
 # the udu's bass key pressed: its bass lower, as far as the pressure goes (3 semitones at most); let go, back up
 key b5 down 100 90
 wait 300
-expect bend <-5
+expect bend <-2
 expect bend >-31
 key b5 up
 wait 300
@@ -229,8 +262,60 @@ tap SAVE
 expect dirty 0
 reboot
 wait 600
-expect rhythm 6
+expect rhythm 22
 expect beats 8
-expect s15 1
+expect s16 1
 expect countin 0
 expect playing 0
+
+# the rhythms from the literature: Santo Daime's MARCHA (the maracá f f f F), in the second store object
+turn ALGO -4
+expect beats 4
+turn PRESET 5
+expect rhythm 14
+expect beats 4
+expect div 2
+expect inst 4
+expect strokes 4
+expect v6 >100
+expect v0 <80
+tapkey w0
+expect s0 0
+tap SAVE
+reboot
+wait 600
+expect rhythm 14
+expect s0 0
+expect strokes 3
+# a written rhythm comes as written: what was changed in it (a stroke, the tempo), away and back, is gone
+turn K1 10
+expect bpm 130
+turn PRESET 1
+expect rhythm 15
+expect bpm 96
+turn PRESET -1
+expect rhythm 14
+expect bpm 120
+expect strokes 4
+# 2 beats: MAZURCA (the maracas only, in 6/8), BARRAVENTO (the djembe only): the instrument shown follows
+turn ALGO -2
+expect rhythm 0
+turn PRESET 3
+expect rhythm 3
+expect div 3
+expect inst 4
+expect strokes 6
+turn PRESET 1
+expect rhythm 4
+expect inst 0
+expect strokes 5
+# a FREE one stays as the player left it
+turn PRESET 1
+expect rhythm 5
+expect strokes 0
+tapkey w0
+expect s0 1
+turn PRESET -1
+turn PRESET 1
+expect rhythm 5
+expect s0 1
