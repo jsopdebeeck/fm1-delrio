@@ -5,7 +5,8 @@
  * that order, evenly, with a longer pause before the cycle starts again. A string: a tone rich in harmonics (a
  * band-limited saw and a narrow pulse) through two paths, a warm body (a low-pass) and the jawari: a resonance that,
  * from each pluck, sweeps down through the harmonics as the string rings (the flat bridge the string grazes), each
- * pluck a little differently. A finger's soft start, a long ring (about 10 s, the strings overlapping into one
+ * pluck a little differently. How much jawari (the thread under the strings, set by the player): closed, the body and
+ * a short, low, gentle sweep; open, a sharper resonance from higher up, sweeping longer, louder against the body. A finger's soft start, a long ring (about 10 s, the strings overlapping into one
  * sound), each string a few cents off true, as a real one is.
  *
  * The shruti box: a reed for each note held, a band-limited saw and a narrow pulse (polyBLEP) mixed, softened by two
@@ -35,7 +36,7 @@ static struct {
     volatile int on;
     volatile int32_t sa;
     volatile uint8_t first;
-    volatile float cycle_s, level;
+    volatile float cycle_s, level, jawari;
     float next;                          /* samples to the next pluck */
     uint32_t which;                      /* the string plucked next */
     volatile int last;
@@ -68,6 +69,7 @@ void dn_init(float sample_rate)
     body_k = 1.0f - fm_expf(-6.2831853f * 900.0f / SR);
     tp.cycle_s = 4.0f;
     tp.level = 0.7f;
+    tp.jawari = 0.75f;
     tp.sa = 48;
     tp.last = -1;
     sh.low = 53;
@@ -100,6 +102,7 @@ void dn_tanpura(int on, const dn_tanpura_t *p)
     tp.sa = p->sa;
     tp.first = p->first;
     tp.cycle_s = fm_clampf(p->cycle_s, 1.0f, 12.0f);
+    tp.jawari = fm_clampf(p->jawari, 0.0f, 1.0f);
     tp.level = fm_clampf(p->level, 0.0f, 1.0f);
     tp.on = on;
 }
@@ -126,13 +129,13 @@ static void pluck(uint32_t i)
     static const int8_t FIRST[3] = {-5, -7, -1};   /* Pa, Ma, Ni under Sa */
     tstring_t *s = &S[i];
     float midi = (float)tp.sa + (i == 0u ? (float)FIRST[tp.first % 3u] : i == 3u ? -12.0f : 0.0f) + 0.04f * noise();
-    float f = hz(midi), ring = i == 3u ? 12.0f : 10.0f;
+    float f = hz(midi), ring = i == 3u ? 12.0f : 10.0f, j = tp.jawari;
     s->inc = f / SR;
     s->fall = fm_expf(-6.9077553f / (ring * SR));   /* -60 dB in 10 s (the low Sa 12) */
     s->rising = 1;
     s->sweep = 1.0f;
-    s->sweep_fall = 2.2f * (0.85f + 0.3f * (0.5f + 0.5f * noise()));   /* seconds: each pluck a little different */
-    s->fhi = fm_clampf(30.0f * f, 1800.0f, 5200.0f);
+    s->sweep_fall = (1.0f + 2.5f * j) * (0.85f + 0.3f * (0.5f + 0.5f * noise()));   /* each pluck a little different */
+    s->fhi = fm_clampf((12.0f + 30.0f * j) * f, 1200.0f, 6000.0f);
     s->flo = fm_clampf(4.0f * f, 250.0f, 900.0f);
     tp.last = (int)i;
 }
@@ -142,7 +145,8 @@ static float blep(float t, float dt);
 static void tanpura_render(float *out, uint32_t n)
 {
     static const float AT[NS + 1] = {0.0f, 1.0f, 2.0f, 3.0f, 4.6f};   /* the plucks in a cycle's units */
-    float target = tp.on ? tp.level * 0.24f : 0.0f, unit = tp.cycle_s * SR / AT[NS], fco[NS];
+    float target = tp.on ? tp.level * 0.24f : 0.0f, unit = tp.cycle_s * SR / AT[NS], fco[NS], j = tp.jawari;
+    float damp = 0.35f - 0.22f * j, wbody = 0.75f - 0.3f * j, wband = 0.15f + j;   /* the jawari: sharper, louder */
     uint32_t i, k;
     if (target == 0.0f && tp.gain < 0.0001f) {
         tp.gain = 0.0f;
@@ -175,8 +179,8 @@ static void tanpura_render(float *out, uint32_t n)
                 t2 -= 1.0f;
             src = 0.55f * saw + 0.6f * (saw - (2.0f * t2 - 1.0f - blep(t2, s->inc)));
             s->body += (src - s->body) * body_k;
-            s->lo += fco[k] * s->band;       /* the jawari: a resonance (Q about 5) sweeping down */
-            hi = src - s->lo - 0.18f * s->band;
+            s->lo += fco[k] * s->band;       /* the jawari: a resonance (Q 3 to 8) sweeping down */
+            hi = src - s->lo - damp * s->band;
             s->band += fco[k] * hi;
             if (s->rising) {
                 s->env += (1.02f - s->env) * rise_k;
@@ -184,7 +188,7 @@ static void tanpura_render(float *out, uint32_t n)
                     s->rising = 0;
             } else
                 s->env *= s->fall;
-            sum += s->env * (0.6f * s->body + 0.9f * s->band);
+            sum += s->env * (wbody * s->body + wband * s->band);
             t += s->inc;
             s->ph = t >= 1.0f ? t - 1.0f : t;
         }

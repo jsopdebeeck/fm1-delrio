@@ -61,10 +61,10 @@ the tempo, the beats and the rhythm at the bottom; a page of large sliders. [All
   - LFO: the presets listed, with their beats, one further each press, without changing anything; held, the one shown
     is chosen.
 - **Two drones, each played alone (FX):**
-  - TANPURA: four strings plucked in turn, buzzing on their bridge (the jawari). A key sets Sa; the knobs set the first
-    string (Pa, Ma or Ni), the cycle, the register, the level. PRESETS: Sa where the voices sit, named as singers
-    name it on the harmonium (safed its white keys, kali its black, counted from C), on Pa: MALE KALI 1 (C#),
-    MALE SAFED 2 (D), MALE KALI 2 (D#), FEMALE KALI 4 (G#), FEMALE SAFED 6 (A), FEMALE KALI 5 (A#).
+  - TANPURA: four strings plucked in turn, buzzing on their bridge (the jawari). A key sets Sa; ALGORITHM tunes the
+    first string (Pa, Ma or Ni); PRESETS sets its character: MEDITATION (slow, a soft jawari), MANTRA (round), RAGA
+    (the concert tanpura's open jawari), KIRTAN (quicker, brighter). KNOB 1 the jawari, KNOB 2 the cycle, KNOB 3 the
+    register, KNOB 4 the level.
   - SHRUTI: the shruti box's reeds, held while the bellows breathe. PRESETS: the chord a key plays, SA PA (root, fifth,
     octave), MAJOR or MINOR; or NOTES, each key opening or closing its reed. The bellows go back and forth in time:
     KNOB 1 how strongly they breathe (steady at 0; at the most the sound falls away where the hand turns), KNOB 2 their
@@ -169,13 +169,14 @@ git clone --recursive https://github.com/jsopdebeeck/fm1-new
 **What it keeps:** its own settings and rhythms (SAVE), in its own place in the FM-1's flash. It does not read other
 firmwares' projects or samples.
 
-**Status:** an early version. It runs in the simulator and the browser (313 checks pass), and the firmware builds.
+**Status:** an early version. It runs in the simulator and the browser (318 checks pass), and the firmware builds.
 It installs on an FM-1 (version 0.1, from the web installer).
 
 ## The sounds
 
-`app/kit/` holds one WAV per stroke. `app/tools/kit.py build` turns them into `app/dsp/kit_samples.c` (about 439 KB of
-the FM-1's flash). The tanpura and the shruti box use no samples: they are synthesised as they play.
+`app/kit/` holds one WAV per stroke. `app/tools/kit.py build` turns them into `app/dsp/kit_samples.c` (about 233 KB of
+the FM-1's flash: 8 bits a sample, in blocks of 16 that each keep their own scale, the noise about 44 dB under each
+block's loudest). The tanpura and the shruti box use no samples: they are synthesised as they play.
 
 | Instrument | Source | Licence |
 | --- | --- | --- |

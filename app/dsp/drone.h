@@ -11,6 +11,7 @@ typedef struct {
     uint8_t first;                       /* the first string: 0 Pa (a fourth under Sa), 1 Ma (a fifth under), 2 Ni
                                           * (a semitone under) */
     float cycle_s;                       /* the four plucks and the pause before they start again, seconds */
+    float jawari;                        /* the buzz of the strings on their bridge: 0 closed, soft .. 1 open, bright */
     float level;                         /* 0 .. 1 */
 } dn_tanpura_t;
 

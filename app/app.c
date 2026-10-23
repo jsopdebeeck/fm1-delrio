@@ -205,7 +205,7 @@ static int inst_in(uint32_t i, uint32_t mode)   /* an instrument of the kit's, o
 }
 static const char *const NOTE_ABC[12] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
 enum { CLICK_OFF, CLICK_REC, CLICK_ON };
-#define SET_MAGIC 0x37534452u            /* "RDS7": the settings record; another magic loads defaults */
+#define SET_MAGIC 0x38534452u            /* "RDS8": the settings record; another magic loads defaults */
 typedef struct {
     uint32_t magic;
     uint8_t rhythm, inst, page;          /* the rhythm and the instrument shown (the kit's, or the berimbau's) */
@@ -224,7 +224,8 @@ typedef struct {
                                               * bellows: 0 steady): % */
     uint32_t sh_notes;                   /* the shruti's notes held: bit k, the FM-1's key k */
     uint8_t other_rhythm, other_inst;    /* the other's: the berimbau's while the kit is shown, the kit's while not */
-    uint8_t tp_preset;                   /* the tanpura's tuning chosen last (PRESETS) */
+    uint8_t tp_preset;                   /* the tanpura's character chosen last (PRESETS) */
+    uint8_t tp_jawari;                   /* its strings' buzz on the bridge: 0 closed .. 100 open, % */
     uint8_t sh_kind, sh_root;            /* the shruti's: its reeds one by one, or a chord (PRESETS) on a key */
     uint8_t sh_tempo;                    /* its bellows' strokes a minute (a push, a pull), 20 .. 120 */
 } settings_t;
@@ -934,16 +935,16 @@ static int32_t tanpura_sa(void) { return 48 + set.tp_sa + 12 * set.tp_high; }
 static const int8_t FIRST_OFF[3] = {-5, -7, -1};   /* the first string under Sa: Pa, Ma, Ni */
 static const char *const FIRST_NAME[3] = {"PA", "MA", "NI"};
 
-/* PRESETS, the tanpura: Sa where the voices sit, named as singers name it on the harmonium (its white keys "safed"
- * and black "kali", counted from C): a man's around kali 1 (C#) to kali 2 (D#), a woman's around kali 4 (G#) to
- * kali 5 (A#); the first string on Pa, the register low. A key then sets any Sa, KNOB 1 Ma or Ni */
+/* PRESETS, the tanpura: its character, from the slowest: how fast its strings come round (the cycle) and how much
+ * they buzz (the jawari, the thread under them: a closed one soft and round, an open one bright). MEDITATION slow
+ * and soft; MANTRA round; RAGA the concert tanpura's open jawari; KIRTAN quicker and brighter. ALGORITHM tunes its
+ * first string (Pa, Ma, Ni), a key sets Sa */
 typedef struct {
     const char *name;
-    uint8_t sa;
+    uint8_t cycle, jawari;               /* tenths of a second; % */
 } tp_preset_t;
 static const tp_preset_t TP_PRESET[] = {
-    {"MALE KALI 1", 1}, {"MALE SAFED 2", 2}, {"MALE KALI 2", 3}, {"FEMALE KALI 4", 8}, {"FEMALE SAFED 6", 9},
-    {"FEMALE KALI 5", 10},
+    {"MEDITATION", 70, 30}, {"MANTRA", 50, 55}, {"RAGA", 40, 75}, {"KIRTAN", 30, 90},
 };
 #define NTP (sizeof TP_PRESET / sizeof TP_PRESET[0])
 /* PRESETS, the shruti: its reeds opened one by one (NOTES), or a chord on the key pressed: its root, fifth and octave
@@ -979,6 +980,7 @@ static void drone_apply(void)
     p.sa = tanpura_sa();
     p.first = set.tp_first;
     p.cycle_s = (float)set.tp_cycle * 0.1f;
+    p.jawari = (float)set.tp_jawari * 0.01f;
     p.level = (float)set.tp_level * 0.01f;
     dn_tanpura(set.mode == MODE_TANPURA && ui.drone_on, &p);
     dn_shruti(set.mode == MODE_SHRUTI && ui.drone_on, set.sh_notes, 53, (float)set.sh_level * 0.01f,
@@ -1031,15 +1033,28 @@ static void solo_key(uint32_t k)
     drone_apply();
 }
 
-/* PRESETS in a drone: the tanpura's tuning, the shruti's chord (on the key pressed last); its name large */
+/* ALGORITHM, the tanpura: its first string's tuning, Pa, Ma or Ni (as the kit's beats, it goes no further) */
+static void tanpura_first(int32_t d)
+{
+    int32_t f = clamp((int32_t)set.tp_first + d, 0, 2);
+    if (f == set.tp_first)
+        return;
+    set.tp_first = (uint8_t)f;
+    changed();
+    drone_apply();
+    app_say(FIRST_NAME[f], "FIRST STRING");
+    ui.msg_until = plat_ms() + RHY_SAY_MS;
+    ui.msg_title = 1;
+}
+
+/* PRESETS in a drone: the tanpura's character, the shruti's chord (on the key pressed last); its name large */
 static void drone_preset(uint32_t i)
 {
     char t[24];
     if (set.mode == MODE_TANPURA) {
         set.tp_preset = (uint8_t)i;
-        set.tp_sa = TP_PRESET[i].sa;
-        set.tp_first = 0;
-        set.tp_high = 0;
+        set.tp_cycle = TP_PRESET[i].cycle;
+        set.tp_jawari = TP_PRESET[i].jawari;
         app_say(TP_PRESET[i].name, "");
     } else {
         set.sh_kind = (uint8_t)i;
@@ -1142,9 +1157,9 @@ static void hold_buttons(uint32_t btn)
 
 static void solo_knob(uint32_t i, int32_t d)
 {
-    if (set.mode == MODE_TANPURA) {
+    if (set.mode == MODE_TANPURA) {      /* KNOB 1 its jawari, 2 its cycle, 3 its register, 4 its level */
         if (i == 0)
-            set.tp_first = (uint8_t)((set.tp_first + (d > 0 ? 1u : 2u)) % 3u);
+            set.tp_jawari = (uint8_t)clamp((int32_t)set.tp_jawari + 5 * d, 0, 100);
         else if (i == 1)
             set.tp_cycle = (uint8_t)clamp((int32_t)set.tp_cycle + 2 * d, 20, 80);
         else if (i == 2)
@@ -1215,11 +1230,13 @@ static void solo_input(uint32_t keys, uint32_t btn)
     for (k = 0; k < NB; k++)
         if ((btn >> k & 1u) && !(ui.btn >> k & 1u))
             solo_button(k);
-    for (k = 0; k < NE; k++) {           /* (SELECT, ALGORITHM: nothing here) */
+    for (k = 0; k < NE; k++) {           /* (SELECT: nothing here; ALGORITHM: the shruti nothing) */
         if ((e = plat_enc((int)k)) == 0)
             continue;
         if (k == EN_PRESET)
             drone_preset((list_now() + (e > 0 ? 1u : list_n() - 1u)) % list_n());
+        else if (k == EN_ALGO && set.mode == MODE_TANPURA)
+            tanpura_first(e > 0 ? 1 : -1);
         else if (k >= EN_K1)
             solo_knob(k - EN_K1, e);
     }
@@ -1649,7 +1666,9 @@ static void draw_solo(void)
             note_text(midi, t);
             text_c(x + 26, 88, &FONT_B, t, on ? C_BLACK : C_GRAY);
         }
-        solo_row(126, 0, "FIRST STRING", FIRST_NAME[set.tp_first]);
+        int_text(set.tp_jawari, t);
+        text_cat(t, "%");
+        solo_row(126, 0, "JAWARI", t);
         int_text(set.tp_cycle / 10, t);
         text_cat(t, ".");
         int_text(set.tp_cycle % 10, t + text_len(t));
@@ -1924,7 +1943,8 @@ static void settings_default(void)
     set.sh_notes = 1u << 7 | 1u << 14 | 1u << 19;   /* Sa Pa Sa' on C: C4, G4, C5 */
     set.other_rhythm = NRHY_KIT;         /* the berimbau: ANGOLA */
     set.other_inst = I_BERIMBAU;
-    set.tp_preset = 0;                   /* MALE KALI 1 */
+    set.tp_preset = 2;                   /* RAGA */
+    set.tp_jawari = 75;
     set.sh_kind = SH_SAPA;               /* on C4: the reeds above */
     set.sh_root = 7;
     set.sh_tempo = 40;                   /* a push and a pull in 3 s */
@@ -1940,7 +1960,7 @@ void app_init(void)
              && set.countin <= 1u && set.lights >= 1u && set.lights <= 2u && set.fixed <= 1u && set.bend <= 6u
              && set.mode < NMODES && set.tp_sa < 12u && set.tp_first < 3u && set.tp_high <= 1u && set.tp_cycle >= 20u
              && set.tp_cycle <= 80u && set.tp_level <= 100u && set.sh_level <= 100u && set.sh_bellows <= 100u
-             && set.sh_notes < 1u << NKEYS && set.tp_preset < NTP && set.sh_kind < NSH && set.sh_root < NKEYS
+             && set.sh_notes < 1u << NKEYS && set.tp_preset < NTP && set.tp_jawari <= 100u && set.sh_kind < NSH && set.sh_root < NKEYS
              && set.sh_tempo >= 20u && set.sh_tempo <= 120u;
     for (i = 0; ok && i < NINST; i++)
         ok = set.snd[i].level >= 0.0f && set.snd[i].level <= 1.0f && set.snd[i].tune >= -TUNE_MAX
@@ -2094,8 +2114,12 @@ int app_expect(const char *what, int *got)
         *got = list_shown();
     else if (!strcmp(what, "listi"))     /* the one it shows */
         *got = ui.list_i;
-    else if (!strcmp(what, "tpp"))       /* the tanpura's tuning (PRESETS) */
+    else if (!strcmp(what, "tpp"))       /* the tanpura's character (PRESETS) */
         *got = set.tp_preset;
+    else if (!strcmp(what, "jawari"))    /* its jawari, % */
+        *got = set.tp_jawari;
+    else if (!strcmp(what, "cycle"))     /* its cycle, tenths of a second */
+        *got = set.tp_cycle;
     else if (!strcmp(what, "kind"))      /* the shruti's: 0 notes, 1 SA PA, 2 major, 3 minor */
         *got = set.sh_kind;
     else if (!strcmp(what, "root"))      /* its chord's key */

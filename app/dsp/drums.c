@@ -11,7 +11,8 @@
 #define HOLD_S 0.012f                    /* a shortened stroke keeps its attack this long before it falls */
 
 typedef struct {
-    const int16_t *pcm;
+    const int8_t *pcm;
+    const uint8_t *shift;                /* each DR_BLOCK samples' */
     uint32_t len, delay, age, hold;
     float pos, inc, g, env, fall, wires, lp;   /* lp: the split for the wires (below ~1.8 kHz) */
     uint8_t on, inst, art, stopping;
@@ -120,6 +121,7 @@ void dr_hit(uint32_t inst, uint32_t art, float vel, uint32_t delay)
     v->wires = fm_clampf(p->wires, 0.0f, 1.0f);
     v->lp = 0.0f;
     v->pcm = s->pcm;
+    v->shift = s->shift;
     v->len = s->len;
     v->pos = 0.0f;
     v->inc = s->rate / SR * fm_exp2f((fm_clampf(p->tune, -12.0f, 12.0f) +
@@ -187,6 +189,7 @@ void dr_render(float *out, uint32_t n)
             v->inc *= glide[v->inst];
         for (i = 0; i < n; i++) {
             uint32_t j;
+            int32_t a, b;
             float s, f;
             if (v->delay) {
                 v->delay--;
@@ -198,7 +201,9 @@ void dr_render(float *out, uint32_t n)
                 break;
             }
             f = v->pos - (float)j;
-            s = ((float)v->pcm[j] + (float)(v->pcm[j + 1u] - v->pcm[j]) * f) * (1.0f / 32768.0f) * v->env;
+            a = (int32_t)v->pcm[j] * (1 << v->shift[j / DR_BLOCK]);
+            b = (int32_t)v->pcm[j + 1u] * (1 << v->shift[(j + 1u) / DR_BLOCK]);
+            s = ((float)a + (float)(b - a) * f) * (1.0f / 32768.0f) * v->env;
             if (v->wires < 0.999f) {     /* less of what is above the split: the wires slackened */
                 v->lp += (s - v->lp) * split_k;
                 s = v->lp + (s - v->lp) * v->wires;

@@ -560,24 +560,35 @@ shot tanpura-playing.png
 # a key: its note is Sa (F3: F); KNOB 1, the first string (Ma)
 tapkey w0
 expect sa 5
-turn K1 1
+# ALGORITHM: its first string, Pa, Ma, Ni (no further)
+turn ALGO 1
 expect first 1
-# PRESETS: Sa where the voices sit, on Pa (MALE SAFED 2: D, FEMALE SAFED 6: A); LFO lists them, held chooses
+turn ALGO 5
+expect first 2
+turn ALGO -1
+expect first 1
+# PRESETS: its character (RAGA at first; KIRTAN quicker and brighter; round to MEDITATION), Sa and the first string
+# kept; LFO lists them, held chooses
+expect tpp 2
 turn PRESET 1
-expect tpp 1
-expect sa 2
-expect first 0
-turn PRESET 3
-expect tpp 4
-expect sa 9
+expect tpp 3
+expect cycle 30
+expect jawari 90
+expect sa 5
+expect first 1
+turn PRESET 1
+expect tpp 0
+expect cycle 70
 tap LFO
-expect listi 5
+expect listi 1
 press LFO
 wait 600
 release LFO
-expect tpp 5
-expect sa 10
-expect first 0
+expect tpp 1
+expect jawari 55
+# KNOB 1: the jawari
+turn K1 -2
+expect jawari 45
 tap PLAY
 expect drone 0
 wait 400

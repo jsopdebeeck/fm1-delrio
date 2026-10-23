@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MPL-2.0
-"""The kit: the instruments' strokes, from WAV files to the C file the firmware plays (dsp/kit_samples.c, 16-bit mono,
-each at its own rate).
+"""The kit: the instruments' strokes, from WAV files to the C file the firmware plays (dsp/kit_samples.c, mono, each
+at its own rate, in blocks of 16 samples of 8 bits with a shift each: dsp/drums.h).
 
   kit.py build [DIR] [--out dsp/kit_samples.c]   DIR (default app/kit): one WAV a stroke, named INSTRUMENT_STROKE.wav
                                                  (djembe_bass.wav, triangle_muted.wav...); a stroke may have several
@@ -16,7 +16,7 @@ each at its own rate).
 
 Each stroke is cut from its start (the first sound) to its end (where it falls 60 dB, or the stroke's longest),
 faded out, resampled to its instrument's rate and normalised (the takes of one stroke keep their levels between
-them). The firmware's flash holds about 470 KB of them: the build prints the total. Any WAV works (mono or stereo,
+them). The firmware's flash has room for about 450 KB of them (a second at 22 kHz: 23 KB): the build prints the total. Any WAV works (mono or stereo,
 16 or 24-bit, any rate): your own recordings replace the kit's, one file at a time. Needs numpy."""
 import argparse
 import re
@@ -101,6 +101,22 @@ def cut(x, sr, longest):
     return y
 
 
+BLOCK = 16                                 # drums.h DR_BLOCK
+
+
+def blocks(q):
+    """16-bit samples as 8-bit ones in blocks of BLOCK, each block with the shift that brings its loudest into 8 bits"""
+    m8, shifts = np.zeros(len(q), np.int8), []
+    for i in range(0, len(q), BLOCK):
+        b = q[i:i + BLOCK].astype(np.float64)
+        s = 0
+        while np.abs(np.round(b / (1 << s))).max() > 127:
+            s += 1
+        m8[i:i + BLOCK] = np.round(b / (1 << s)).astype(np.int8)
+        shifts.append(s)
+    return m8, shifts
+
+
 def build(src, out):
     files = {p.stem: p for p in src.glob("*.wav")}
     lines, table, slots = [], [], []
@@ -122,12 +138,14 @@ def build(src, out):
             row.append((len(table), len(takes)))
             for k, y in zip(takes, ys):
                 q = np.clip(np.round(y / peak * 32000), -32767, 32767).astype(np.int16)
+                m8, shifts = blocks(q)
                 i = len(table)
-                body = ",\n".join("    " + ", ".join(str(v) for v in q[j:j + 16]) for j in range(0, len(q), 16))
-                lines.append(f"static const int16_t S{i}[{len(q)}] = {{   /* {k}: {len(q) / rate:.2f} s at {rate} Hz */\n"
-                             f"{body}\n}};\n")
-                table.append(f"    {{S{i}, {len(q)}u, {rate}.0f, {10 ** (TRIM.get(name, 0.0) / 20):.3f}f}},   /* {k} */")
-                total += 2 * len(q)
+                body = ",\n".join("    " + ", ".join(str(v) for v in m8[j:j + 16]) for j in range(0, len(m8), 16))
+                sh = ",\n".join("    " + ", ".join(str(v) for v in shifts[j:j + 32]) for j in range(0, len(shifts), 32))
+                lines.append(f"static const int8_t S{i}[{len(m8)}] = {{   /* {k}: {len(m8) / rate:.2f} s at {rate} Hz */\n"
+                             f"{body}\n}};\nstatic const uint8_t E{i}[{len(shifts)}] = {{\n{sh}\n}};\n")
+                table.append(f"    {{S{i}, E{i}, {len(q)}u, {rate}.0f, {10 ** (TRIM.get(name, 0.0) / 20):.3f}f}},   /* {k} */")
+                total += len(m8) + len(shifts)
         slots.append(row)
     nart = max(len(s) for _, _, s in KIT)
     first = ",\n".join("    {" + ", ".join(str(row[a][0]) if a < len(row) else "0" for a in range(nart)) + "}"

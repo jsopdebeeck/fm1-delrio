@@ -13,9 +13,13 @@
 #define DR_TRIANGLE 5u                   /* its muted stroke (2) stops the open one ringing */
 #define DR_BERIMBAU 6u                   /* one wire: a stroke stops the one before */
 
-/* a stroke (tools/kit.py writes them, dsp/kit_samples.c): 16-bit mono at its own rate */
+/* a stroke (tools/kit.py writes them, dsp/kit_samples.c): mono at its own rate, in blocks of DR_BLOCK samples of 8
+ * bits, each block with its shift (a sample is pcm[i] << shift[i / DR_BLOCK]): half the flash of 16 bits, the noise
+ * about 44 dB under each block's loudest, in the loud attack as in the quiet tail */
+#define DR_BLOCK 16u
 typedef struct {
-    const int16_t *pcm;
+    const int8_t *pcm;
+    const uint8_t *shift;
     uint32_t len;
     float rate;
     float gain;                          /* its level against its instrument's other strokes */
