@@ -97,6 +97,7 @@ def cut(x, sr, longest):
     y = x[start:end].copy()
     natural = end - start < int(longest * sr)
     fade = int(0.02 * sr) if natural else min(len(y) * 2 // 5, int(0.5 * sr))   # cut short: a longer fade
+    fade = max(1, min(fade, len(y)))       # a stroke shorter than its fade: faded all through
     y[-fade:] *= 0.5 + 0.5 * np.cos(np.linspace(0, np.pi, fade))
     return y
 

@@ -8,6 +8,8 @@ wait 1400
 shot intro2.png
 wait 2200
 expect intro 0
+# the battery, top right (the host's: full)
+expect batt 3
 # at first: the djembe, HEARTBEAT (2 beats of 4 steps, 64 BPM)
 expect inst 0
 expect rhythm 0
@@ -231,6 +233,30 @@ expect s3 3
 tap PLAY
 expect playing 0
 expect rec 0
+# counted in (4 steps of 500 ms): a stroke in the count-in's last half step goes onto step 0; one sooner is not kept
+tap GLO
+turn K2 1
+expect countin 1
+tap HOME
+tap EDIT
+tap EDIT
+expect strokes 0
+tap REC
+wait 1300
+tapkey b0
+expect s0 0
+wait 520
+tapkey b0
+expect s0 1
+expect strokes 1
+tap PLAY
+expect playing 0
+tap EDIT
+tap EDIT
+tap GLO
+turn K2 -1
+expect countin 0
+tap HOME
 
 # the triangle's key: held, it rings; let go, the hand closes on it (nothing else sounds now)
 turn SELECT -1
@@ -502,7 +528,7 @@ expect rhythm 39
 expect inst 6
 expect beats 4
 expect div 2
-expect bpm 120
+expect bpm 90
 expect strokes 4
 expect s0 3
 expect s1 3
@@ -540,7 +566,7 @@ expect hits7 2
 # PRESET: the toques with its beats (round); ALGORITHM: the beats it has a toque in, 4 and 8
 turn PRESET 1
 expect rhythm 40
-expect bpm 140
+expect bpm 104
 turn PRESET -2
 expect rhythm 45
 expect strokes 0
@@ -625,6 +651,15 @@ expect jawari 55
 # KNOB 1: the jawari
 turn K1 -2
 expect jawari 45
+# SETUP from a drone: its knobs set the setup (the count-in here), not the drone
+tap GLO
+expect page 2
+turn K2 1
+expect countin 1
+expect jawari 45
+turn K2 -1
+expect countin 0
+tap HOME
 tap PLAY
 expect drone 0
 wait 400
@@ -688,40 +723,6 @@ expect intro 0
 expect mode 3
 expect drone 0
 expect notes 0
-# the sitar (FX): a key its note, plucked as hard as the key; pressed harder, the string pulled up (meend); PRESETS
-# its thaat, ALGORITHM Sa (the tanpura's), LFO lists the thaats
-tap FX
-expect mode 4
-expect thaat 0
-expect glowLFO 1
-peakreset
-tapkey w4
-expect note 60
-wait 300
-expect peak_db_max >-30
-key w4 down 100 120
-wait 300
-expect meend >8
-key w4 up
-wait 200
-expect meend 0
-turn PRESET 2
-expect thaat 2
-turn PRESET -3
-expect thaat 9
-expect sa 5
-turn ALGO 1
-expect sa 6
-turn ALGO -1
-expect sa 5
-tapkey w6
-expect note 64
-shot sitar.png
-tap LFO
-expect list 1
-expect listi 9
-tap LFO
-expect list 0
 # the kit as it was left (JOROPO, the maracas); the berimbau too (its FREE toque, as written on it)
 tap FX
 expect mode 0
@@ -733,7 +734,6 @@ expect rhythm 45
 expect inst 6
 expect s2 1
 expect strokes 1
-tap FX
 tap FX
 tap FX
 tap FX

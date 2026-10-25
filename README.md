@@ -35,7 +35,8 @@ the tempo, the beats and the rhythm at the bottom; a page of large sliders. [All
   - its black keys: DOM (the wire struck free), DIM (the stone pressed on it, a tone higher), TSCH (the stone resting
     on it, a buzz), then the caxixi; the same again, for the other hand;
   - its toques: ANGOLA, SB PEQUENO, SB GRANDE, BANGUELA, JOGO DE DENTRO, JOGO DE FORA, SB REGIONAL, CAVALARIA,
-    IDALINA and MIUDINHO, and two FREE ones;
+    IDALINA and MIUDINHO, and two FREE ones, a quarter slower than a roda plays them (ANGOLA at 90: its quarter
+    note at 45);
   - SELECT: the berimbau or its caxixi, each with its steps;
   - the strokes recorded from Paulo Gonçalves's berimbau.
 - **Only what a player can change.** Each instrument's SOUND page has only what is real for it:
@@ -57,11 +58,11 @@ the tempo, the beats and the rhythm at the bottom; a page of large sliders. [All
   - EDIT twice: clear.
   - SEQ: tap tempo.
   - SAVE: keep everything.
-  - FX: the kit, the berimbau, the tanpura, the shruti box or the sitar.
+  - FX: the kit, the berimbau, the tanpura or the shruti box.
   - OCT− / OCT+: the tempo, 5 BPM a press, 10 held.
   - LFO: the presets listed, with their beats, from the one chosen; the list stays, KNOB 3 goes through it without
     changing anything; LFO held chooses the one shown, LFO again closes the list.
-- **Two drones and the sitar, each played alone (FX):**
+- **Two drones, each played alone (FX):**
   - TANPURA: four strings plucked in turn (Pa – Sa – Sa – low Sa), buzzing on their bridge (the jawari). A key sets Sa;
     ALGORITHM tunes the first string (SA PA, SA MA for the ragas without Pa, SA NI); PRESETS sets its character: MEDITATION (slow, a soft jawari), MANTRA (round), RAGA
     (the concert tanpura's open jawari), KIRTAN (quicker, brighter). KNOB 1 the jawari, KNOB 2 the cycle, KNOB 3 the
@@ -70,16 +71,13 @@ the tempo, the beats and the rhythm at the bottom; a page of large sliders. [All
     octave), MAJOR or MINOR; or NOTES, each key opening or closing its reed. The bellows go back and forth in time:
     KNOB 1 how strongly they breathe (steady at 0; at the most the sound falls away where the hand turns), KNOB 2 their
     tempo (a push, then a pull, each a beat), KNOB 3 the level.
-  - SITAR: the keys play its main string, plucked as hard as the key, buzzing on its bridge; a key pressed harder
-    pulls the string up (meend), as far as KNOB 3 says; its sympathetic strings (tarab) ring with the notes they are
-    tuned to. PRESETS tunes them to one of the ten thaats (Bhatkhande's parent scales: BILAWAL, KHAMAJ, KAFI, ASAVARI,
-    BHAIRAVI, BHAIRAV, KALYAN, MARWA, PURVI, TODI), whose notes light on the keys, Sa brightest; ALGORITHM sets Sa (the
-    tanpura's). KNOB 1 the jawari, KNOB 2 the tarab, KNOB 4 the level. The screen shows each note in sargam.
-  - All three are synthesised as they play: no samples.
+  - Both are synthesised as they play: no samples.
 - **A minimal screen, large type, a colour per instrument.** At start, a maned wolf (the lobo-guará of the cerrado)
   walks into the cerrado at dusk, in big pixels (80 x 80, 32 colours), his four legs stepping in turn, and stops
   before the setting sun; a key, a button or a knob skips it. The pictures are Jess Del Rio's (`app/art/`);
   `app/tools/opening.py` makes the scene and cuts the wolf out.
+- **The battery, top right:** three bars, the outline red when it is empty; USB while a computer powers the FM-1. The
+  keys' velocity holds the converter that reads it, so every 10 s, with no key down, it is let go for 2 ms.
 - **A screen reader can follow it** (fm1-reader, over USB).
 
 ### The rhythms

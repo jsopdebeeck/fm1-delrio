@@ -1,8 +1,6 @@
 /* SPDX-License-Identifier: MPL-2.0 */
 /* The drones, each played alone: the tanpura's four strings plucked in turn, buzzing on their bridge (jawari); and the
- * shruti box's reeds, the notes chosen held, its bellows breathing. And the sitar, played on the keys: its main
- * string plucked, buzzing on its bridge as the tanpura's, pulled up (meend), its sympathetic strings (tarab) ringing
- * with the notes they are tuned to. Synthesised as they play: no samples. The main
+ * shruti box's reeds, the notes chosen held, its bellows breathing. Synthesised as they play: no samples. The main
  * loop sets them (dn_tanpura, dn_shruti); the audio interrupt renders them into the mix (dn_render).
  * Compiled apart at -O2 (fm1.toml o2): only fastmath.h, no libm, no doubles. */
 #pragma once
@@ -26,8 +24,3 @@ void dn_shruti(int on, uint32_t notes, int32_t low, float level, float bellows, 
 void dn_panic(void);                     /* any context: silence now */
 void dn_render(float *out, uint32_t n);  /* audio interrupt: added into out */
 int dn_string(void);                     /* the tanpura's string plucked last, 0..3 (-1: none yet) */
-/* main loop, the sitar: on or off (off: it rings out); its Sa (MIDI), the notes its tarab strings are tuned to (bit
- * i: Sa + i semitones), its jawari 0..1, its tarab's level and its own, 0..1 */
-void dn_sitar(int on, int32_t sa, uint32_t scale, float jawari, float tarab, float level);
-void dn_sitar_pluck(int32_t midi, float vel);   /* main loop: the string plucked at that note, velocity 0..1 */
-void dn_sitar_bend(float semis);         /* main loop: the string pulled up, semitones (0 at rest); it glides there */

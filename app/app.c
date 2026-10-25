@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: MPL-2.0 */
 /* FM-1_DelRio: a rhythm box of ceremony percussion. Six instruments (djembe, cajon, udu, clapsticks, maracas, triangle), each
- * with its strokes; and, played alone (FX), the berimbau with its caxixi and its toques (played as the kit is), a
- * drone (the tanpura, the shruti box) or the sitar on the keys (their own screen, drone.c). A rhythm is a bar of 2 to 8 beats, 2 to 4 steps a
+ * with its strokes; and, played alone (FX), the berimbau with its caxixi and its toques (played as the kit is), or a
+ * drone (the tanpura, the shruti box: their own screen, drone.c). A rhythm is a bar of 2 to 8 beats, 2 to 4 steps a
  * beat, and each instrument's strokes on its steps. The white keys are the selected instrument's steps (a press: its next stroke, then none); the black keys play the
  * instruments, grouped as they are: djembe 3, cajon 2, udu 3, clapsticks and maracas, triangle. Each setting has one
  * control: SELECT the instrument, ALGORITHM the beats (2 to 8), PRESET the rhythm among those with that many beats
@@ -26,21 +26,20 @@ typedef struct {
     const char *name;
     uint16_t rgb;
     uint8_t nart;
-    const char *art[DR_NART];            /* the strokes' names */
     char letter[DR_NART];                /* on the steps, and in the rhythms below */
     dr_inst_t def;                       /* the sound at first: level, tune, decay, wires */
 } inst_t;
 static const inst_t INST[NINST] = {
-    {"DJEMBE", RGB(240, 140, 40), 3, {"BASS", "TONE", "SLAP"}, {'B', 'T', 'S'}, {0.85f, 0.0f, 1.0f, 1.0f}},
-    {"CAJON", RGB(236, 206, 72), 2, {"BASS", "SLAP"}, {'B', 'S', 0}, {0.9f, 0.0f, 1.0f, 1.0f}},
-    {"UDU", RGB(222, 82, 60), 3, {"BASS", "TONE", "SLAP"}, {'B', 'T', 'S'}, {0.85f, 0.0f, 1.0f, 1.0f}},
-    {"CLAPSTICKS", RGB(124, 204, 84), 1, {"HIT", 0, 0}, {'X', 0, 0}, {0.65f, 0.0f, 1.0f, 1.0f}},
-    {"MARACAS", RGB(232, 96, 184), 1, {"SHAKE", 0, 0}, {'X', 0, 0}, {0.7f, 0.0f, 1.0f, 1.0f}},
-    {"TRIANGLE", RGB(92, 192, 242), 2, {"OPEN", "MUTED", 0}, {'O', 'M', 0}, {0.5f, 0.0f, 1.0f, 1.0f}},
+    {"DJEMBE", RGB(240, 140, 40), 3, {'B', 'T', 'S'}, {0.85f, 0.0f, 1.0f, 1.0f}},
+    {"CAJON", RGB(236, 206, 72), 2, {'B', 'S', 0}, {0.9f, 0.0f, 1.0f, 1.0f}},
+    {"UDU", RGB(222, 82, 60), 3, {'B', 'T', 'S'}, {0.85f, 0.0f, 1.0f, 1.0f}},
+    {"CLAPSTICKS", RGB(124, 204, 84), 1, {'X', 0, 0}, {0.65f, 0.0f, 1.0f, 1.0f}},
+    {"MARACAS", RGB(232, 96, 184), 1, {'X', 0, 0}, {0.7f, 0.0f, 1.0f, 1.0f}},
+    {"TRIANGLE", RGB(92, 192, 242), 2, {'O', 'M', 0}, {0.5f, 0.0f, 1.0f, 1.0f}},
     /* the berimbau's (FX): the wire struck free (DOM, O), the stone pressed on it (DIM, I: a tone higher), the stone
      * resting on it (TSCH, X: a buzz); the caxixi in the same hand */
-    {"BERIMBAU", RGB(64, 200, 120), 3, {"DOM", "DIM", "TSCH"}, {'O', 'I', 'X'}, {0.85f, 0.0f, 1.0f, 1.0f}},
-    {"CAXIXI", RGB(244, 204, 64), 1, {"SHAKE", 0, 0}, {'X', 0, 0}, {0.7f, 0.0f, 1.0f, 1.0f}},
+    {"BERIMBAU", RGB(64, 200, 120), 3, {'O', 'I', 'X'}, {0.85f, 0.0f, 1.0f, 1.0f}},
+    {"CAXIXI", RGB(244, 204, 64), 1, {'X', 0, 0}, {0.7f, 0.0f, 1.0f, 1.0f}},
 };
 enum { I_DJEMBE, I_CAJON, I_UDU, I_CLAPSTICKS, I_MARACAS, I_TRIANGLE, I_BERIMBAU, I_CAXIXI };
 #define KIT_NINST 6u                     /* the kit's: the first six */
@@ -151,23 +150,23 @@ static const rdef_t RDEF[] = {
     /* the berimbau's toques, as the Cordao de Ouro teaches them ("Toques do berimbau", Flensburg 2020), counted
      * "0 - 1 - 2 - 3": the two chiados (TSCH, soft) on 0, the free DOM (O) and the pressed DIM (I) on the counts;
      * the caxixi in the pause, where the source shakes it. Each count an eighth of the toque's 2/4 bar (its BPM
-     * here, the bar's quarter half of it: Angola about 60, Sao Bento Grande about 90; Calango's recording, freesound
-     * 26393, has its two chiados 0.23 s apart). SB REGIONAL, Mestre Bimba's, over two counts: "tsch tsch DOM, tsch
+     * here, the bar's quarter half of it), a quarter slower than a roda plays them, for the ceremony: Angola's
+     * quarter 45, Sao Bento Grande's 66. SB REGIONAL, Mestre Bimba's, over two counts: "tsch tsch DOM, tsch
      * DIM, tsch tsch DOM DOM DIM". And from opencapoeira.com's "Toques de berimbau" (its | a chiado, || two): JOGO
      * DE FORA, Jogo de Dentro turned over; CAVALARIA whole, "|| DOM | DOM || DOM DIM DOM" (the Cordao de Ouro's
      * its last count); IDALINA "|| DOM DOM DIM DOM DOM | DIM"; MIUDINHO "|| DIM | DIM | DIM DOM DIM" */
-    {"ANGOLA", 4, 2, 120, 0, 0, {[I_BERIMBAU] = "xxO.I...", [I_CAXIXI] = "......x."}},
-    {"SB PEQUENO", 4, 2, 140, 0, 0, {[I_BERIMBAU] = "xxI.O...", [I_CAXIXI] = "......x."}},
-    {"SB GRANDE", 4, 2, 176, 0, 0, {[I_BERIMBAU] = "xxI.O.O."}},
-    {"BANGUELA", 4, 2, 128, 0, 0, {[I_BERIMBAU] = "xxO.I.I."}},
-    {"JOGO DE DENTRO", 4, 2, 132, 0, 0, {[I_BERIMBAU] = "xxI.O.I."}},
-    {"JOGO DE FORA", 4, 2, 132, 0, 0, {[I_BERIMBAU] = "xxO.I.O."}},
-    {"FREE", 4, 2, 120, 0, 1, {0}},
-    {"SB REGIONAL", 8, 2, 180, 0, 0, {[I_BERIMBAU] = "xxO.x.I.xxO.O.I."}},
-    {"CAVALARIA", 8, 2, 184, 0, 0, {[I_BERIMBAU] = "xxO.x.O.xxO.I.O."}},
-    {"IDALINA", 8, 2, 150, 0, 0, {[I_BERIMBAU] = "xxO.O.I.O.O.x.I."}},
-    {"MIUDINHO", 8, 2, 120, 0, 0, {[I_BERIMBAU] = "xxI.x.I.x.I.O.I."}},
-    {"FREE", 8, 2, 120, 0, 1, {0}},
+    {"ANGOLA", 4, 2, 90, 0, 0, {[I_BERIMBAU] = "xxO.I...", [I_CAXIXI] = "......x."}},
+    {"SB PEQUENO", 4, 2, 104, 0, 0, {[I_BERIMBAU] = "xxI.O...", [I_CAXIXI] = "......x."}},
+    {"SB GRANDE", 4, 2, 132, 0, 0, {[I_BERIMBAU] = "xxI.O.O."}},
+    {"BANGUELA", 4, 2, 96, 0, 0, {[I_BERIMBAU] = "xxO.I.I."}},
+    {"JOGO DE DENTRO", 4, 2, 100, 0, 0, {[I_BERIMBAU] = "xxI.O.I."}},
+    {"JOGO DE FORA", 4, 2, 100, 0, 0, {[I_BERIMBAU] = "xxO.I.O."}},
+    {"FREE", 4, 2, 90, 0, 1, {0}},
+    {"SB REGIONAL", 8, 2, 136, 0, 0, {[I_BERIMBAU] = "xxO.x.I.xxO.O.I."}},
+    {"CAVALARIA", 8, 2, 138, 0, 0, {[I_BERIMBAU] = "xxO.x.O.xxO.I.O."}},
+    {"IDALINA", 8, 2, 112, 0, 0, {[I_BERIMBAU] = "xxO.O.I.O.O.x.I."}},
+    {"MIUDINHO", 8, 2, 90, 0, 0, {[I_BERIMBAU] = "xxI.x.I.x.I.O.I."}},
+    {"FREE", 8, 2, 90, 0, 1, {0}},
 };
 typedef char rdef_one_each[sizeof RDEF / sizeof RDEF[0] == NRHY ? 1 : -1];   /* a rhythm for each place */
 
@@ -184,7 +183,7 @@ typedef char keep_fits[sizeof(keep_t) <= 3840u ? 1 : -1];   /* one store object 
 
 static void rhythm_default(uint32_t k)
 {
-    rhythm_t *r = &rhy[k];
+    rhythm_t one, *r = &one;             /* built aside, then put in place at once: it may be the one playing */
     const rdef_t *d = &RDEF[k];
     uint32_t i, s, a;
     for (i = 0; i < sizeof *r; i++)
@@ -204,6 +203,9 @@ static void rhythm_default(uint32_t k)
                 else if (c == 'F' && a + 1u == INST[i].nart)   /* the slap, a flam */
                     r->step[i][s] = STEP(a + 1u, 112u, 1u);
             }
+    i = plat_lock();
+    rhy[k] = one;
+    plat_unlock(i);
 }
 
 /* -------------------------------------------------------------- the settings --- */
@@ -212,10 +214,10 @@ static const char *const PAGE_NAME[NPAGES] = {"HOME", "SOUND", "SETUP"};
 static const uint8_t PAGE_BTN[NPAGES] = {B_HOME, B_ENV, B_GLO};
 /* FX: the kit; the berimbau, played alone as the kit is (its strokes, its toques); or one of the drones played alone,
  * each with the whole FM-1 */
-enum { MODE_KIT, MODE_BERIMBAU, MODE_TANPURA, MODE_SHRUTI, MODE_SITAR, NMODES };
-static const char *const MODE_NAME[NMODES] = {"KIT", "BERIMBAU", "TANPURA", "SHRUTI", "SITAR"};
+enum { MODE_KIT, MODE_BERIMBAU, MODE_TANPURA, MODE_SHRUTI, NMODES };
+static const char *const MODE_NAME[NMODES] = {"KIT", "BERIMBAU", "TANPURA", "SHRUTI"};
 static const uint16_t MODE_RGB[NMODES] = {RGB(240, 140, 40), RGB(64, 200, 120), RGB(168, 124, 240),
-                                          RGB(72, 204, 176), RGB(240, 180, 72)};
+                                          RGB(72, 204, 176)};
 static uint32_t rhy_mode(uint32_t k) { return k >= NRHY_KIT ? MODE_BERIMBAU : MODE_KIT; }   /* a rhythm's */
 static int inst_in(uint32_t i, uint32_t mode)   /* an instrument of the kit's, or of the berimbau's */
 {
@@ -223,7 +225,8 @@ static int inst_in(uint32_t i, uint32_t mode)   /* an instrument of the kit's, o
 }
 static const char *const NOTE_ABC[12] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
 enum { CLICK_OFF, CLICK_REC, CLICK_ON };
-#define SET_MAGIC 0x39534452u            /* "RDS9": the settings record; another magic loads defaults */
+#define SET_MAGIC 0x39534452u            /* "RDS9": the settings record; another magic loads defaults (0.8's
+                                          * still loads: the store gives its first sizeof bytes) */
 typedef struct {
     uint32_t magic;
     uint8_t rhythm, inst, page;          /* the rhythm and the instrument shown (the kit's, or the berimbau's) */
@@ -246,9 +249,6 @@ typedef struct {
     uint8_t tp_jawari;                   /* its strings' buzz on the bridge: 0 closed .. 100 open, % */
     uint8_t sh_kind, sh_root;            /* the shruti's: its reeds one by one, or a chord (PRESETS) on a key */
     uint8_t sh_tempo;                    /* its bellows' strokes a minute (a push, a pull), 20 .. 120 */
-    uint8_t si_thaat;                    /* the sitar's scale (PRESETS), its tarab strings tuned to it; */
-    uint8_t si_jawari, si_tarab, si_level;   /* its jawari, its tarab strings' level, its level, %; */
-    uint8_t si_meend;                    /* a key pressed all the way: its string pulled this many semitones, 0 .. 4 */
 } settings_t;
 static settings_t set;
 static uint8_t set_dirty;                /* changed since the last save: SAVE is lit */
@@ -378,6 +378,7 @@ void app_render(int32_t *lr, uint32_t n, uint32_t master_q12)
     uint32_t i, done = 0;
     while (padq.r != padq.w) {           /* the black keys played since the last block */
         uint32_t k = padq.r % 16u;
+        __asm__ volatile("" ::: "memory");
         if (!padq.art[k])                /* stroke 0: a hand on it */
             dr_choke(padq.inst[k]);
         else {
@@ -409,14 +410,10 @@ void app_render(int32_t *lr, uint32_t n, uint32_t master_q12)
         }
         done += m;
     }
+    if (fm_fabsf(gain - gain_now) < 1.0f)   /* there: no lingering in the smallest floats */
+        gain_now = gain;
 }
 
-void app_panic(void)
-{
-    seq_stop();
-    dr_panic();
-    dn_panic();
-}
 
 /* -------------------------------------------------------------------- text --- */
 static struct {
@@ -439,18 +436,27 @@ static struct {
     uint32_t glow;                       /* the buttons glowing at the last input (the host's checks) */
     uint8_t drone_on;                    /* the drone shown sounds (PLAY) */
     int8_t string_drawn;                 /* the tanpura's string the screen shows plucked */
+    int8_t batt;                         /* the battery shown (plat_battery's: -1 not read yet), */
+    uint8_t batt_off;                    /* the keys' readings let go for its reading, */
+    uint32_t batt_t;                     /* since */
     uint32_t down_at[3];                 /* OCT-, OCT+, LFO: when each went down; */
     uint8_t held_long;                   /* each held long enough (its long press done) */
     uint8_t list_i;                      /* the presets' list (LFO): the one shown, */
     uint8_t list_on;                     /* the list on the screen */
-    int8_t si_key;                       /* the sitar: its key pressed last (-1: none), */
-    uint8_t si_note;                     /* its note, */
-    float si_bend;                       /* the pull its pressure gives */
     uint8_t intro;                       /* the opening is playing (app_ui_init), since intro_t0 */
     uint32_t intro_t0;
     int32_t intro_drawn;                 /* its step on the screen */
     uint8_t redraw;
 } ui;
+
+void app_panic(void)
+{
+    seq_stop();
+    dr_panic();
+    dn_panic();
+    ui.drone_on = 0;                     /* (shown off too: an update that stops halfway leaves it so) */
+    ui.redraw = 1;
+}
 
 static uint32_t text_len(const char *s)
 {
@@ -515,11 +521,18 @@ static void say_inst(const char *a, const char *b)   /* in the instrument's colo
     ui.msg_rgb = INST[set.inst].rgb;
 }
 
+static void drone_words(char *t);
+
 /* a screen reader that has just started listening (or asks) hears the whole screen */
 static void speak(void)
 {
     char t[128], n[12];
-    if (ann_on() && ann_where()) {
+    if (ann_on() && ann_where() && drone()) {
+        drone_words(t);
+        text_cat(t, ui.drone_on ? " PLAYING. " : ". ");
+        text_cat(t, PAGE_NAME[set.page]);
+        ann_say(t, 0, ANN_NOW);
+    } else if (ann_on() && ann_where()) {
         t[0] = 0;
         text_cat(t, INST[set.inst].name);
         text_cat(t, ". ");
@@ -604,6 +617,8 @@ static void rhythm_select(uint32_t k)
     int any = 0;
     if (!RDEF[k].free)
         rhythm_default(k);
+    for (i = 0; i < NINST; i++)          /* (a stroke recorded ahead was the old rhythm's) */
+        seq.skip[i] = 0;
     set.rhythm = (uint8_t)k;
     ui.keypage = 0;
     for (i = 0; i < NINST; i++)
@@ -833,6 +848,7 @@ static void pad_stroke(uint32_t inst, uint32_t art, uint32_t vel, uint32_t delay
     padq.art[k] = (uint8_t)art;
     padq.vel[k] = (uint8_t)vel;
     padq.delay[k] = (uint16_t)delay;
+    __asm__ volatile("" ::: "memory");   /* the slot, then its publication */
     padq.w++;
 }
 
@@ -846,7 +862,8 @@ static void pad_play(uint32_t inst, uint32_t art, uint32_t vel, uint32_t flam)
 static int flam_held(void) { return (int)(plat_buttons() >> B_ARP & 1u); }
 
 /* REC: a stroke onto the nearest step (the one sounding, or the next; the next is then not played again this time
- * round). During the count-in, only in its last half step: onto the first step */
+ * round). During the count-in, only in its last half step (its last step has the count at 0, no step yet): onto the
+ * first step */
 static int32_t record(uint32_t inst, uint32_t art, uint32_t vel, uint32_t flam)   /* its step; -1: not recorded */
 {
     rhythm_t *r = cur();
@@ -856,13 +873,13 @@ static int32_t record(uint32_t inst, uint32_t art, uint32_t vel, uint32_t flam) 
     plat_unlock(f);
     if (!seq.rec || !seq.playing)
         return -1;
-    if (count) {
-        if (count != 1u || left >= len * 0.5f)
+    if (count)
+        return -1;
+    if (step < 0) {
+        if (left >= len * 0.5f)
             return -1;
         target = 0;
         ahead = 1;
-    } else if (step < 0) {
-        target = 0;
     } else if (left < len * 0.5f) {
         target = (uint32_t)step + 1u >= ns ? 0u : (uint32_t)step + 1u;
         ahead = 1;
@@ -998,22 +1015,6 @@ static void shruti_name(char *t)         /* "A MINOR"; "NOTES" */
     text_cat(t, SH_NAME[set.sh_kind]);
 }
 
-/* PRESETS, the sitar: the ten thaats (Bhatkhande's parent scales), its tarab strings tuned to the one chosen, its
- * notes lit on the keys; Sa the tanpura's (ALGORITHM) */
-typedef struct {
-    const char *name;
-    uint16_t notes;                      /* bit i: Sa + i semitones */
-} thaat_t;
-#define TH(a, b, c, d, e, f, g) (uint16_t)(1u << (a) | 1u << (b) | 1u << (c) | 1u << (d) | 1u << (e) | 1u << (f) | 1u << (g))
-static const thaat_t THAAT[] = {
-    {"BILAWAL", TH(0, 2, 4, 5, 7, 9, 11)}, {"KHAMAJ", TH(0, 2, 4, 5, 7, 9, 10)}, {"KAFI", TH(0, 2, 3, 5, 7, 9, 10)},
-    {"ASAVARI", TH(0, 2, 3, 5, 7, 8, 10)}, {"BHAIRAVI", TH(0, 1, 3, 5, 7, 8, 10)}, {"BHAIRAV", TH(0, 1, 4, 5, 7, 8, 11)},
-    {"KALYAN", TH(0, 2, 4, 6, 7, 9, 11)}, {"MARWA", TH(0, 1, 4, 6, 7, 9, 11)}, {"PURVI", TH(0, 1, 4, 6, 7, 8, 11)},
-    {"TODI", TH(0, 1, 3, 6, 7, 8, 11)},
-};
-#define NTHAAT (sizeof THAAT / sizeof THAAT[0])
-static const char *const SARGAM[12] = {"SA", "RE", "RE", "GA", "GA", "MA", "MA", "PA", "DHA", "DHA", "NI", "NI"};
-
 static void drone_apply(void)
 {
     dn_tanpura_t p;
@@ -1025,8 +1026,6 @@ static void drone_apply(void)
     dn_tanpura(set.mode == MODE_TANPURA && ui.drone_on, &p);
     dn_shruti(set.mode == MODE_SHRUTI && ui.drone_on, set.sh_notes, 53, (float)set.sh_level * 0.01f,
               (float)set.sh_bellows * 0.01f, 60.0f / (float)set.sh_tempo);
-    dn_sitar(set.mode == MODE_SITAR, 48 + set.tp_sa, THAAT[set.si_thaat].notes, (float)set.si_jawari * 0.01f,
-             (float)set.si_tarab * 0.01f, (float)set.si_level * 0.01f);
 }
 
 /* the kit and the berimbau each keep their rhythm and instrument: the ones shown are the mode's */
@@ -1063,14 +1062,6 @@ static void mode_step(void)
 
 static void solo_key(uint32_t k)
 {
-    if (set.mode == MODE_SITAR) {        /* a key: the string plucked at its note, as hard as the key */
-        ui.si_key = (int8_t)k;
-        ui.si_note = (uint8_t)(53u + k);
-        dn_sitar_bend(0.0f);
-        dn_sitar_pluck((int32_t)(53u + k), (float)key_vel(k) * (1.0f / 127.0f));
-        ui.redraw = 1;
-        return;
-    }
     if (set.mode == MODE_TANPURA)        /* a key: its note is Sa */
         set.tp_sa = (uint8_t)((53u + k) % 12u);
     else if (set.sh_kind == SH_NOTES)    /* a key: its reed opens or closes */
@@ -1081,19 +1072,6 @@ static void solo_key(uint32_t k)
     }
     changed();
     drone_apply();
-}
-
-/* ALGORITHM, the sitar: Sa (the tanpura's), a semitone a click, round */
-static void sitar_sa(int32_t d)
-{
-    char t[8] = "SA ";
-    set.tp_sa = (uint8_t)((set.tp_sa + (d > 0 ? 1u : 11u)) % 12u);
-    changed();
-    drone_apply();
-    text_cat(t, NOTE_ABC[set.tp_sa]);
-    app_say(t, "");
-    ui.msg_until = plat_ms() + RHY_SAY_MS;
-    ui.msg_title = 1;
 }
 
 /* ALGORITHM, the tanpura: its first string's tuning, Pa, Ma or Ni (as the kit's beats, it goes no further) */
@@ -1112,8 +1090,55 @@ static void tanpura_first(int32_t d)
     ui.msg_title = 1;
 }
 
-/* PRESETS in a drone: the tanpura's character, the shruti's chord (on the key pressed last), the sitar's thaat; its
- * name large */
+/* a drone's screen in words (speak): its name, the tanpura's Sa, tuning and character, the shruti's chord */
+static void drone_words(char *t)
+{
+    t[0] = 0;
+    text_cat(t, MODE_NAME[set.mode]);
+    text_cat(t, ". ");
+    if (set.mode == MODE_TANPURA) {
+        text_cat(t, "SA ");
+        text_cat(t, NOTE_ABC[set.tp_sa]);
+        text_cat(t, ", SA ");
+        text_cat(t, FIRST_NAME[set.tp_first]);
+        text_cat(t, ", ");
+        text_cat(t, TP_PRESET[set.tp_preset].name);
+    } else
+        shruti_name(t + text_len(t));
+}
+
+/* a drone's knob turned: its setting to a screen reader (the screen shows it) */
+static void solo_say(uint32_t i)
+{
+    char t[32], n[12];
+    if (!ann_on())
+        return;
+    t[0] = n[0] = 0;
+    if (set.mode == MODE_TANPURA) {
+        static const char *const NAME[4] = {"JAWARI ", "CYCLE ", "REGISTER ", "LEVEL "};
+        text_cat(t, NAME[i]);
+        if (i == 1u) {
+            int_text(set.tp_cycle / 10, n);
+            text_cat(n, ".");
+            int_text(set.tp_cycle % 10, n + text_len(n));
+            text_cat(n, " S");
+        } else if (i == 2u)
+            text_cat(n, set.tp_high ? "HIGH" : "LOW");
+        else {
+            int_text(i ? set.tp_level : set.tp_jawari, n);
+            text_cat(n, "%");
+        }
+    } else {
+        static const char *const NAME[3] = {"BREATHING ", "TEMPO ", "LEVEL "};
+        text_cat(t, NAME[i]);
+        int_text(i == 0u ? set.sh_bellows : i == 1u ? set.sh_tempo : set.sh_level, n);
+        text_cat(n, i == 1u ? " BPM" : "%");
+    }
+    text_cat(t, n);
+    ann_say(t, 0, ANN_NOW);
+}
+
+/* PRESETS in a drone: the tanpura's character, the shruti's chord (on the key pressed last); its name large */
 static void drone_preset(uint32_t i)
 {
     char t[24];
@@ -1122,9 +1147,6 @@ static void drone_preset(uint32_t i)
         set.tp_cycle = TP_PRESET[i].cycle;
         set.tp_jawari = TP_PRESET[i].jawari;
         app_say(TP_PRESET[i].name, "");
-    } else if (set.mode == MODE_SITAR) {
-        set.si_thaat = (uint8_t)i;
-        app_say(THAAT[i].name, "");
     } else {
         set.sh_kind = (uint8_t)i;
         if (i != SH_NOTES)
@@ -1140,26 +1162,25 @@ static void drone_preset(uint32_t i)
 
 /* -------------------------------------------------------- the presets' list --- */
 /* LFO: the mode's presets listed (the kit's rhythms, the berimbau's toques, the tanpura's characters, the shruti's
- * chords, the sitar's thaats), from the one chosen; the list stays, KNOB 3 goes through it (round), nothing chosen; LFO held chooses the
+ * chords), from the one chosen; the list stays, KNOB 3 goes through it (round), nothing chosen; LFO held chooses the
  * one shown, LFO again closes the list */
 #define LONG_MS 500u                     /* a press held this long: a long one */
 
 static uint32_t list_n(void)
 {
-    return set.mode == MODE_KIT ? NRHY_KIT : berimbau() ? NRHY - NRHY_KIT : set.mode == MODE_TANPURA ? NTP
-           : set.mode == MODE_SITAR ? NTHAAT : NSH;
+    return set.mode == MODE_KIT ? NRHY_KIT : berimbau() ? NRHY - NRHY_KIT : set.mode == MODE_TANPURA ? NTP : NSH;
 }
 
 static uint32_t list_now(void)           /* the one chosen */
 {
     return set.mode == MODE_KIT ? set.rhythm : berimbau() ? set.rhythm - NRHY_KIT
-           : set.mode == MODE_TANPURA ? set.tp_preset : set.mode == MODE_SITAR ? set.si_thaat : set.sh_kind;
+           : set.mode == MODE_TANPURA ? set.tp_preset : set.sh_kind;
 }
 
 static const char *list_name(uint32_t i)
 {
     return set.mode == MODE_TANPURA ? TP_PRESET[i].name : set.mode == MODE_SHRUTI ? SH_NAME[i]
-           : set.mode == MODE_SITAR ? THAAT[i].name : RDEF[i + (berimbau() ? NRHY_KIT : 0u)].name;
+           : RDEF[i + (berimbau() ? NRHY_KIT : 0u)].name;
 }
 
 static uint32_t list_beats(uint32_t i) { return drone() ? 0u : RDEF[i + (berimbau() ? NRHY_KIT : 0u)].beats; }
@@ -1236,13 +1257,7 @@ static void hold_buttons(uint32_t btn)
 
 static void solo_knob(uint32_t i, int32_t d)
 {
-    if (set.mode == MODE_SITAR) {        /* KNOB 1 its jawari, 2 its tarab strings, 3 its meend, 4 its level */
-        uint8_t *v = i == 0 ? &set.si_jawari : i == 1 ? &set.si_tarab : i == 3 ? &set.si_level : 0;
-        if (v)
-            *v = (uint8_t)clamp((int32_t)*v + 5 * d, 0, 100);
-        else
-            set.si_meend = (uint8_t)clamp((int32_t)set.si_meend + (d > 0 ? 1 : -1), 0, 4);
-    } else if (set.mode == MODE_TANPURA) {      /* KNOB 1 its jawari, 2 its cycle, 3 its register, 4 its level */
+    if (set.mode == MODE_TANPURA) {      /* KNOB 1 its jawari, 2 its cycle, 3 its register, 4 its level */
         if (i == 0)
             set.tp_jawari = (uint8_t)clamp((int32_t)set.tp_jawari + 5 * d, 0, 100);
         else if (i == 1)
@@ -1261,6 +1276,7 @@ static void solo_knob(uint32_t i, int32_t d)
         return;
     changed();
     drone_apply();
+    solo_say(i);
 }
 
 static void solo_button(uint32_t b)
@@ -1269,9 +1285,7 @@ static void solo_button(uint32_t b)
     case B_FX:
         mode_step();
         break;
-    case B_PLAY:                         /* (the sitar: played on its keys) */
-        if (set.mode == MODE_SITAR)
-            break;
+    case B_PLAY:
         ui.drone_on ^= 1u;
         drone_apply();
         ui.redraw = 1;
@@ -1326,37 +1340,19 @@ static void solo_input(uint32_t keys, uint32_t btn)
             drone_preset((list_now() + (e > 0 ? 1u : list_n() - 1u)) % list_n());
         else if (k == EN_ALGO && set.mode == MODE_TANPURA)
             tanpura_first(e > 0 ? 1 : -1);
-        else if (k == EN_ALGO && set.mode == MODE_SITAR)
-            sitar_sa(e);
         else if (k == EN_K3 && list_shown())
             list_scroll(e);
+        else if (k >= EN_K1 && set.page == PG_SETUP)   /* SETUP shown: its knobs */
+            knob_turn(PAGE_KNOB[PG_SETUP][k - EN_K1], e);
         else if (k >= EN_K1)
             solo_knob(k - EN_K1, e);
     }
     hold_buttons(btn);
-    if (set.mode == MODE_SITAR && ui.si_key >= 0) {   /* its key pressed harder: the string pulled up (meend) */
-        uint32_t sk = (uint32_t)ui.si_key;
-        float b = (keys >> sk & 1u) ? (float)set.si_meend * (float)touch_pressure(sk) * (1.0f / 127.0f) : 0.0f;
-        if (b != ui.si_bend) {
-            ui.si_bend = b;
-            dn_sitar_bend(b);
-        }
-    }
     if (keys != ui.keys)
         ui.redraw = 1;
     ui.keys = keys;
     ui.btn = btn;
-    if (set.mode == MODE_SITAR) {        /* Sa's keys lit, the thaat's notes dim, the others dark */
-        uint32_t sc = THAAT[set.si_thaat].notes;
-        for (k = 0; k < NKEYS; k++) {
-            uint32_t deg = (53u + k + 12u - set.tp_sa) % 12u;
-            if (deg == 0u)
-                lit_keys |= 1u << k;
-            else if (sc >> deg & 1u)
-                dim_keys |= 1u << k;
-        }
-        used = 1u << B_FX | 1u << B_SAVE | 1u << B_HOME | 1u << B_GLO | 1u << B_LFO;
-    } else if (set.mode == MODE_TANPURA) {   /* Sa's keys lit, the first string's dim */
+    if (set.mode == MODE_TANPURA) {      /* Sa's keys lit, the first string's dim */
         uint32_t first = (uint32_t)(set.tp_sa + 12 + FIRST_OFF[set.tp_first]) % 12u;
         for (k = 0; k < NKEYS; k++)
             if ((53u + k) % 12u == set.tp_sa)
@@ -1379,7 +1375,7 @@ static void solo_input(uint32_t keys, uint32_t btn)
     if (list_shown())
         lit_btn |= 1u << B_LFO;
     dim_btn = ~lit_btn & used & ~(1u << B_PLAY);
-    if (!ui.drone_on && set.mode != MODE_SITAR)
+    if (!ui.drone_on)
         dim_btn |= LED_PLAY_GREEN;
     ui.glow = dim_btn;
     plat_lights(lit_btn, lit_keys, dim_btn, dim_keys & ~lit_keys, set.lights);
@@ -1452,12 +1448,37 @@ static void button(uint32_t b)
     }
 }
 
+/* the battery: the keys' readings own the converter, and the platform reads the battery only when it is free; so
+ * every 10 s (each second until a first reading), no key down and no computer powering the FM-1, the readings let it
+ * go for 2 ms, about one reading a key */
+static void battery_poll(uint32_t now)
+{
+    int b;
+    if (ui.batt_off) {
+        if (now - ui.batt_t >= 2u) {
+            plat_sense(1);
+            ui.batt_off = 0;
+        }
+    } else if (ui.batt != 4 && touch_is_on() && !(plat_keys() | touch_keys()) &&
+               now - ui.batt_t >= (ui.batt < 0 ? 1000u : 10000u)) {
+        plat_sense(0);
+        ui.batt_off = 1;
+        ui.batt_t = now;
+    }
+    b = plat_battery();
+    if (b != ui.batt) {
+        ui.batt = (int8_t)b;
+        ui.redraw = 1;
+    }
+}
+
 static void input(void)
 {
     uint32_t keys, btn = plat_buttons(), k, now = plat_ms(), i;
     uint32_t lit_keys = 0, dim_keys = 0, mid_keys = 0, lit_btn, dim_btn;
     rhythm_t *r = cur();
     int32_t e;
+    battery_poll(now);
     touch_poll();                        /* the sensed keys' presses and velocities */
     keys = touch_keys();
     if (ui.intro) {                      /* the opening: a key, a button or a knob ends it, and does nothing else */
@@ -1616,11 +1637,41 @@ static void text_c(int32_t cx, int32_t y, const felucca_font_t *f, const char *s
     cv_text(cx - text_w(f, s) / 2, y, f, s, c);
 }
 
+static void solo_row(int32_t y, uint32_t i, const char *name, const char *value)   /* a setting: K, name, value */
+{
+    char k[3] = {'K', (char)('1' + i), 0};
+    int32_t x = cv_text(8, y + 8, &FONT_XS, k, C_DIM) + 6;
+    cv_text(x, y, &FONT_M, name, C_GRAY);
+    cv_text(232 - text_w(&FONT_M, value), y, &FONT_M, value, C_WHITE);
+}
+
+static void play_mark(int32_t x, int32_t y)   /* a green triangle, pointing right: sounding */
+{
+    int32_t i;
+    for (i = 0; i < 13; i++)
+        cv_rect(x + i, y + i / 2, 1, 16 - (i / 2) * 2, C_GO);
+}
+
+/* the battery, top right: its bars, three full, the outline red when it is empty; USB while a computer powers the
+ * FM-1; nothing before its first reading */
+static void battery_mark(void)
+{
+    int32_t i;
+    uint16_t c = ui.batt ? C_GRAY : C_REC;
+    if (ui.batt == 4)
+        cv_text(234 - text_w(&FONT_XS, "USB"), 11, &FONT_XS, "USB", C_GRAY);
+    if (ui.batt < 0 || ui.batt > 3)
+        return;
+    frame(211, 12, 21, 11, 1, c);
+    cv_rect(232, 15, 2, 5, c);
+    for (i = 0; i < ui.batt; i++)
+        cv_rect(213 + i * 6, 14, 5, 7, C_GRAY);
+}
+
 /* the header: the instrument (or the page) large in its colour (grey while muted); or a message */
 static void header(void)
 {
     const rhythm_t *r = cur();
-    int32_t i;
     if (plat_ms() < ui.msg_until && ui.msg_title) {   /* a rhythm's name, large, in white (a long one smaller) */
         int32_t x = cv_text(8, text_w(&FONT_L, ui.msg[0]) <= 228 ? 2 : 6,
                             text_w(&FONT_L, ui.msg[0]) <= 228 ? &FONT_L : &FONT_M, ui.msg[0], C_WHITE) + 10;
@@ -1634,13 +1685,14 @@ static void header(void)
         cv_text(8, 2, &FONT_L, "SETUP", C_WHITE);
     } else if (drone()) {
         cv_text(8, 2, &FONT_L, MODE_NAME[set.mode], MODE_RGB[set.mode]);
-        if (ui.drone_on)                 /* sounding: the green triangle */
-            for (i = 0; i < 13; i++)
-                cv_rect(219 + i, 10 + i / 2, 1, 16 - (i / 2) * 2, C_GO);
+        if (ui.drone_on)                 /* sounding: the green triangle, left of the battery */
+            play_mark(190, 10);
     } else {
         int muted = (int)(r->mute >> set.inst & 1u);
         cv_text(8, 2, &FONT_L, INST[set.inst].name, muted ? C_DIM : INST[set.inst].rgb);
     }
+    if (plat_ms() >= ui.msg_until)       /* (a message has the whole width) */
+        battery_mark();
     cv_rect(0, 36, 240, 1, C_LINE);
 }
 
@@ -1691,7 +1743,7 @@ static void footer(void)
     const rhythm_t *r = cur();
     const char *name = RDEF[set.rhythm].name;
     char t[16];
-    int32_t x, i;
+    int32_t x;
     int_text(r->bpm, t);
     x = cv_text(8, 204, &FONT_M, t, C_WHITE);
     x = cv_text(x + 3, 212, &FONT_XS, "BPM", C_GRAY);
@@ -1712,8 +1764,7 @@ static void footer(void)
         cv_rect(218, 221, 2, 2, C_BLACK);
         cv_rect(230, 221, 2, 2, C_BLACK);
     } else if (seq.playing)
-        for (i = 0; i < 13; i++)         /* a triangle, pointing right */
-            cv_rect(219 + i, 208 + i / 2, 1, 16 - (i / 2) * 2, C_GO);
+        play_mark(219, 208);
 }
 
 /* a page of four values, one a row: the name, the value large, a thick bar in the instrument's colour */
@@ -1724,16 +1775,11 @@ static void draw_page(void)
     uint16_t col = set.page == PG_SOUND ? INST[set.inst].rgb : C_HI;
     for (i = 0; i < 4u; i++) {
         uint32_t kn = page_knob(set.page, i);
-        int32_t y = 42 + (int32_t)i * 48, f, x;
+        int32_t y = 42 + (int32_t)i * 48, f;
         if (kn == KN_NONE)
             continue;
-        t[0] = 'K';
-        t[1] = (char)('1' + i);
-        t[2] = 0;
-        x = cv_text(8, y + 8, &FONT_XS, t, C_DIM) + 6;
-        cv_text(x, y, &FONT_M, KNOB_NAME[kn], C_GRAY);
         knob_text(kn, t);
-        cv_text(232 - text_w(&FONT_M, t), y, &FONT_M, t, C_WHITE);
+        solo_row(y, i, KNOB_NAME[kn], t);
         if ((f = knob_fill(kn, 224)) >= 0) {
             cv_rect(8, y + 28, 224, 12, C_LINE);
             cv_rect(8, y + 28, f, 12, col);
@@ -1749,69 +1795,13 @@ static void note_text(int32_t midi, char *t)   /* "C#3" */
     int_text(midi / 12 - 1, t + text_len(t));
 }
 
-static void solo_row(int32_t y, uint32_t i, const char *name, const char *value)   /* a setting: K, name, value */
-{
-    char k[3] = {'K', (char)('1' + i), 0};
-    int32_t x = cv_text(8, y + 8, &FONT_XS, k, C_DIM) + 6;
-    cv_text(x, y, &FONT_M, name, C_GRAY);
-    cv_text(232 - text_w(&FONT_M, value), y, &FONT_M, value, C_WHITE);
-}
-
 /* a drone's screen: the tanpura's four strings (the one just plucked filled), or the shruti's notes held (filled
  * while it sounds), large; its settings below */
-/* the sitar's screen: the note plucked last large, in sargam (a komal note underlined, tivra Ma ticked above, as
- * they are written) and in letters; its thaat and Sa; its settings below */
-static void draw_sitar(void)
-{
-    uint16_t col = MODE_RGB[set.mode];
-    char t[16];
-    cv_rect(8, 44, 108, 74, C_BOX);
-    frame(8, 44, 108, 74, 2, col);
-    if (ui.si_key >= 0) {
-        uint32_t deg = (ui.si_note + 12u - set.tp_sa) % 12u;
-        const char *sw = SARGAM[deg];
-        int32_t w = text_w(&FONT_L, sw), x = 62 - w / 2;
-        cv_text(x, 50, &FONT_L, sw, C_WHITE);
-        if (deg == 1u || deg == 3u || deg == 8u || deg == 10u)
-            cv_rect(x, 84, w, 3, C_WHITE);   /* komal */
-        else if (deg == 6u)
-            cv_rect(x + w / 2 - 1, 46, 3, 6, C_WHITE);   /* tivra */
-        note_text(ui.si_note, t);
-        text_c(62, 92, &FONT_B, t, C_GRAY);
-    } else
-        text_c(62, 70, &FONT_B, "PRESS A KEY", C_GRAY);
-    text_c(178, 52, &FONT_M, THAAT[set.si_thaat].name, col);
-    t[0] = 0;
-    text_cat(t, "SA ");
-    text_cat(t, NOTE_ABC[set.tp_sa]);
-    text_c(178, 84, &FONT_M, t, C_WHITE);
-    int_text(set.si_jawari, t);
-    text_cat(t, "%");
-    solo_row(126, 0, "JAWARI", t);
-    int_text(set.si_tarab, t);
-    text_cat(t, "%");
-    solo_row(152, 1, "TARAB", t);
-    t[0] = 0;
-    if (set.si_meend) {
-        int_text(set.si_meend, t);
-        text_cat(t, " ST");
-    } else
-        text_cat(t, "OFF");
-    solo_row(178, 2, "MEEND", t);
-    int_text(set.si_level, t);
-    text_cat(t, "%");
-    solo_row(204, 3, "LEVEL", t);
-}
-
 static void draw_solo(void)
 {
     uint16_t col = MODE_RGB[set.mode];
     char t[16];
     uint32_t i;
-    if (set.mode == MODE_SITAR) {
-        draw_sitar();
-        return;
-    }
     if (set.mode == MODE_TANPURA) {
         static const int8_t OFF[4] = {0, 0, 0, -12};
         int plucked = ui.drone_on ? dn_string() : -1;
@@ -2092,11 +2082,6 @@ static void settings_default(void)
     set.sh_kind = SH_NOTES;              /* the reeds one by one (SA PA would play the same on C4) */
     set.sh_root = 7;
     set.sh_tempo = 40;                   /* a push and a pull in 3 s */
-    set.si_thaat = 0;                    /* BILAWAL */
-    set.si_jawari = 70;
-    set.si_tarab = 50;
-    set.si_level = 70;
-    set.si_meend = 2;
 }
 
 void app_init(void)
@@ -2110,8 +2095,7 @@ void app_init(void)
              && set.mode < NMODES && set.tp_sa < 12u && set.tp_first < 3u && set.tp_high <= 1u && set.tp_cycle >= 20u
              && set.tp_cycle <= 80u && set.tp_level <= 100u && set.sh_level <= 100u && set.sh_bellows <= 100u
              && set.sh_notes < 1u << NKEYS && set.tp_preset < NTP && set.tp_jawari <= 100u && set.sh_kind < NSH && set.sh_root < NKEYS
-             && set.sh_tempo >= 20u && set.sh_tempo <= 120u && set.si_thaat < NTHAAT && set.si_jawari <= 100u
-             && set.si_tarab <= 100u && set.si_level <= 100u && set.si_meend <= 4u;
+             && set.sh_tempo >= 20u && set.sh_tempo <= 120u;
     for (i = 0; ok && i < NINST; i++)
         ok = set.snd[i].level >= 0.0f && set.snd[i].level <= 1.0f && set.snd[i].tune >= -TUNE_MAX
              && set.snd[i].tune <= TUNE_MAX && set.snd[i].decay >= 0.1f && set.snd[i].decay <= 1.0f
@@ -2141,8 +2125,8 @@ void app_ui_init(void)
 {
     uint32_t i;
     touch_on(1);                         /* velocity: the keys' readings on */
+    ui.batt = -1;
     ui.tri_step = -1;
-    ui.si_key = -1;
     lcd_fill(0, 0, 240, 240, C_BLACK);
     ui.drawn_step = -2;
     ui.redraw = 1;
@@ -2211,6 +2195,8 @@ int app_expect(const char *what, int *got)
         *got = seq.step;
     else if (!strcmp(what, "page"))
         *got = set.page;
+    else if (!strcmp(what, "batt"))      /* the battery shown: 0..3 bars, 4 USB power, -1 none yet */
+        *got = ui.batt;
     else if (!strcmp(what, "keypage"))
         *got = ui.keypage;
     else if (!strcmp(what, "muted"))
@@ -2276,12 +2262,6 @@ int app_expect(const char *what, int *got)
         *got = set.sh_root;
     else if (!strcmp(what, "shtempo"))   /* its bellows' strokes a minute */
         *got = set.sh_tempo;
-    else if (!strcmp(what, "thaat"))     /* the sitar's scale (PRESETS) */
-        *got = set.si_thaat;
-    else if (!strcmp(what, "note"))      /* its note plucked last, MIDI */
-        *got = ui.si_note;
-    else if (!strcmp(what, "meend"))     /* its pull now, tenths of a semitone */
-        *got = (int)(ui.si_bend * 10.0f + 0.5f);
     else if (!strcmp(what, "strokes")) { /* the instrument's steps with a stroke, in the bar */
         uint32_t s;
         *got = 0;

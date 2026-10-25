@@ -20,7 +20,7 @@ typedef struct {
 
 static voice_t V[NV];
 static dr_inst_t P[DR_NINST];
-static float SR = 44100.0f, stop_fall, split_k;
+static float SR = 44100.0f, stop_fall, split_k, click_fall;
 static uint32_t age_now;
 static uint8_t take_next[DR_NINST][DR_NART];
 static volatile float bend_to[DR_NINST];   /* the glide: where it goes (main loop), where it is (audio) */
@@ -38,6 +38,7 @@ void dr_init(float sample_rate)
     SR = sample_rate;
     stop_fall = fm_expf(-1.0f / (0.004f * SR));   /* stopped: gone in a few ms */
     split_k = 1.0f - fm_expf(-6.2831853f * 1800.0f / SR);   /* a one-pole split at 1.8 kHz */
+    click_fall = fm_expf(-1.0f / (0.012f * SR));
     for (i = 0; i < DR_NINST; i++) {
         P[i].level = 0.8f;
         P[i].tune = 0.0f;
@@ -75,9 +76,26 @@ void dr_panic(void)
 
 static void stop(voice_t *v)
 {
+    if (v->delay) {                      /* not started yet: it never will */
+        v->on = 0;
+        return;
+    }
     v->stopping = 1;
     v->hold = 0;
     v->fall = stop_fall;
+}
+
+/* the voice sounding longest (of those falling only, or of all) */
+static voice_t *eldest(uint32_t falling)
+{
+    voice_t *v = 0;
+    uint32_t i, age = 0;
+    for (i = 0; i < NV; i++)
+        if (V[i].on && (V[i].stopping || !falling) && (!v || age_now - V[i].age > age)) {
+            age = age_now - V[i].age;
+            v = &V[i];
+        }
+    return v;
 }
 
 void dr_hit(uint32_t inst, uint32_t art, float vel, uint32_t delay)
@@ -99,22 +117,26 @@ void dr_hit(uint32_t inst, uint32_t art, float vel, uint32_t delay)
         for (i = 0; i < NV; i++)
             if (V[i].on && V[i].inst == inst && !V[i].stopping)
                 stop(&V[i]);
-    /* the voice: this instrument's oldest when it has PER_INST sounding, else a free one, else the oldest of all */
+    /* the voice: with PER_INST of this instrument sounding, its oldest falls fast (no click); then a free one, else
+     * the oldest falling, else the oldest of all (16 sounding: cut) */
     for (i = 0; i < NV; i++)
-        if (V[i].on && V[i].inst == inst && !V[i].stopping)
+        if (V[i].on && V[i].inst == inst && !V[i].stopping) {
             mine++;
-    if (mine < PER_INST)
-        for (i = 0; i < NV && !v; i++)
-            if (!V[i].on)
-                v = &V[i];
-    if (!v)
-        for (i = 0; i < NV; i++)
-            if (V[i].on && (mine < PER_INST || V[i].inst == inst) && age_now - V[i].age >= oldest) {
+            if (age_now - V[i].age >= oldest) {
                 oldest = age_now - V[i].age;
                 v = &V[i];
             }
+        }
+    if (mine >= PER_INST)
+        stop(v);
+    v = 0;
+    for (i = 0; i < NV && !v; i++)
+        if (!V[i].on)
+            v = &V[i];
     if (!v)
-        return;
+        v = eldest(1);
+    if (!v)
+        v = eldest(0);
     g = fm_clampf(vel, 0.0f, 1.0f);
     g = g * fm_sqrtf(g) * p->level * s->gain;   /* the velocity's curve: soft strokes softer */
     v->g = g;
@@ -172,7 +194,6 @@ uint32_t dr_active(void)
 void dr_render(float *out, uint32_t n)
 {
     uint32_t i, k;
-    const float cfall = fm_expf(-1.0f / (0.012f * SR));
     float glide[DR_NINST];
     for (i = 0; i < n; i++)
         out[i] = 0.0f;
@@ -185,8 +206,13 @@ void dr_render(float *out, uint32_t n)
         voice_t *v = &V[k];
         if (!v->on)
             continue;
+        float gk = v->g * (1.0f / 32768.0f);   /* the level and the samples' scale, once */
         if (v->art == bend_art[v->inst] && glide[v->inst] != 1.0f)
             v->inc *= glide[v->inst];
+        if (v->delay >= n) {             /* not this block yet */
+            v->delay -= n;
+            continue;
+        }
         for (i = 0; i < n; i++) {
             uint32_t j;
             int32_t a, b;
@@ -203,12 +229,12 @@ void dr_render(float *out, uint32_t n)
             f = v->pos - (float)j;
             a = (int32_t)v->pcm[j] * (1 << v->shift[j / DR_BLOCK]);
             b = (int32_t)v->pcm[j + 1u] * (1 << v->shift[(j + 1u) / DR_BLOCK]);
-            s = ((float)a + (float)(b - a) * f) * (1.0f / 32768.0f) * v->env;
+            s = ((float)a + (float)(b - a) * f) * gk * v->env;
             if (v->wires < 0.999f) {     /* less of what is above the split: the wires slackened */
                 v->lp += (s - v->lp) * split_k;
                 s = v->lp + (s - v->lp) * v->wires;
             }
-            out[i] += s * v->g;
+            out[i] += s;
             v->pos += v->inc;
             if (v->hold)
                 v->hold--;
@@ -227,7 +253,7 @@ void dr_render(float *out, uint32_t n)
             clk.ph += clk.inc;
             if (clk.ph >= 1.0f)
                 clk.ph -= 1.0f;
-            clk.env *= cfall;
+            clk.env *= click_fall;
             out[i] += s;
         }
 }

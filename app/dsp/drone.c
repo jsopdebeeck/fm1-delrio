@@ -18,7 +18,6 @@
 
 #define NS 4u
 #define SHN 27u                          /* the shruti's notes: the FM-1's keys */
-#define TARAB 13u                        /* the sitar's sympathetic strings */
 
 typedef struct {
     float ph, inc;                       /* the tone */
@@ -49,29 +48,12 @@ static struct {
     volatile uint32_t notes;
     volatile int32_t low;
     volatile float level, bellows, stroke_s;
-    float ph[SHN], amp[SHN];
-    float lp1, lp2, gain;
+    float ph[SHN], amp[SHN], inc[SHN];   /* each reed's phase, level, step */
+    int32_t inc_low;                     /* the low note the steps are for */
+    float lp1, lp2, gain, norm, b;       /* norm: the level for the reeds held, b: the bellows' (both glide) */
     float stroke;                        /* where the hand is in its stroke, 0 .. 1 */
     uint8_t pull;                        /* the stroke is the pull (else the push) */
 } sh;
-
-/* the sitar: its main string (a tanpura string's tone and jawari, plucked harder and shorter), the plucks and the
- * pull from the main loop; its tarab strings, each a thin tone ringing long when a note it is tuned to sounds */
-static struct {
-    volatile int on;
-    volatile int32_t sa;
-    volatile uint32_t scale;
-    volatile float jawari, tarab, level;
-    volatile int32_t note;               /* the note plucked last, */
-    volatile float vel;                  /* how hard, */
-    volatile uint32_t plucks;            /* and how many so far (a new one: the audio plucks it) */
-    volatile float bend_to;
-    uint32_t plucked;
-    float bend, gain, f, amp, lp;        /* lp: its top softened (the gourd's body) */
-    tstring_t s;
-    float t_ph[TARAB], t_inc[TARAB], t_amp[TARAB];
-    int32_t t_note[TARAB];
-} si;
 
 static float noise(void)
 {
@@ -91,9 +73,10 @@ void dn_init(float sample_rate)
     tp.jawari = 0.75f;
     tp.sa = 48;
     tp.last = -1;
-    si.level = 0.7f;
-    si.jawari = 0.7f;
     sh.low = 53;
+    sh.inc_low = -1000;
+    sh.norm = 0.32f;
+    sh.b = 1.0f;
     sh.level = 0.7f;
     sh.stroke_s = 1.5f;
     dn_panic();
@@ -112,12 +95,6 @@ void dn_panic(void)
     }
     for (i = 0; i < SHN; i++)
         sh.amp[i] = 0.0f;
-    si.on = 0;
-    si.gain = si.amp = 0.0f;
-    si.s.env = 0.0f;
-    si.s.rising = 0;
-    for (i = 0; i < TARAB; i++)
-        si.t_amp[i] = 0.0f;
 }
 
 void dn_tanpura(int on, const dn_tanpura_t *p)
@@ -175,8 +152,12 @@ static void tanpura_render(float *out, uint32_t n)
     float target = tp.on ? tp.level * 0.24f : 0.0f, unit = tp.cycle_s * SR / AT[NS], fco[NS], j = tp.jawari;
     float damp = 0.35f - 0.22f * j, wbody = 0.75f - 0.3f * j, wband = 0.15f + j;   /* the jawari: sharper, louder */
     uint32_t i, k;
-    if (target == 0.0f && tp.gain < 0.0001f) {
+    if (target == 0.0f && tp.gain < 0.0001f) {   /* silent: its strings too (PLAY again starts it afresh) */
         tp.gain = 0.0f;
+        for (k = 0; k < NS; k++) {
+            S[k].env = 0.0f;
+            S[k].rising = 0;
+        }
         return;
     }
     for (k = 0; k < NS; k++) {           /* the resonances, where their sweep is, once a block */
@@ -237,167 +218,73 @@ static float blep(float t, float dt)
     return 0.0f;
 }
 
+/* the reeds held or still fading only (the others cost nothing); the bellows and the reeds' level a block at a time,
+ * the bellows' gain gliding across it */
 static void shruti_render(float *out, uint32_t n)
 {
-    float inc[SHN], target = sh.on ? sh.level : 0.0f, norm;
-    uint32_t i, k, notes = sh.notes, held = 0;
+    float target = sh.on ? sh.level : 0.0f, d = sh.bellows, b = sh.b, db, s, press, coef;
+    uint32_t i, j, k, notes = sh.notes, held = 0, nl = 0;
+    uint8_t live[SHN];
     if (target == 0.0f && sh.gain < 0.0001f) {
         sh.gain = 0.0f;
         return;
     }
+    if (sh.inc_low != sh.low) {          /* the reeds' steps: again only when they move */
+        sh.inc_low = sh.low;
+        for (k = 0; k < SHN; k++)
+            sh.inc[k] = hz((float)(sh.low + (int32_t)k)) / SR;
+    }
     for (k = 0; k < SHN; k++) {
-        inc[k] = hz((float)(sh.low + (int32_t)k)) / SR;
         held += notes >> k & 1u;
+        if ((notes >> k & 1u) || sh.amp[k] > 0.0f)
+            live[nl++] = (uint8_t)k;
     }
-    norm = 0.32f / fm_sqrtf((float)(held ? held : 1u));
-    for (i = 0; i < n; i++) {
-        float sum = 0.0f, b, press, s, d = sh.bellows;
-        for (k = 0; k < SHN; k++) {
-            float want = (float)(notes >> k & 1u), t, saw, pulse, t2;
-            sh.amp[k] += (want - sh.amp[k]) * 0.0006f;   /* a note opens and closes in about 40 ms */
-            if (sh.amp[k] < 0.0005f && !want)
-                continue;
-            t = sh.ph[k];
-            saw = 2.0f * t - 1.0f - blep(t, inc[k]);
-            t2 = t + 0.62f;                  /* a narrow pulse: a saw minus the same saw, shifted */
-            if (t2 >= 1.0f)
-                t2 -= 1.0f;
-            pulse = saw - (2.0f * t2 - 1.0f - blep(t2, inc[k]));
-            sum += (0.65f * saw + 0.35f * pulse) * sh.amp[k];
-            t += inc[k];
-            sh.ph[k] = t >= 1.0f ? t - 1.0f : t;
-        }
-        sh.stroke += 1.0f / (sh.stroke_s * SR);   /* the bellows: a push, a pull, in time */
-        if (sh.stroke >= 1.0f) {
-            sh.stroke -= 1.0f;
-            sh.pull ^= 1u;
-        }
-        s = 1.0f - fm_sinf(3.14159265f * sh.stroke);
-        press = 1.0f - s * s;            /* 0 where the hand turns, soon 1 */
-        b = (1.0f - d * (1.0f - press)) * (sh.pull ? 1.0f - 0.25f * d : 1.0f);
-        sh.lp1 += (sum - sh.lp1) * (0.14f + 0.08f * (1.0f - d) + 0.16f * d * press);   /* pressed: brighter */
-        sh.lp2 += (sh.lp1 - sh.lp2) * 0.42f;
-        sh.gain += (target - sh.gain) * 0.00012f;   /* the bellows filling: about 200 ms */
-        out[i] += sh.lp2 * norm * b * sh.gain;
+    /* the level for the reeds held, gliding as they open and close (no step when one is added) */
+    sh.norm += (0.32f / fm_sqrtf((float)(held ? held : 1u)) - sh.norm) * fm_minf(1.0f, (float)n / (0.04f * SR));
+    sh.stroke += (float)n / (sh.stroke_s * SR);   /* the bellows: a push, a pull, in time */
+    if (sh.stroke >= 1.0f) {
+        sh.stroke -= 1.0f;
+        sh.pull ^= 1u;
     }
-}
-
-void dn_sitar(int on, int32_t sa, uint32_t scale, float jawari, float tarab, float level)
-{
-    si.sa = sa;
-    si.scale = scale;
-    si.jawari = fm_clampf(jawari, 0.0f, 1.0f);
-    si.tarab = fm_clampf(tarab, 0.0f, 1.0f);
-    si.level = fm_clampf(level, 0.0f, 1.0f);
-    si.on = on;
-}
-
-void dn_sitar_pluck(int32_t midi, float vel)
-{
-    si.note = midi;
-    si.vel = fm_clampf(vel, 0.0f, 1.0f);
-    si.plucks++;
-}
-
-void dn_sitar_bend(float semis) { si.bend_to = fm_clampf(semis, 0.0f, 5.0f); }
-
-/* a pluck: the main string at its note, its jawari from the top again; the tarab strings that are that note (in any
- * octave) take it up, those a fifth above it a little */
-static void sitar_pluck(void)
-{
-    tstring_t *s = &si.s;
-    float j = si.jawari, v = si.vel;
-    int32_t pc = ((si.note % 12) + 12) % 12;
-    uint32_t i, k, n = 0;
-    si.f = hz((float)si.note);
-    si.amp = v * fm_sqrtf(v);
-    s->fall = fm_expf(-6.9077553f / (3.5f * SR));   /* -60 dB in 3.5 s */
-    s->rising = 1;
-    s->sweep = 1.0f;
-    s->sweep_fall = (0.25f + 0.9f * j) * (0.85f + 0.3f * (0.5f + 0.5f * noise()));
-    s->fhi = fm_clampf((10.0f + 24.0f * j) * si.f, 1200.0f, 5500.0f);
-    s->flo = fm_clampf(3.0f * si.f, 250.0f, 900.0f);
-    for (k = 0; k < 24u && n < TARAB; k++)   /* the tarab strings: the scale's notes from Sa an octave up */
-        if (si.scale >> (k % 12u) & 1u)
-            si.t_note[n++] = si.sa + 12 + (int32_t)k;
-    for (i = 0; i < n; i++) {
-        int32_t q = ((si.t_note[i] % 12) + 12) % 12;
-        si.t_inc[i] = hz((float)si.t_note[i]) / SR;
-        if (q == pc)
-            si.t_amp[i] += 0.5f * v;
-        else if (q == (pc + 7) % 12)
-            si.t_amp[i] += 0.15f * v;
-        si.t_amp[i] = fm_minf(si.t_amp[i], 1.0f);
-    }
-    for (; n < TARAB; n++)
-        si.t_amp[n] = 0.0f;
-}
-
-static void sitar_render(float *out, uint32_t n)
-{
-    tstring_t *s = &si.s;
-    float target = si.on ? si.level * 0.8f : 0.0f, j = si.jawari, fco, inc, sw, fc;
-    float damp = 0.35f - 0.22f * j, wbody = 0.75f - 0.3f * j, wband = 0.15f + 0.8f * j;
-    float t_fall = fm_expf(-6.9077553f * (float)n / (5.0f * SR)), tl = si.tarab * 0.35f;
-    uint32_t i, k;
-    if (si.plucks != si.plucked) {
-        si.plucked = si.plucks;
-        if (si.on)
-            sitar_pluck();
-    }
-    if (target == 0.0f && si.gain < 0.0001f) {
-        si.gain = 0.0f;
-        return;
-    }
-    si.bend += (si.bend_to - si.bend) * fm_minf(1.0f, (float)n / (0.03f * SR));   /* the pull: there in ~30 ms */
-    inc = si.f * fm_exp2f(si.bend * (1.0f / 12.0f)) / SR;
-    sw = s->sweep * fm_sqrtf(s->sweep);
-    fc = s->flo + (s->fhi - s->flo) * sw;
-    fco = 2.0f * fm_sinf(3.14159265f * fm_minf(fc, 0.45f * SR) / SR);
-    s->sweep *= fm_expf(-(float)n / (s->sweep_fall * SR));
+    s = 1.0f - fm_sin_pi(3.14159265f * sh.stroke);
+    press = 1.0f - s * s;                /* 0 where the hand turns, soon 1 */
+    sh.b = (1.0f - d * (1.0f - press)) * (sh.pull ? 1.0f - 0.25f * d : 1.0f);
+    db = (sh.b - b) / (float)n;
+    coef = 0.14f + 0.08f * (1.0f - d) + 0.16f * d * press;   /* pressed: brighter */
     for (i = 0; i < n; i++) {
         float sum = 0.0f;
-        if (s->env > 0.00005f || s->rising) {   /* the main string */
-            float t = s->ph, t2, saw, src, hi;
-            saw = 2.0f * t - 1.0f - blep(t, inc);
-            t2 = t + 0.86f;
+        for (j = 0; j < nl; j++) {
+            float a, t, saw, pulse, t2, want;
+            k = live[j];
+            want = (float)(notes >> k & 1u);
+            a = sh.amp[k] + (want - sh.amp[k]) * 0.0006f;   /* a note opens and closes in about 40 ms */
+            if (a < 0.0005f && want == 0.0f) {   /* closed: silent (no lingering in the smallest floats) */
+                sh.amp[k] = 0.0f;
+                continue;
+            }
+            sh.amp[k] = a;
+            t = sh.ph[k];
+            saw = 2.0f * t - 1.0f - blep(t, sh.inc[k]);
+            t2 = t + 0.62f;              /* a narrow pulse: a saw minus the same saw, shifted */
             if (t2 >= 1.0f)
                 t2 -= 1.0f;
-            src = 0.5f * saw + 0.65f * (saw - (2.0f * t2 - 1.0f - blep(t2, inc)));
-            s->body += (src - s->body) * body_k;
-            s->lo += fco * s->band;
-            hi = src - s->lo - damp * s->band;
-            s->band += fco * hi;
-            if (s->rising) {
-                s->env += (1.02f - s->env) * rise_k * 4.0f;   /* the mizrab: sharper than a finger */
-                if (s->env >= 1.0f)
-                    s->rising = 0;
-            } else
-                s->env *= s->fall;
-            si.lp += (si.amp * s->env * (wbody * s->body + wband * s->band) - si.lp) * 0.42f;
-            sum += si.lp;
-            t += inc;
-            s->ph = t >= 1.0f ? t - 1.0f : t;
+            pulse = saw - (2.0f * t2 - 1.0f - blep(t2, sh.inc[k]));
+            sum += (0.65f * saw + 0.35f * pulse) * a;
+            t += sh.inc[k];
+            sh.ph[k] = t >= 1.0f ? t - 1.0f : t;
         }
-        for (k = 0; k < TARAB; k++) {    /* the tarab strings, ringing */
-            float a = si.t_amp[k], t;
-            if (a < 0.0005f)
-                continue;
-            t = si.t_ph[k];
-            sum += tl * a * (fm_sinf(6.2831853f * t) + 0.3f * fm_sinf(12.566371f * t));
-            t += si.t_inc[k];
-            si.t_ph[k] = t >= 1.0f ? t - 1.0f : t;
-        }
-        si.gain += (target - si.gain) * 0.0005f;
-        out[i] += sum * si.gain;
+        sh.lp1 += (sum - sh.lp1) * coef;
+        sh.lp2 += (sh.lp1 - sh.lp2) * 0.42f;
+        sh.gain += (target - sh.gain) * 0.00012f;   /* the bellows filling: about 200 ms */
+        b += db;
+        out[i] += sh.lp2 * sh.norm * b * sh.gain;
     }
-    for (k = 0; k < TARAB; k++)
-        si.t_amp[k] *= t_fall;
+    sh.lp1 = fm_flush(sh.lp1);
+    sh.lp2 = fm_flush(sh.lp2);
 }
 
 void dn_render(float *out, uint32_t n)
 {
     tanpura_render(out, n);
     shruti_render(out, n);
-    sitar_render(out, n);
 }
