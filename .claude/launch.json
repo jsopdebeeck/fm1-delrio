@@ -1,0 +1,29 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "fm1-new-emu-local",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8770",
+        "-d",
+        "app/build/emu"
+      ],
+      "port": 8770
+    },
+    {
+      "name": "fm1-new-site",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8771",
+        "-d",
+        "app/build/site"
+      ],
+      "port": 8771
+    }
+  ]
+}
