@@ -29,12 +29,13 @@ the tempo, the beats and the rhythm at the bottom; a page of large sliders. [All
   sounding.
 - **PLAY loops the rhythm; REC records what you play on the black keys**, each stroke onto the nearest step, over
   what is there. From a stop, a bar is counted in first. The sequencer runs in the audio interrupt, to the sample.
-- **31 rhythms, grouped by their beats.** ALGORITHM chooses the beats; PRESETS goes round the rhythms with those beats,
+- **39 rhythms, grouped by their beats.** ALGORITHM chooses the beats; PRESETS goes round the rhythms with those beats,
   each coming as it is written. Each number of beats has a FREE rhythm of your own.
 - **The berimbau, played alone (FX)**, as the kit is played:
   - its black keys: DOM (the wire struck free), DIM (the stone pressed on it, a tone higher), TSCH (the stone resting
     on it, a buzz), then the caxixi; the same again, for the other hand;
-  - its toques: ANGOLA, SB PEQUENO, SB GRANDE, BANGUELA, CAVALARIA, JOGO DE DENTRO and SB REGIONAL, and a FREE one;
+  - its toques: ANGOLA, SB PEQUENO, SB GRANDE, BANGUELA, JOGO DE DENTRO, JOGO DE FORA, SB REGIONAL, CAVALARIA,
+    IDALINA and MIUDINHO, and two FREE ones;
   - SELECT: the berimbau or its caxixi, each with its steps;
   - the strokes recorded from Paulo Gonçalves's berimbau.
 - **Only what a player can change.** Each instrument's SOUND page has only what is real for it:
@@ -56,20 +57,25 @@ the tempo, the beats and the rhythm at the bottom; a page of large sliders. [All
   - EDIT twice: clear.
   - SEQ: tap tempo.
   - SAVE: keep everything.
-  - FX: the kit, the berimbau, the tanpura or the shruti box.
+  - FX: the kit, the berimbau, the tanpura, the shruti box or the sitar.
   - OCT− / OCT+: the tempo, 5 BPM a press, 10 held.
   - LFO: the presets listed, with their beats, from the one chosen; the list stays, KNOB 3 goes through it without
     changing anything; LFO held chooses the one shown, LFO again closes the list.
-- **Two drones, each played alone (FX):**
-  - TANPURA: four strings plucked in turn, buzzing on their bridge (the jawari). A key sets Sa; ALGORITHM tunes the
-    first string (Pa, Ma or Ni); PRESETS sets its character: MEDITATION (slow, a soft jawari), MANTRA (round), RAGA
+- **Two drones and the sitar, each played alone (FX):**
+  - TANPURA: four strings plucked in turn (Pa – Sa – Sa – low Sa), buzzing on their bridge (the jawari). A key sets Sa;
+    ALGORITHM tunes the first string (SA PA, SA MA for the ragas without Pa, SA NI); PRESETS sets its character: MEDITATION (slow, a soft jawari), MANTRA (round), RAGA
     (the concert tanpura's open jawari), KIRTAN (quicker, brighter). KNOB 1 the jawari, KNOB 2 the cycle, KNOB 3 the
     register, KNOB 4 the level.
   - SHRUTI: the shruti box's reeds, held while the bellows breathe. PRESETS: the chord a key plays, SA PA (root, fifth,
     octave), MAJOR or MINOR; or NOTES, each key opening or closing its reed. The bellows go back and forth in time:
     KNOB 1 how strongly they breathe (steady at 0; at the most the sound falls away where the hand turns), KNOB 2 their
     tempo (a push, then a pull, each a beat), KNOB 3 the level.
-  - Both are synthesised as they play: no samples.
+  - SITAR: the keys play its main string, plucked as hard as the key, buzzing on its bridge; a key pressed harder
+    pulls the string up (meend), as far as KNOB 3 says; its sympathetic strings (tarab) ring with the notes they are
+    tuned to. PRESETS tunes them to one of the ten thaats (Bhatkhande's parent scales: BILAWAL, KHAMAJ, KAFI, ASAVARI,
+    BHAIRAVI, BHAIRAV, KALYAN, MARWA, PURVI, TODI), whose notes light on the keys, Sa brightest; ALGORITHM sets Sa (the
+    tanpura's). KNOB 1 the jawari, KNOB 2 the tarab, KNOB 4 the level. The screen shows each note in sargam.
+  - All three are synthesised as they play: no samples.
 - **A minimal screen, large type, a colour per instrument.** At start, a maned wolf (the lobo-guará of the cerrado)
   walks into the cerrado at dusk, in big pixels (80 x 80, 32 colours), his four legs stepping in turn, and stops
   before the setting sun; a key, a button or a knob skips it. The pictures are Jess Del Rio's (`app/art/`);
@@ -82,18 +88,18 @@ the tempo, the beats and the rhythm at the bottom; a page of large sliders. [All
 | --- | --- |
 | 2 | HEARTBEAT, BAIAO, XOTE, SAMBA, MARCHA 2/4, MAZURCA, BARRAVENTO, JOROPO, FREE |
 | 3 | THREE, VALSA, TOADA, FREE |
-| 4 | FOUR, JOURNEY, SHAKER, CLAVE, AFRO 12/8, MARCHA, IJEXA, IJEXA CANTO, KUKU, FREE |
+| 4 | FOUR, JOURNEY, SHAKER, CLAVE, AFRO 12/8, MARCHA, IJEXA, IJEXA CANTO, KUKU, AFRO SAMBA, BOSSA NOVA, FUNK IJEXA, SAMBA DJEMBE, XOTE DJEMBE, DJOLE, YANKADI, FREE |
 | 5 | FIVE, FREE |
 | 6 | LANDO, BULERIAS, FREE |
 | 7 | SEVEN, FREE |
-| 8 | FREE |
+| 8 | AFOXE, FREE |
 
 The berimbau's toques:
 
 | Beats | Toques |
 | --- | --- |
-| 4 | ANGOLA, SB PEQUENO, SB GRANDE, BANGUELA, CAVALARIA, JOGO DE DENTRO, FREE |
-| 8 | SB REGIONAL, FREE |
+| 4 | ANGOLA, SB PEQUENO, SB GRANDE, BANGUELA, JOGO DE DENTRO, JOGO DE FORA, FREE |
+| 8 | SB REGIONAL, CAVALARIA, IDALINA, MIUDINHO, FREE |
 
 Where they come from:
 
@@ -112,12 +118,20 @@ Where they come from:
   - BULERIAS: the flamenco cajon's slaps on the compás's accents, 3, 6, 8, 10 and 12 of 12 (K. Kocoshis, *Percussive
     Notes*, 2025).
   - JOROPO: the llanero maracas, six eighths accented as 6/8 (Radio Nacional de Colombia).
+- **Brazil's on the djembe:** AFOXE (two bars), AFRO SAMBA, BOSSA NOVA, FUNK IJEXA, SAMBA DJEMBE and XOTE DJEMBE, as
+  the [djembegorilla.com library](https://djembegorilla.com/library/rhythms/?filter_origin=brazil) writes them, in
+  sixteenths (its muted tones and taps are soft tones here).
+- **West Africa's:** DJOLE (the Temine's mask dance: its third djembe part, the kenkeni's bell on the clapsticks, the
+  dundunba on the cajon) and YANKADI (the Sousou's slow dance: its first djembe part, the dundunba's bell on every
+  pulse), from Paul Nas's box notations, *West African Percussions*.
 - **The urban neo-ayahuasca circles:** IJEXA CANTO, XOTE, MARCHA 2/4, TOADA, and BAIAO's djembe are the grooves they
   play on the djembe under their cantos. They are practical adaptations, not canonical transcriptions: the Huni Kuin's
   own cantos are carried by the voice, with a maracá at most.
 - **The berimbau's toques**, as the Cordão de Ouro teaches them (*Toques do berimbau*, Flensburg 2020): counted
   "0 – 1 – 2 – 3", the two chiados (TSCH) on 0, then the DOM and the DIM on the beats. SB REGIONAL is Mestre Bimba's,
-  over two counts: "tsch tsch DOM, tsch DIM, tsch tsch DOM DOM DIM".
+  over two counts: "tsch tsch DOM, tsch DIM, tsch tsch DOM DOM DIM". JOGO DE FORA (Jogo de Dentro turned over),
+  CAVALARIA (whole: "tsch tsch DOM, tsch DOM, tsch tsch DOM DIM DOM"), IDALINA and MIUDINHO follow
+  [opencapoeira.com's notations](https://opencapoeira.com/toques-de-berimbau/), its | a chiado, || two.
 - **Choosing for a canto such as Jiboia**, by ear:
   - IJEXA CANTO when it drags and sways;
   - BAIAO or MARCHA 2/4 when it pushes you to dance;

@@ -65,7 +65,7 @@ turn PRESET -2
 expect rhythm 0
 tap LFO
 turn K3 -1
-expect listi 30
+expect listi 38
 tap LFO
 expect list 0
 expect rhythm 0
@@ -130,7 +130,7 @@ expect beats 3
 expect rhythm 9
 turn ALGO 9
 expect beats 8
-expect rhythm 30
+expect rhythm 37
 turn ALGO -6
 expect beats 2
 expect rhythm 0
@@ -276,10 +276,11 @@ turn SELECT -3
 # 8 beats (FREE) of 4 steps: two pages of keys, 16 steps each, the keys following the step sounding
 turn ALGO 4
 expect beats 8
-expect rhythm 30
-# (passing FIVE and SEVEN, the cajon came to be shown: FREE has nothing to show instead)
-expect inst 1
-turn SELECT -1
+expect rhythm 37
+# (AFOXE: the djembe; then its FREE one, nothing to show instead)
+expect inst 0
+turn PRESET 1
+expect rhythm 38
 expect inst 0
 turn K2 2
 expect div 4
@@ -363,7 +364,7 @@ tap SAVE
 expect dirty 0
 reboot
 wait 600
-expect rhythm 30
+expect rhythm 38
 expect beats 8
 expect s16 1
 expect countin 0
@@ -446,14 +447,14 @@ expect inst 0
 expect strokes 8
 turn ALGO 2
 expect beats 6
-expect rhythm 25
+expect rhythm 32
 expect inst 1
 expect strokes 8
 expect s2 2
 expect flam2 1
 expect flam4 0
 turn PRESET 1
-expect rhythm 26
+expect rhythm 33
 expect strokes 5
 expect s11 2
 turn ALGO -4
@@ -462,6 +463,32 @@ expect rhythm 7
 expect inst 4
 expect strokes 6
 expect div 3
+# Brazil's on the djembe (djembegorilla's grids), West Africa's (Paul Nas's): 4 beats of sixteenths; AFOXE two bars
+turn ALGO 2
+turn PRESET 9
+expect rhythm 22
+expect inst 0
+expect strokes 16
+turn PRESET 5
+expect rhythm 27
+expect strokes 13
+turn SELECT 3
+expect inst 3
+expect strokes 8
+turn SELECT -3
+turn PRESET 1
+expect rhythm 28
+expect bpm 90
+turn ALGO 4
+expect rhythm 37
+expect beats 8
+expect div 4
+expect strokes 13
+turn ALGO -6
+expect rhythm 0
+turn PRESET 7
+expect rhythm 7
+expect inst 4
 
 # FX: the kit, the berimbau, then the drones, each played alone (what was playing stops)
 tap PLAY
@@ -471,7 +498,7 @@ expect mode 1
 expect playing 0
 # the berimbau: its toques, ANGOLA first (tsch tsch DOM DIM, the pause); its own instruments, the berimbau and the
 # caxixi; ARP (the djembe's flams) dark
-expect rhythm 31
+expect rhythm 39
 expect inst 6
 expect beats 4
 expect div 2
@@ -512,23 +539,23 @@ expect hits6 2
 expect hits7 2
 # PRESET: the toques with its beats (round); ALGORITHM: the beats it has a toque in, 4 and 8
 turn PRESET 1
-expect rhythm 32
+expect rhythm 40
 expect bpm 140
 turn PRESET -2
-expect rhythm 37
+expect rhythm 45
 expect strokes 0
 turn PRESET 1
-expect rhythm 31
+expect rhythm 39
 turn ALGO 1
-expect rhythm 38
+expect rhythm 46
 expect beats 8
 expect strokes 10
 turn ALGO 1
-expect rhythm 38
+expect rhythm 46
 turn ALGO -1
-expect rhythm 31
+expect rhythm 39
 turn ALGO -1
-expect rhythm 31
+expect rhythm 39
 # PLAY: the toque in a loop, the berimbau and the caxixi sounding
 peakreset
 tap PLAY
@@ -540,7 +567,7 @@ shot berimbau-playing.png
 tap PLAY
 # its FREE toque: a white key, its next stroke (DOM, DIM, TSCH, none)
 turn PRESET -1
-expect rhythm 37
+expect rhythm 45
 tapkey w0
 expect s0 1
 tapkey w0
@@ -661,6 +688,40 @@ expect intro 0
 expect mode 3
 expect drone 0
 expect notes 0
+# the sitar (FX): a key its note, plucked as hard as the key; pressed harder, the string pulled up (meend); PRESETS
+# its thaat, ALGORITHM Sa (the tanpura's), LFO lists the thaats
+tap FX
+expect mode 4
+expect thaat 0
+expect glowLFO 1
+peakreset
+tapkey w4
+expect note 60
+wait 300
+expect peak_db_max >-30
+key w4 down 100 120
+wait 300
+expect meend >8
+key w4 up
+wait 200
+expect meend 0
+turn PRESET 2
+expect thaat 2
+turn PRESET -3
+expect thaat 9
+expect sa 5
+turn ALGO 1
+expect sa 6
+turn ALGO -1
+expect sa 5
+tapkey w6
+expect note 64
+shot sitar.png
+tap LFO
+expect list 1
+expect listi 9
+tap LFO
+expect list 0
 # the kit as it was left (JOROPO, the maracas); the berimbau too (its FREE toque, as written on it)
 tap FX
 expect mode 0
@@ -668,10 +729,11 @@ expect rhythm 7
 expect inst 4
 tap FX
 expect mode 1
-expect rhythm 37
+expect rhythm 45
 expect inst 6
 expect s2 1
 expect strokes 1
+tap FX
 tap FX
 tap FX
 tap FX
