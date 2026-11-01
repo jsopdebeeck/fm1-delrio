@@ -8,8 +8,39 @@ wait 1400
 shot intro2.png
 wait 2200
 expect intro 0
-# the battery, top right (the host's: full)
+# the battery, top right (the host's: full): only for 5 s after the opening, 3 s after HOME or FX
 expect batt 3
+expect battshown 1
+shot batt-opening.png
+wait 5200
+expect battshown 0
+tap HOME
+expect battshown 1
+shot batt-home.png
+wait 2700
+expect battshown 1
+wait 500
+expect battshown 0
+shot batt-off.png
+tap ENV
+expect battshown 0
+tap HOME
+expect battshown 1
+wait 3200
+expect battshown 0
+tap FX
+expect mode 2
+expect battshown 1
+expect msg 1
+shot batt-fx.png
+wait 3200
+expect battshown 0
+tap HOME
+expect mode 0
+expect battshown 1
+wait 4200
+expect battshown 0
+expect msg 0
 # at first: the djembe, HEARTBEAT (2 beats of 4 steps, 64 BPM)
 expect inst 0
 expect rhythm 0
@@ -66,8 +97,9 @@ expect beats 2
 turn PRESET -2
 expect rhythm 0
 tap LFO
+expect listn 32
 turn K3 -1
-expect listi 38
+expect listi 31
 tap LFO
 expect list 0
 expect rhythm 0
@@ -75,13 +107,13 @@ tap LFO
 tap HOME
 expect list 0
 
-# SELECT: the instruments, round (the agogo last)
+# SELECT: the kit's six instruments, round
 turn SELECT 1
 expect inst 1
-turn SELECT 6
+turn SELECT 5
 expect inst 0
 turn SELECT -1
-expect inst 6
+expect inst 5
 turn SELECT 1
 expect inst 0
 
@@ -148,13 +180,14 @@ expect rhythm 0
 expect inst 0
 turn PRESET 1
 expect rhythm 1
-turn PRESET 7
-expect rhythm 8
+turn PRESET 6
+expect rhythm 7
 expect beats 2
+# (the empty FREE places are not shown: round to the first)
 turn PRESET 1
 expect rhythm 0
 turn PRESET -1
-expect rhythm 8
+expect rhythm 7
 turn PRESET 1
 expect rhythm 0
 # the rhythm's beats and name stay on the screen 4 s, to be read while turning
@@ -271,7 +304,7 @@ expect countin 0
 tap HOME
 
 # the triangle's key: held, it rings; let go, the hand closes on it (nothing else sounds now)
-turn SELECT -2
+turn SELECT -1
 expect inst 5
 key b10 down
 wait 300
@@ -293,7 +326,7 @@ expect s3 1
 tap PLAY
 tap PLAY
 expect playing 0
-turn SELECT 2
+turn SELECT 1
 expect inst 0
 
 # 4 beats, then AFRO 12/8: the clapsticks' bell
@@ -312,16 +345,16 @@ expect s2 1
 expect strokes 7
 turn SELECT -3
 
-# 8 beats (FREE) of 4 steps: two pages of keys, 16 steps each, the keys following the step sounding
+# 8 beats of 4 steps (AFOXE, its djembe cleared): two pages of keys, 16 steps each, the keys following the step sounding
 turn ALGO 4
 expect beats 8
 expect rhythm 37
-# (AFOXE: the djembe; then its FREE one, nothing to show instead)
 expect inst 0
-turn PRESET 1
-expect rhythm 38
-expect inst 0
-turn K2 2
+tap EDIT
+tap EDIT
+expect strokes 0
+turn K1 -25
+expect bpm 90
 expect div 4
 expect keypage 0
 tap PLAY
@@ -362,6 +395,12 @@ release ARP
 expect s1 2
 expect flam1 1
 shot flam.png
+# in the kit, ARP and the clapsticks' and the maracas' keys play them: the agogo is the capoeira's only
+press ARP
+tapkey b8
+tapkey b9
+release ARP
+expect hits8 0
 
 # ENV: the instrument's SOUND page, with what a player of it can change: the djembe's tuning (half steps, 3 at most)
 tap ENV
@@ -400,8 +439,13 @@ key b5 up
 wait 300
 expect bend >-2
 
-# SAVE, then a reboot finds it all again
+# SAVE, in the last FREE place (written for 8 beats), SAVE; then a reboot finds it all again
 tap SAVE
+expect savelist 1
+turn K3 6
+expect listi 6
+tap SAVE
+expect rhythm 38
 expect dirty 0
 reboot
 wait 600
@@ -414,6 +458,12 @@ expect playing 0
 expect intro 1
 turn K1 1
 expect intro 0
+# (the battery 5 s from then)
+expect battshown 1
+wait 4700
+expect battshown 1
+wait 500
+expect battshown 0
 expect bpm 90
 
 # the rhythms from the literature: Santo Daime's MARCHA (the maracá f f f F), in the second store object
@@ -429,13 +479,16 @@ expect v6 >100
 expect v0 <80
 tapkey w0
 expect s0 0
+# SAVE, no place chosen: the settings kept; the rhythm, after a reboot, as written
 tap SAVE
+expect savelist 1
 reboot
 wait 600
 expect rhythm 18
-expect s0 0
-expect strokes 3
+expect s0 1
+expect strokes 4
 tap HOME
+expect savelist 0
 # a written rhythm comes as written: what was changed in its steps, away and back, is gone; its tempo stays as set
 turn K1 10
 expect bpm 130
@@ -460,16 +513,102 @@ turn PRESET 1
 expect rhythm 6
 expect inst 0
 expect strokes 5
-# a FREE one stays as the player left it
+# SAVE, nothing changed: saved, no list; PRESET passes the empty FREE places
+turn PRESET 1
+expect rhythm 7
+turn PRESET 1
+expect rhythm 0
+expect inst 4
+turn SELECT -4
+expect inst 0
+tap SAVE
+expect savelist 0
+expect dirty 0
+# a rhythm changed: SAVE keeps the settings and lists the kit's FREE places, the first empty one first; KNOB 3 goes
+# through them, ALGORITHM and PRESET do nothing; a page button leaves it, the rhythm still changed, SAVE still lit
+tapkey w2
+expect s2 1
+tap SAVE
+expect savelist 1
+expect listn 7
+expect listi 0
+expect dirty 1
+shot save-list.png
+turn K3 2
+expect listi 2
+turn PRESET 1
+turn ALGO 1
+expect rhythm 0
+expect savelist 1
+tap HOME
+expect savelist 0
+expect s2 1
+expect rhythm 0
+expect dirty 1
+# SAVE, SAVE: it goes to the place shown, of any beats (FREE 2, written for 3); it plays on from there, nothing else
+# changed; what it came from is back as written
+tap SAVE
+turn K3 1
+expect listi 1
+tap SAVE
+expect savelist 0
+expect rhythm 12
+expect beats 2
+expect meter 204
+expect s2 1
+expect dirty 0
+expect msg 1
+shot save-done.png
+# its place among the rhythms with its beats, after the written ones
+turn PRESET 1
+expect rhythm 0
+expect s2 0
+turn PRESET -1
+expect rhythm 12
+expect s2 1
+turn PRESET -1
+expect rhythm 7
+turn PRESET 1
+expect rhythm 12
+# changed: SAVE shows the place it is on, SAVE keeps it there
+tapkey w3
+expect s3 1
+tap SAVE
+expect savelist 1
+expect listi 1
+tap SAVE
+expect rhythm 12
+expect s3 1
+expect dirty 0
+# a rhythm of another place put over it
 turn PRESET 2
-expect rhythm 8
-expect strokes 0
-tapkey w0
-expect s0 1
+expect rhythm 1
+tap SEL
+tapkey w1
+tap SAVE
+expect savelist 1
+expect listi 0
+turn K3 1
+tap SAVE
+expect rhythm 12
+expect s1 1
+expect s2 0
+# in the LFO list too, with the rest (the two places that hold a rhythm)
+tap LFO
+expect listn 34
+tap LFO
+# changed and left without SAVE, a place comes back as the player left it (not saved yet)
+tapkey w5
 turn PRESET -1
 turn PRESET 1
-expect rhythm 8
-expect s0 1
+expect rhythm 12
+tap SAVE
+expect savelist 1
+tap HOME
+expect dirty 1
+turn PRESET 1
+expect rhythm 0
+tap SEL
 # the circles' grooves on the djembe: IJEXA CANTO (4 beats), TOADA (3)
 turn ALGO 2
 turn PRESET 7
@@ -643,8 +782,7 @@ turn PRESET 1
 expect rhythm 40
 expect bpm 104
 turn PRESET -2
-expect rhythm 45
-expect strokes 0
+expect rhythm 51
 turn PRESET 1
 expect rhythm 39
 turn ALGO 1
@@ -686,9 +824,10 @@ wait 100
 expect gourd 0
 tap PLAY
 tap PLAY
-# its FREE toque: a white key, its next stroke (DOM, DIM, TSCH, none)
-turn PRESET -1
-expect rhythm 45
+# a toque cleared, then its own: a white key, its next stroke (DOM, DIM, TSCH, none)
+tap EDIT
+tap EDIT
+expect strokes 0
 tapkey w0
 expect s0 1
 tapkey w0
@@ -698,6 +837,13 @@ expect s0 3
 tapkey w0
 expect s0 0
 tapkey w2
+expect s2 1
+# SAVE, SAVE: the berimbau's first FREE place (it has two)
+tap SAVE
+expect savelist 1
+expect listn 2
+tap SAVE
+expect rhythm 45
 expect s2 1
 # the tanpura
 tap FX
@@ -836,16 +982,15 @@ expect strokes 1
 tap FX
 expect mode 0
 
-# a drone goes on under the rhythm: the kit playing, the tanpura's screen (the kit on), its PLAY; HOME there, back to
-# the kit, both sounding
-tap PLAY
-expect playing 1
+# a drone goes on under the rhythm: the tanpura's PLAY; HOME there, back to the kit, the drone on; the kit's PLAY, both
+# sounding
 tap FX
 expect mode 2
 tap PLAY
 expect drone 1
 tap HOME
 expect mode 0
+tap PLAY
 expect playing 1
 expect dronebg 2
 peakreset
@@ -874,6 +1019,74 @@ expect shtempo 20
 turn K2 -1
 tap PLAY
 expect dronebg 0
+# a drone's PLAY, the kit playing and the drone silent: the kit stops, on the next bar's first beat
+tap FX
+tap FX
+expect mode 0
+tap PLAY
+expect playing 1
+tap FX
+expect mode 2
+expect playing 1
+tap PLAY
+expect stopat 1
+expect msg 1
+expect playing 1
+expect dronebg 0
+shot drone-stopping.png
+wait 3000
+expect playing 0
+expect stopat 0
+expect dronebg 0
+# again: at once
+tap HOME
+expect mode 0
+tap PLAY
+expect playing 1
+tap FX
+tap PLAY
+expect stopat 1
+tap PLAY
+expect playing 0
+expect dronebg 0
+# the kit stopped: its PLAY starts the drone
+tap PLAY
+expect dronebg 2
+expect playing 0
+# both sounding: the drone shown goes off first, then the kit stops
+tap HOME
+tap PLAY
+expect playing 1
+expect dronebg 2
+tap FX
+expect mode 2
+tap PLAY
+expect dronebg 0
+expect playing 1
+expect stopat 0
+tap PLAY
+expect stopat 1
+tap PLAY
+expect playing 0
+# on the other drone's page: the kit stops, the tanpura goes on; then this drone takes over, and goes off
+tap PLAY
+expect dronebg 2
+tap HOME
+tap PLAY
+expect playing 1
+tap FX
+tap FX
+expect mode 3
+tap PLAY
+expect stopat 1
+expect dronebg 2
+tap PLAY
+expect playing 0
+expect dronebg 2
+tap PLAY
+expect dronebg 3
+tap PLAY
+expect dronebg 0
 
 # RODA ANGOLA: the bateria whole, after ANGOLA's group (its FREE last): the gunga ANGOLA, the medio SAO BENTO
 # PEQUENO, the viola SAO BENTO GRANDE de Angola, the pandeiro, the atabaque, the agogo, the reco-reco
@@ -900,5 +1113,197 @@ expect vph <3
 shot roda.png
 wait 5600
 expect vph 0
+tap PLAY
+tap PLAY
+
+# the footer's time signature: a rhythm's beats over 4; beats of three steps, their eighths over 8
+tap FX
+expect mode 0
+expect rhythm 7
+expect meter 608
+turn ALGO 1
+expect beats 3
+expect meter 304
+turn ALGO 1
+expect beats 4
+expect meter 404
+# a FREE place kept through the reboot, with its beats (FREE 2, 2 beats): after 2 beats' written rhythms
+turn ALGO -2
+expect beats 2
+expect rhythm 0
+turn PRESET -1
+expect rhythm 12
+expect beats 2
+expect meter 204
+
+# SEQ held: the tempo rises, a BPM every 12 beats; stopped, nothing but a message
+expect rise 0
+press SEQ
+wait 600
+release SEQ
+expect rise 0
+turn ALGO 2
+expect rhythm 13
+expect bpm 92
+tap SAVE
+expect dirty 0
+tap PLAY
+wait 300
+press SEQ
+wait 600
+release SEQ
+expect rise 1
+expect glowOCT 1
+expect bpm 92
+expect dirty 0
+shot rise.png
+wait 7900
+expect bpm 93
+expect rise 1
+expect dirty 0
+# OCT keeps the tempo reached, no step; the rhythm comes back at it
+tap OCT+
+expect rise 0
+expect bpm 93
+expect dirty 1
+wait 1000
+press SEQ
+wait 600
+release SEQ
+expect rise 1
+wait 8200
+expect bpm 94
+# stopped: the rhythm back at its tempo
+tap PLAY
+tap PLAY
+wait 100
+expect rise 0
+expect bpm 93
+# another rhythm come in while it rises: the first back at its tempo, the other at its own
+tap PLAY
+wait 300
+press SEQ
+wait 600
+release SEQ
+expect rise 1
+turn PRESET 1
+wait 2800
+expect rhythm 14
+expect rise 0
+tap PLAY
+tap PLAY
+turn PRESET -1
+expect rhythm 13
+expect bpm 93
+
+# ARP + VIRADA: the ladainha on RODA ANGOLA, from a stop: the gunga and its caxixi, then, two bars each, the medio, the viola,
+# the pandeiro; again, the chula, the rest on the next bar; again, back to the base
+tap FX
+tap FX
+tap FX
+expect mode 1
+expect playing 0
+press ARP
+tapkey b10
+release ARP
+expect lad 1
+expect playing 1
+expect rhythm 51
+wait 800
+expect ladrows 192
+shot ladainha.png
+wait 5200
+expect ladrows 193
+wait 5300
+expect ladrows 195
+wait 5400
+expect ladrows 199
+wait 6000
+expect ladrows 199
+shot ladainha-base.png
+press ARP
+tapkey b10
+release ARP
+expect lad 2
+expect ladrows 199
+wait 3000
+expect ladrows 255
+shot chula.png
+press ARP
+tapkey b10
+release ARP
+expect lad 1
+wait 3000
+expect ladrows 199
+# PLAY: no more ladainha, the whole again at the next start
+tap PLAY
+tap PLAY
+expect lad 0
+tap PLAY
+wait 200
+expect lad 0
+tap PLAY
+tap PLAY
+# VIRADA without ARP is still VIRADA
+tapkey b10
+expect vreq 1
+expect lad 0
+
+# the maracas' type (their SOUND, KNOB 3): the shaker at first; every stroke, a key's or a step's, in the type chosen, kept
+tap FX
+expect mode 0
+turn PRESET 5
+wait 3000
+expect rhythm 18
+expect inst 4
+tap ENV
+expect page 1
+expect maracas 0
+shot sound-maracas.png
+wait 400
+tapkey b9
+expect marasound 1
+turn K3 1
+expect maracas 1
+shot sound-maracas-classic.png
+wait 400
+tapkey b9
+expect marasound 2
+turn K3 1
+expect maracas 2
+wait 400
+tapkey b9
+expect marasound 3
+turn K3 1
+expect maracas 3
+shot sound-maracas-daime.png
+wait 400
+tapkey b9
+expect marasound 4
+turn K3 3
+expect maracas 3
+tap PLAY
+wait 2500
+expect playing 1
+expect marasound 4
+tap PLAY
+tap PLAY
+wait 300
+tap SAVE
+reboot
+expect maracas 3
+turn K3 -9
+expect maracas 0
+# their takes in turn, but each beat's first stroke the first: the beats alike, no pulse at half the tempo
+tap HOME
+wait 200
+tap PLAY
+wait 1200
+expect playing 1
+expect maratake 1
+wait 500
+expect maratake 1
+wait 500
+expect maratake 1
 tap PLAY
 tap PLAY

@@ -88,6 +88,22 @@ void dr_bend(uint32_t inst, uint32_t art, float semis)
 
 float dr_bent(uint32_t inst) { return inst < DR_NINST ? bend_now[inst] : 0.0f; }
 
+uint32_t dr_take_next(uint32_t inst, uint32_t art)
+{
+    return inst < DR_NINST && art >= 1u && art <= DR_NART ? take_next[inst][art - 1u] : 0u;
+}
+
+uint32_t dr_art_on(uint32_t inst)
+{
+    uint32_t i, a = 0, newest = 0xFFFFFFFFu;
+    for (i = 0; i < NV; i++)
+        if (V[i].on && V[i].inst == inst && !V[i].stopping && age_now - V[i].age < newest) {
+            newest = age_now - V[i].age;
+            a = V[i].art;
+        }
+    return a;
+}
+
 void dr_panic(void)
 {
     uint32_t i;
@@ -118,6 +134,14 @@ static voice_t *eldest(uint32_t falling)
             v = &V[i];
         }
     return v;
+}
+
+void dr_down(uint32_t inst)
+{
+    uint32_t a;
+    if (inst < DR_NINST)
+        for (a = 0; a < DR_NART; a++)
+            take_next[inst][a] = 0;
 }
 
 void dr_hit(uint32_t inst, uint32_t art, float vel, uint32_t delay)

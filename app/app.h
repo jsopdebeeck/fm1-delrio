@@ -12,7 +12,7 @@
 #define APP_BLOCK 256u                   /* frames per audio block: 5.8 ms at 44.1 kHz */
 #define APP_TOUCH                        /* velocity from the keys (lib/touch.h) */
 
-/* the store: the settings, the panel calibration (the platform's) and the rhythms (the FREE ones and the two chosen) */
+/* the store: the settings, the panel calibration (the platform's) and the rhythms (the FREE ones) */
 enum { OBJ_SETTINGS, OBJ_PANEL, OBJ_RHYTHMS, OBJ_NOBJ };
 #define APP_STORE_MAP {0xFC000u, 0xDC000u, 0xDA000u}
 
@@ -30,8 +30,15 @@ void app_say(const char *a, const char *b);   /* a short message on the screen a
  * sN (the selected instrument's stroke at step N: 0 none, 1..3), vN (its velocity), flamN (a flam there), strokes
  * (its steps with a stroke), msg (a message on the screen), glowFX / glowLFO / glowOCT / glowARP (that button glows), wires
  * (its snare wires, %), tune (its tuning, tenths of a semitone), bend (the udu's bass glide now, tenths),
+ * maracas (their type, 0 the shaker ..), marasound (the stroke of theirs sounding: 1 + its type, 0 none), maratake (the
+ * take their next stroke plays),
  * hitsI (instrument I's strokes played since boot), mode (FX: the kit 0, the berimbau 1, the tanpura 2, the shruti 3),
- * drone, sa, first, string, notes, tpp, jawari, cycle, kind, root, shtempo (the drones'), list / listi (the presets'
- * list, the one it shows), intro (the opening playing), batt (the battery shown: 0..3 bars, 4 USB, -1 none yet) */
+ * drone, sa, first, string, notes, tpp, jawari, cycle, kind, root, shtempo (the drones'), list / listi / listn (the
+ * presets' list, the one it shows, how many it has), savelist (it is SAVE's, the FREE places), intro (the opening playing), batt (the battery read: 0..3 bars, 4 USB, -1 none yet), battshown (it is on the screen),
+ * meter (the time signature shown: 404 is 4/4, 1208 is 12/8), rise (the tempo rising), lad / ladrows (the ladainha: 1
+ * its base, 2 the chula; the rows that have come in), vreq (VIRADA waits for its bar), vary (the rows varying this bar),
+ * vph (the gunga's sourced phrase), gourd (the berimbau shown's gourd, % closed), next (a rhythm chosen waits for its
+ * bar), stopat (PLAY waits for the bar's first step), bpmnow (the tempo playing, whole BPM), dronebg (the drone sounding,
+ * shown or not) */
 #define APP_HOST_EXPECT
 int app_expect(const char *what, int *got);

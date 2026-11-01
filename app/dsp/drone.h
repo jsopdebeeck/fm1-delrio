@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: MPL-2.0 */
-/* The drones, each played alone: the tanpura's four strings plucked in turn, buzzing on their bridge (jawari); and the
+/* The drones, alone or under the rhythm: the tanpura's four strings plucked in turn, buzzing on their bridge (jawari); and the
  * shruti box's reeds, the notes chosen held, its bellows breathing. Synthesised as they play: no samples. The main
  * loop sets them (dn_tanpura, dn_shruti); the audio interrupt renders them into the mix (dn_render).
  * Compiled apart at -O2 (fm1.toml o2): only fastmath.h, no libm, no doubles. */

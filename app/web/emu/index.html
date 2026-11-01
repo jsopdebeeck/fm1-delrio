@@ -143,7 +143,10 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
     <h2>Playing</h2>
     <ul>
       <li>At start, a maned wolf walks into the picture: a key, a button or a knob skips it.</li>
-      <li>Top right: the battery, three bars (red when it is empty), or USB while a computer powers the FM-1.</li>
+      <li>Top right: the battery, three bars (red when it is empty), or USB while a computer powers the FM-1: for 5 s
+        after the opening, 3 s after <b>HOME</b> or <b>FX</b>, and always with one bar left or none.</li>
+      <li>At the top: the rhythm's name. At the bottom: the tempo, the time signature and the instrument shown, over the
+        page's instruments in three letters (in their colour when they play, white as they strike).</li>
       <li><b>Black keys</b>, left to right: the instruments (harder is louder)
         <ul>
           <li><b>Djembe</b>: bass, tone, slap</li>
@@ -160,7 +163,7 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
           <li>Bright: a stroke. Dim: an empty step, a little brighter on each beat's first step.</li>
         </ul>
       </li>
-      <li><b>PLAY</b>: plays the bar in a loop. <b>PLAY</b> again: stops.
+      <li><b>PLAY</b>: plays the bar in a loop. <b>PLAY</b> again: stops on the next bar's first beat; again: at once.
         <ul>
           <li>The step sounding: the moving light on the keys, the white frame on the screen.</li>
         </ul>
@@ -190,18 +193,20 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
     <ul>
       <li><b>SELECT</b>: the instrument (its colour on the screen)</li>
       <li><b>ALGORITHM</b>: the beats in the bar, 2 to 8, and the first rhythm with that many</li>
-      <li><b>PRESETS</b>: the rhythms with those beats, round (the tanpura: its character; the shruti: its chords)</li>
+      <li><b>PRESETS</b>: the rhythms with those beats, round, an empty <b>FREE</b> not shown (the tanpura: its
+        character; the shruti: its chords)</li>
       <li><b>SEL</b>: the instrument muted, or on</li>
       <li><b>EDIT</b> twice: the instrument's strokes cleared</li>
-      <li><b>SEQ</b>: tap the tempo (it blinks the beat)</li>
+      <li><b>SEQ</b>: tap the tempo (it blinks the beat); held while playing, the tempo rises, a BPM every 12 beats
+        (<b>OCT−</b>, <b>OCT+</b> or <b>SEQ</b> held again keep it)</li>
       <li><b>ARP</b> held: flams on the djembe</li>
       <li><b>OCT−</b> / <b>OCT+</b>: the tempo, 5 BPM a press, 10 held</li>
       <li><b>LFO</b>: the presets listed, with their beats; the list stays, <b>KNOB 3</b> goes through it (nothing
         changes); <b>LFO</b> held chooses the one shown, <b>LFO</b> again closes it</li>
-      <li><b>SAVE</b>: keeps everything (lit when something changed)</li>
+      <li><b>SAVE</b>: keeps the settings (lit when something changed); a changed rhythm, in the <b>FREE</b> place
+        <b>KNOB 3</b> and <b>SAVE</b> choose</li>
       <li><b>MASTER</b>: the volume</li>
-      <li><b>FX</b>: the mode: the <b>KIT</b>, the <b>BERIMBAU</b>, then the <b>TANPURA</b> and the <b>SHRUTI</b>
-        box, each played alone</li>
+      <li><b>FX</b>: the mode: the <b>KIT</b>, the <b>TANPURA</b>, the <b>SHRUTI</b> box, the <b>BERIMBAU</b></li>
     </ul>
   </div>
   <div>
@@ -219,10 +224,13 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
         <ul>
           <li><b>Djembe</b>: level, tune (3 semitones either way), decay</li>
           <li><b>Udu</b>: level, tune (3 semitones either way), pressure bend</li>
-          <li><b>Maracas</b>, <b>triangle</b>: level, decay</li>
+          <li><b>Maracas</b>: level, decay, type (<b>KNOB 3</b>: SHAKER, CLASSIC, GOURD, DAIME)</li>
+          <li><b>Triangle</b>: level, decay</li>
           <li><b>Cajon</b>: level, snares (its wires: tighter, slacker, off), decay (a heel on its front)</li>
-          <li><b>Berimbau</b>: level, tune (its wire, 3 semitones either way)</li>
-          <li><b>Clapsticks</b>, <b>caxixi</b>: level</li>
+          <li><b>Gunga</b>, <b>medio</b>, <b>viola</b>: level, tune (its wire, 3 semitones either way), cabaça (how far
+            a key pressed harder closes the gourd), viradas (how often it varies its toque)</li>
+          <li><b>Atabaque</b>: level, tune</li>
+          <li><b>Clapsticks</b>, <b>caxixi</b>, <b>agogô</b>, <b>pandeiro</b>, <b>reco-reco</b>: level</li>
         </ul>
       </li>
       <li><b>GLO</b>: SETUP
@@ -236,35 +244,38 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
     </ul>
   </div>
   <div>
-    <h2>The berimbau (FX), played alone</h2>
+    <h2>The berimbau and the bateria (FX)</h2>
     <ul>
       <li>Played as the kit is: the white keys its steps, <b>PLAY</b>, <b>REC</b>, the pages; <b>SELECT</b>: the
-        berimbau or its caxixi</li>
-      <li><b>Black keys</b>, left to right, twice (a hand each):
+        gunga, the medio, the viola (a tone up each), the caxixi, the pandeiro, the atabaque, the agogô, the reco-reco</li>
+      <li><b>Black keys</b>, left to right:
         <ul>
-          <li><b>DOM</b> (O on the screen): the wire struck free</li>
-          <li><b>DIM</b> (I): the stone pressed on it, a tone higher</li>
-          <li><b>TSCH</b> (X): the stone resting on it, a buzz</li>
-          <li>The <b>caxixi</b>, on the two keys after</li>
+          <li>The berimbau shown: <b>DOM</b> (the wire struck free), <b>DIM</b> (the stone pressed on it, a tone
+            higher), <b>TSCH</b> (TCH on the screen: the stone resting on it, a buzz)</li>
+          <li>The <b>caxixi</b>, the <b>reco-reco</b></li>
+          <li>The <b>pandeiro</b>: TUM, PA, CHIA</li>
+          <li>The <b>atabaque</b>: TUM, PA (with <b>ARP</b> held, the <b>agogô</b>'s high and low bells)</li>
+          <li><b>VIRADA</b>: the berimbau shown varies from the next bar. With <b>ARP</b>, on RODA ANGOLA: the
+            <b>ladainha</b>, the instruments coming in two bars each; again, the chula; again, back to the base.</li>
         </ul>
       </li>
       <li>Its toques, as the Cordão de Ouro teaches them: <b>PRESETS</b> goes round them
         <ul>
-          <li><b>4 beats</b>: ANGOLA, SB PEQUENO, SB GRANDE, BANGUELA, JOGO DE DENTRO, JOGO DE FORA, FREE</li>
-          <li><b>8 beats</b> (<b>ALGORITHM</b>): SB REGIONAL (Mestre Bimba's), CAVALARIA, IDALINA, MIUDINHO, FREE</li>
+          <li><b>4 beats</b>: ANGOLA, SB PEQUENO, SB GRANDE, BANGUELA, JOGO DE DENTRO, JOGO DE FORA, RODA ANGOLA</li>
+          <li><b>8 beats</b> (<b>ALGORITHM</b>): SB REGIONAL (Mestre Bimba's), CAVALARIA, IDALINA, MIUDINHO</li>
         </ul>
       </li>
       <li>Counted "0 – 1 – 2 – 3": the two TSCH on 0, then the DOM and the DIM on the beats, a quarter slower than a
-        roda plays them (ANGOLA at 90).</li>
+        roda plays them. A beat here is the toque's count, an eighth of its 2/4 bar: ANGOLA's 90 BPM has its quarter
+        note at 45.</li>
     </ul>
   </div>
   <div>
-    <h2>The drones (FX), each played alone</h2>
+    <h2>The drones (FX), alone or under the rhythm</h2>
     <ul>
       <li><b>TANPURA</b>: four strings plucked in turn (the first string, Sa, Sa, and Sa an octave down), buzzing on
         their bridge
         <ul>
-          <li><b>PLAY</b>: on, off</li>
           <li>A key: its note is <b>Sa</b> (Sa's keys lit, the first string's dim)</li>
           <li><b>ALGORITHM</b>: the first string: <b>SA PA</b>, <b>SA MA</b> (the ragas without Pa), <b>SA NI</b></li>
           <li><b>PRESETS</b>: its character: MEDITATION (slow, a soft jawari), MANTRA (round), RAGA (the concert
@@ -275,7 +286,6 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
       </li>
       <li><b>SHRUTI</b>: the reeds of the notes you choose, held, the bellows breathing
         <ul>
-          <li><b>PLAY</b>: on, off</li>
           <li><b>PRESETS</b>: the chord a key plays: <b>SA PA</b> (its root, fifth and octave), <b>MAJOR</b>,
             <b>MINOR</b> (with the third); or <b>NOTES</b>, a key opening or closing its reed</li>
           <li>A key: the chord on it (its notes lit)</li>
@@ -284,32 +294,37 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
             <b>KNOB 2</b> their tempo (a push, then a pull, each a beat) · <b>KNOB 3</b> the level</li>
         </ul>
       </li>
-      <li>Changing mode stops what was sounding.</li>
+      <li><b>PLAY</b> on their page: stops the drone if it sounds; else stops the rhythm if one plays; else starts the
+        drone.</li>
+      <li>Under the rhythm: the drone's <b>PLAY</b>, then <b>HOME</b> (the drone sounding on), then the kit's
+        <b>PLAY</b>. <b>FX</b> leaves the kit playing on under a drone's page; the berimbau's page stops the kit, not
+        the drone. One drone at a time.</li>
     </ul>
   </div>
   <div>
     <h2>Rhythms: ALGORITHM, then PRESETS</h2>
     <ul>
-      <li><b>2 beats</b>: HEARTBEAT, BAIAO, XOTE, SAMBA, MARCHA 2/4, MAZURCA, BARRAVENTO, JOROPO, FREE</li>
-      <li><b>3 beats</b>: THREE, VALSA, TOADA, FREE</li>
-      <li><b>4 beats</b>: FOUR, JOURNEY, SHAKER, CLAVE, AFRO 12/8, MARCHA, IJEXA, IJEXA CANTO, KUKU, AFRO SAMBA, BOSSA
-        NOVA, FUNK IJEXA, SAMBA DJEMBE, XOTE DJEMBE, DJOLE, YANKADI, FREE</li>
-      <li><b>5 beats</b>: FIVE, FREE</li>
-      <li><b>6 beats</b>: LANDO, BULERIAS, FREE</li>
-      <li><b>7 beats</b>: SEVEN, FREE</li>
-      <li><b>8 beats</b>: AFOXE, FREE</li>
+      <li><b>2 beats</b>: HEARTBEAT, BAIAO, XOTE, SAMBA, MARCHA 2/4, DAIME MAZURCA, BARRAVENTO, JOROPO</li>
+      <li><b>3 beats</b>: THREE, DAIME VALSA, TOADA</li>
+      <li><b>4 beats</b>: FOUR, JOURNEY, SHAKER, CLAVE, AFRO 12/8, DAIME MARCHA, IJEXA, IJEXA CANTO, KUKU, AFRO SAMBA, BOSSA
+        NOVA, FUNK IJEXA, SAMBA DJEMBE, XOTE DJEMBE, DJOLE, YANKADI</li>
+      <li><b>5 beats</b>: FIVE</li>
+      <li><b>6 beats</b>: LANDO, BULERIAS</li>
+      <li><b>7 beats</b>: SEVEN</li>
+      <li><b>8 beats</b>: AFOXE</li>
     </ul>
     <ul>
-      <li>A written rhythm comes as it is written: its steps, tempo and strokes. What you change lasts until you choose
-        another.</li>
-      <li>A <b>FREE</b> rhythm keeps what you put in it; <b>SAVE</b> keeps it when the FM-1 is off.</li>
+      <li>A written rhythm comes as it is written: its steps and strokes, at its tempo as last set. What you change lasts
+        until you choose another.</li>
+      <li><b>FREE</b> places, 7 for the kit and 2 for the berimbau, each for a rhythm of any beats: <b>SAVE</b> puts a
+        changed rhythm there, and they stay when the FM-1 is off.</li>
       <li>The instrument shown is one the rhythm plays.</li>
     </ul>
   </div>
   <div>
     <h2>Where they come from</h2>
     <ul>
-      <li><b>Santo Daime</b>, the maracá: MARCHA, VALSA, MAZURCA</li>
+      <li><b>Santo Daime</b>, the maracá: DAIME MARCHA, DAIME VALSA, DAIME MAZURCA</li>
       <li><b>Umbanda</b>, the atabaque on the djembe (Tum its bass, Ta its tone): IJEXA, BARRAVENTO</li>
       <li><b>Brazil</b>: BAIAO (the zabumba and the triangle), SAMBA</li>
       <li><b>Each instrument's own</b>: KUKU (the Mandinka djembe's accompaniment), LANDO (the Afro-Peruvian cajon, with
@@ -339,13 +354,14 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
     </ul>
   </div>
 </section>
-<p class="credit">Sounds: the cajon, clapsticks (claves), maracas (the large shaker's hits) and triangle from VCSL by Versilian Studios
-  (CC0); the udu from <a href="https://freesound.org/s/203349/">“122-Udu” by klemmy</a> (CC BY 3.0) and
-  <a href="https://freesound.org/s/476883/">“Pong Pop” by AncientOracle</a> (CC BY 4.0); the berimbau and its caxixi
+<p class="credit">Sounds: the cajon, clapsticks (claves), maracas' SHAKER (the large shaker's hits) and triangle from VCSL by Versilian Studios
+  (CC0); the maracas' CLASSIC from <a href="https://freesound.org/s/792498/">"Two Big Maracas shakes"</a> by Sadiquecat and GOURD from
+  <a href="https://freesound.org/s/850978/">"Pataxó's Maraca"</a> by REVERBERA (CC0), DAIME recorded by Jess Del Rio; the udu from <a href="https://freesound.org/s/203349/">“122-Udu” by klemmy</a> (CC BY 3.0) and
+  <a href="https://freesound.org/s/476883/">“Pong Pop” by AncientOracle</a> (CC BY 4.0); the berimbau
   from <a href="https://freesound.org/s/177068/">“Berimbau_03”</a>, <a href="https://freesound.org/s/177004/">“_01”</a>
   and <a href="https://freesound.org/s/177003/">“_02”</a> by Paulo Gonçalves (CC BY 4.0) and the caxixi from
-  <a href="https://freesound.org/s/856789/">“caxixi, shake”</a> by Oldome (CC0); the djembe
-  synthesised. Built on fm1-base and felucca-bsp.</p>
+  <a href="https://freesound.org/s/856789/">“caxixi, shake”</a> by Oldome (CC0); the djembe, the pandeiro,
+  the atabaque, the agogô and the reco-reco synthesised. Built on fm1-base and felucca-bsp.</p>
 <!-- what the screen says, for the computer's screen reader -->
 <div id="live-p" class="sr" aria-live="polite" aria-atomic="true"></div>
 <div id="live-a" class="sr" aria-live="assertive" aria-atomic="true"></div>

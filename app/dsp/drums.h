@@ -12,7 +12,7 @@
 #define DR_NINST 14u                     /* app.c's instruments, in its order: the kit's six, the berimbau (the gunga),
                                           * its caxixi; the agogo; the medio, the viola, the pandeiro, the atabaque,
                                           * the reco-reco */
-#define DR_NART 3u                       /* strokes an instrument has at most */
+#define DR_NART 4u                       /* strokes an instrument has at most (the maracas: one a type) */
 #define DR_MARACAS 4u                    /* one pair of hands: a stroke stops the one before (short at a fast tempo) */
 #define DR_TRIANGLE 5u                   /* its muted stroke (2) stops the open one ringing */
 #define DR_BERIMBAU 6u                   /* one wire: a stroke stops the one before (the medio's, the viola's too) */
@@ -47,6 +47,7 @@ void dr_inst(uint32_t inst, const dr_inst_t *p);   /* main loop: applies to the 
 void dr_bend(uint32_t inst, uint32_t art, float semis);
 /* audio interrupt: a stroke (art 1..) at velocity 0..1, starting delay samples into the next render */
 void dr_hit(uint32_t inst, uint32_t art, float vel, uint32_t delay);
+void dr_down(uint32_t inst);              /* audio interrupt: its next stroke its first take, the hand down on the beat */
 void dr_click(int accent, uint32_t delay);   /* the metronome: a high tick on the bar's first beat */
 /* main loop: a berimbau's gourd (the gunga, the medio, the viola), 0 away from the belly (as recorded) .. 1 closed on
  * it; it moves there in about 20 ms */
@@ -56,3 +57,5 @@ void dr_panic(void);                     /* any context: silence now */
 void dr_render(float *out, uint32_t n);  /* mono, about -1 .. 1; n 256 at most */
 uint32_t dr_active(void);                /* voices sounding (the host's checks) */
 float dr_bent(uint32_t inst);            /* the glide's pitch now, semitones (the host's checks) */
+uint32_t dr_take_next(uint32_t inst, uint32_t art);   /* the take a stroke (1..) plays next (the host's checks) */
+uint32_t dr_art_on(uint32_t inst);       /* the stroke it last started, sounding (1..), 0 none (the host's checks) */

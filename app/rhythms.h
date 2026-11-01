@@ -4,12 +4,10 @@
 
 /* the rhythms at first: one string an instrument, a character a step: the stroke's letter (capital: strong, small:
  * soft), "F" its last stroke (the slap) as a flam, "." none. From the literature:
- *   MARCHA, VALSA, MAZURCA: Santo Daime's three rhythms, as its maracá plays them (f soft, F strong): marcha f f f F,
+ *   DAIME MARCHA, VALSA, MAZURCA: Santo Daime's three rhythms, as its maracá plays them (f soft, F strong): marcha f f f F,
  *     valsa F F f, mazurca (6/8) f f f F F F (Jornal Grande Bahia, "Abaixo o maracá. Viva o maracá", 2016)
  *   IJEXA, BARRAVENTO: Umbanda's atabaque toques on the djembe, Tum its bass, Ta its tone, the marking stroke (M)
- *     strong: Ijexá "Ta TaTa Tum Ta", Barravento (6/8) "Tum TaTa TumTum" (Templo Tata Possum, Curso de Atabaque, 2024);
- *     IJEXA's agogo in sixteenths, high and low, "H.H.L.L.HH.H.LL." (Gilson de Assis, Brazilian Conga, Advance Music
- *     2006, ch. 3 "Ijexá", Agogo 1; the same in P. Meirelles's teaching book, UFRJ PROMUS 2024)
+ *     strong: Ijexá "Ta TaTa Tum Ta", Barravento (6/8) "Tum TaTa TumTum" (Templo Tata Possum, Curso de Atabaque, 2024)
  *   BAIAO: the zabumba on the first beat's first and fourth sixteenths (here the djembe's bass), the triangle's
  *     sixteenths closed, open on the off-beats (ANPPOM 2018); SAMBA: the surdo soft on 1, strong on 2 (the cajon's
  *     bass), the ganzá's sixteenths (the maracas)
@@ -32,7 +30,7 @@ typedef struct {
     uint8_t beats, div, bpm, swing;
     uint8_t free;                        /* the player's own: kept as left, not written again when chosen */
     const char *pat[NROW];               /* a row each (ROW_INST): the kit's djembe, cajon, udu, clapsticks, maracas,
-                                          * triangle, agogo; the berimbau's medio, viola, pandeiro, atabaque, agogo,
+                                          * triangle; the berimbau's medio, viola, pandeiro, atabaque, agogo,
                                           * reco-reco, gunga, caxixi (none: 0) */
 } rdef_t;
 /* grouped by their beats (ALGORITHM), each group ending with its FREE one (PRESET goes round a group) */
@@ -42,12 +40,12 @@ static const rdef_t RDEF[] = {
     {"XOTE", 2, 4, 84, 0, 0, {"B..BS...", "", "", "", "", ""}},
     {"SAMBA", 2, 4, 100, 0, 0, {"", "b...B...", "", "", "xxxXxxxX", ""}},
     {"MARCHA 2/4", 2, 4, 108, 0, 0, {"B.T.B.T.", "", "", "", "", ""}},
-    {"MAZURCA", 2, 3, 60, 0, 0, {"", "", "", "", "xxxXXX", ""}},
+    {"DAIME MAZURCA", 2, 3, 60, 0, 0, {"", "", "", "", "xxxXXX", ""}},
     {"BARRAVENTO", 2, 3, 72, 0, 0, {"B.ttbb", "", "", "", "", ""}},
     {"JOROPO", 2, 3, 132, 0, 0, {"", "", "", "", "XxxXxx", ""}},
     {"FREE", 2, 4, 90, 0, 1, {"", "", "", "", "", ""}},
     {"THREE", 3, 4, 84, 0, 0, {"", "B...S...S...", "", "", "X.x.X.x.X.x.", "O..........."}},
-    {"VALSA", 3, 2, 120, 0, 0, {"", "", "", "", "X.X.x.", ""}},
+    {"DAIME VALSA", 3, 2, 120, 0, 0, {"", "", "", "", "X.X.x.", ""}},
     {"TOADA", 3, 2, 100, 0, 0, {"B.T.T.", "", "", "", "", ""}},
     {"FREE", 3, 4, 90, 0, 1, {"", "", "", "", "", ""}},
     {"FOUR", 4, 4, 92, 0, 0, {"", "B...S...B.b.S...", "", "", "x.X.x.X.x.X.x.X.", "O.......M......."}},
@@ -55,8 +53,8 @@ static const rdef_t RDEF[] = {
     {"SHAKER", 4, 4, 76, 0, 0, {"", "", "B.......b.......", "", "XxxxXxxxXxxxXxxx", "O..............."}},
     {"CLAVE", 4, 4, 100, 0, 0, {"....T.T.....T.TS", "B.......B.......", "", "X..X..X...X.X...", "x.x.x.x.x.x.x.x.", ""}},
     {"AFRO 12/8", 4, 3, 100, 0, 0, {"S..TT.S..TT.", "", "B.....b.....", "X.X.XX.X.X.X", "X.xX.xX.xX.x", ""}},
-    {"MARCHA", 4, 2, 120, 0, 0, {"", "", "", "", "x.x.x.X.", ""}},
-    {"IJEXA", 4, 4, 96, 0, 0, {"T...t.t.B...t...", "", "", "", "x...x...x...x...", "", "H.H.L.L.HH.H.LL."}},
+    {"DAIME MARCHA", 4, 2, 120, 0, 0, {"", "", "", "", "x.x.x.X.", ""}},
+    {"IJEXA", 4, 4, 96, 0, 0, {"T...t.t.B...t...", "", "", "", "x...x...x...x..."}},
     {"IJEXA CANTO", 4, 4, 88, 0, 0, {"B.T.S.TTB.T.S...", "", "", "", "", ""}},
     {"KUKU", 4, 4, 120, 0, 0, {"B.TT..S.B.TT..S.", "", "", "", "", ""}},
     {"AFRO SAMBA", 4, 4, 80, 0, 0, {"BTTTBtBtBTTTBBBB", "", "", "", "", ""}},
