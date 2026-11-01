@@ -35,7 +35,8 @@ void app_say(const char *a, const char *b);   /* a short message on the screen a
  * hitsI (instrument I's strokes played since boot), mode (FX: the kit 0, the berimbau 1, the tanpura 2, the shruti 3),
  * drone, sa, first, string, notes, tpp, jawari, cycle, kind, root, shtempo (the drones'), list / listi / listn (the
  * presets' list, the one it shows, how many it has), savelist (it is SAVE's, the FREE places), intro (the opening playing), batt (the battery read: 0..3 bars, 4 USB, -1 none yet), battshown (it is on the screen),
- * meter (the time signature shown: 404 is 4/4, 1208 is 12/8), rise (the tempo rising), lad / ladrows (the ladainha: 1
+ * meter (the time signature shown: 404 is 4/4, 1208 is 12/8), bpmshown (the tempo on the screen: bpm, in counts on the
+ * berimbau's page, halved there), rise (the tempo rising), lad / ladrows (the ladainha: 1
  * its base, 2 the chula; the rows that have come in), vreq (VIRADA waits for its bar), vary (the rows varying this bar),
  * vph (the gunga's sourced phrase), gourd (the berimbau shown's gourd, % closed), next (a rhythm chosen waits for its
  * bar), stopat (PLAY waits for the bar's first step), bpmnow (the tempo playing, whole BPM), dronebg (the drone sounding,

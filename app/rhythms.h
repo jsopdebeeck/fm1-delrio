@@ -76,9 +76,9 @@ static const rdef_t RDEF[] = {
     {"FREE", 8, 2, 90, 0, 1, {"", "", "", "", "", ""}},
     /* the berimbau's toques, as the Cordao de Ouro teaches them ("Toques do berimbau", Flensburg 2020), counted
      * "0 - 1 - 2 - 3": the two chiados (TSCH, soft) on 0, the free DOM (O) and the pressed DIM (I) on the counts;
-     * the caxixi in the pause, where the source shakes it. Each count an eighth of the toque's 2/4 bar (its BPM
-     * here, the bar's quarter half of it), a quarter slower than a roda plays them, for the ceremony: Angola's
-     * quarter 45, Sao Bento Grande's 66. SB REGIONAL, Mestre Bimba's, over two counts: "tsch tsch DOM, tsch
+     * the caxixi in the pause, where the source shakes it. Each count an eighth of the toque's 2/4 bar (the bpm
+     * here counts them; the screen shows the quarter, half of it: app.c's bpm_shown), a quarter slower than a roda
+     * plays them, for the ceremony: Angola's quarter 45, Sao Bento Grande's 66. SB REGIONAL, Mestre Bimba's, over two counts: "tsch tsch DOM, tsch
      * DIM, tsch tsch DOM DOM DIM". And from opencapoeira.com's "Toques de berimbau" (its | a chiado, || two): JOGO
      * DE FORA, Jogo de Dentro turned over; CAVALARIA whole, "|| DOM | DOM || DOM DIM DOM" (the Cordao de Ouro's
      * its last count); IDALINA "|| DOM DOM DIM DOM DOM | DIM"; MIUDINHO "|| DIM | DIM | DIM DOM DIM" */

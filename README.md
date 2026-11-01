@@ -63,7 +63,7 @@ in three letters; a page of large sliders. [All the screens](docs/img/all-screen
     and its caxixi, then the medio, the viola and the pandeiro, two bars each, for the singer. Again: the chula, the
     atabaque, the agogô and the reco-reco on the next bar. Again: back to the base. PLAY stops as ever;
   - its toques: ANGOLA, SB PEQUENO, SB GRANDE, BANGUELA, JOGO DE DENTRO, JOGO DE FORA, RODA ANGOLA, SB REGIONAL,
-    CAVALARIA, IDALINA and MIUDINHO, a quarter slower than a roda plays them (ANGOLA at 90: its quarter note at 45);
+    CAVALARIA, IDALINA and MIUDINHO, a quarter slower than a roda plays them (ANGOLA at 45 BPM, in 2/4);
   - the berimbau's strokes recorded from Paulo Gonçalves's, the caxixi's from Oldome's; the pandeiro's, the atabaque's,
     the agogô's and the reco-reco's synthesised (`app/tools/synth.py`).
 - **Only what a player can change.** Each instrument's SOUND page has only what is real for it:
@@ -89,11 +89,11 @@ in three letters; a page of large sliders. [All the screens](docs/img/all-screen
   - SAVE: keep the settings; a changed rhythm, in the FREE place you choose.
   - FX: the kit, the tanpura, the shruti box, the berimbau.
   - OCT− / OCT+: the tempo, 5 BPM a press, 10 held.
-  - HOME: the steps; KNOB 1 the tempo (40 to 240), KNOB 2 the steps a beat, KNOB 3 the swing, KNOB 4 the human feel.
+  - HOME: the steps; KNOB 1 the tempo (40 to 240, the berimbau's page 20 to 120), KNOB 2 the steps a beat, KNOB 3 the swing, KNOB 4 the human feel.
   - ENV: the instrument's SOUND page.
   - GLO: SETUP; KNOB 1 the click, KNOB 2 the count-in, KNOB 3 the keys' lights, KNOB 4 the velocity.
   - MASTER: the volume.
-  - LFO: the presets listed, with their beats (the number at the right), from the one chosen; the list stays, KNOB 3 goes through it without
+  - LFO: the presets listed, with their beats (the number at the right; a toque's, its counts), from the one chosen; the list stays, KNOB 3 goes through it without
     changing anything; LFO held chooses the one shown, LFO again closes the list.
 - **Two drones (FX), alone or under the rhythm.** On a drone's page, PLAY stops the drone if it sounds; else it stops
   the rhythm if one plays (on the next bar's first beat; again: at once); else it starts the drone. For a drone under
@@ -114,7 +114,7 @@ in three letters; a page of large sliders. [All the screens](docs/img/all-screen
   the bar's time signature (its beats over 4; beats of three steps, their eighths over 8: 6/8, 12/8) and the instrument
   shown, in its colour. Under them, the page's instruments in three letters (DJE CAJ UDU CLA MAR TRI; GUN MED VIO
   CAX PAN ATA AGO REC), always in their order: in their colour when they play in the rhythm, dark when not, white as
-  they strike, grey muted; the one shown taller; a drone sounding under it, last. The berimbaus' steps read DOM, DIM, TCH. On the berimbau's page a beat is the toque's count, an eighth of its 2/4 bar: ANGOLA's 90 BPM 4/4 has its quarter note at 45. At start, a maned wolf (the lobo-guará of the cerrado)
+  they strike, grey muted; the one shown taller; a drone sounding under it, last. The berimbaus' steps read DOM, DIM, TCH. The berimbau's page shows the toques as their sources count them, in 2/4, the tempo its quarter note: ANGOLA at 45 BPM, its grid a row a count, four to the bar (eight, over two bars). At start, a maned wolf (the lobo-guará of the cerrado)
   walks into the cerrado at dusk, in big pixels (80 x 80, 32 colours), his four legs stepping in turn, and stops
   before the setting sun; a key, a button or a knob skips it. The pictures are Jess Del Rio's (`app/art/`);
   `app/tools/opening.py` makes the scene and cuts the wolf out.
@@ -137,7 +137,7 @@ in three letters; a page of large sliders. [All the screens](docs/img/all-screen
 
 The berimbau's toques:
 
-| Beats | Toques |
+| Counts | Toques |
 | --- | --- |
 | 4 | ANGOLA, SB PEQUENO, SB GRANDE, BANGUELA, JOGO DE DENTRO, JOGO DE FORA, RODA ANGOLA |
 | 8 | SB REGIONAL, CAVALARIA, IDALINA, MIUDINHO |
@@ -169,7 +169,7 @@ Where they come from:
   play on the djembe under their cantos. They are practical adaptations, not canonical transcriptions: the Huni Kuin's
   own cantos are carried by the voice, with a maracá at most.
 - **The berimbau's toques**, as the Cordão de Ouro teaches them (*Toques do berimbau*, Flensburg 2020): counted
-  "0 – 1 – 2 – 3", the two chiados (TSCH) on 0, then the DOM and the DIM on the beats. SB REGIONAL is Mestre Bimba's,
+  "0 – 1 – 2 – 3", the two chiados (TSCH) on 0, then the DOM and the DIM on the counts. SB REGIONAL is Mestre Bimba's,
   over two counts: "tsch tsch DOM, tsch DIM, tsch tsch DOM DOM DIM". JOGO DE FORA (Jogo de Dentro turned over),
   CAVALARIA (whole: "tsch tsch DOM, tsch DOM, tsch tsch DOM DIM DOM"), IDALINA and MIUDINHO follow
   [opencapoeira.com's notations](https://opencapoeira.com/toques-de-berimbau/), its | a chiado, || two.

@@ -235,9 +235,25 @@ static const inst_t *shown(void) { return &INST[sinst()]; }
 static int berimbau(void) { return set.mode == MODE_BERIMBAU; }
 static int drone(void) { return set.mode >= MODE_TANPURA; }
 static uint32_t nsteps(const rhythm_t *r) { return (uint32_t)r->beats * r->div; }
-/* the bar as a time signature: its beats over 4; beats of three steps, their eighths over 8 */
-static uint32_t meter_top(const rhythm_t *r) { return r->div == 3u ? r->beats * 3u : r->beats; }
-static uint32_t meter_low(const rhythm_t *r) { return r->div == 3u ? 8u : 4u; }
+/* the berimbau's page counts as its sources do: a beat is the toque's count, an eighth of its 2/4 bar. Its tempo is kept
+ * and played in counts a minute, and shown in quarter notes: ANGOLA's 90, 45 BPM */
+static uint32_t bpm_per(const rhythm_t *r) { return rhy_mode((uint32_t)(r - rhy)) == MODE_BERIMBAU ? 2u : 1u; }
+static uint32_t bpm_shown(const rhythm_t *r) { return ((uint32_t)r->bpm + bpm_per(r) / 2u) / bpm_per(r); }
+/* the bar as a time signature: its beats over 4; beats of three steps, their eighths over 8. The berimbau's: its counts
+ * in quarter notes, four or eight of them 2/4 (one bar or two), an odd number over 8 */
+static uint32_t meter_top(const rhythm_t *r)
+{
+    if (bpm_per(r) == 2u)
+        return r->beats % 2u ? r->beats : r->beats % 4u ? r->beats / 2u : 2u;
+    return r->div == 3u ? r->beats * 3u : r->beats;
+}
+
+static uint32_t meter_low(const rhythm_t *r)
+{
+    if (bpm_per(r) == 2u)
+        return r->beats % 2u ? 8u : 4u;
+    return r->div == 3u ? 8u : 4u;
+}
 /* the keys' page: as many whole beats as the 16 white keys hold */
 static uint32_t page_steps(const rhythm_t *r) { return 16u / r->div * r->div; }
 static uint32_t npages(const rhythm_t *r) { return (nsteps(r) + page_steps(r) - 1u) / page_steps(r); }
@@ -748,8 +764,8 @@ static void speak(void)
         text_cat(t, ", ");
         int_text(cur()->beats, n);
         text_cat(t, n);
-        text_cat(t, " BEATS, ");
-        int_text(cur()->bpm, n);
+        text_cat(t, bpm_per(cur()) == 2u ? " COUNTS, " : " BEATS, ");
+        int_text((int32_t)bpm_shown(cur()), n);
         text_cat(t, n);
         text_cat(t, " BPM. ");
         text_cat(t, seq.rec ? "RECORDING. " : seq.playing ? "PLAYING. " : "");
@@ -945,7 +961,7 @@ static void bpm_set(int32_t v)
     changed();
     if (!set.sh_tempo)                   /* the shruti's bellows at the rhythm's tempo */
         drone_apply();
-    int_text(cur()->bpm, t);
+    int_text((int32_t)bpm_shown(cur()), t);
     text_cat(t, " BPM");
     app_say("TEMPO", t);
 }
@@ -975,7 +991,7 @@ static void tap(void)
     if (ui.ntap >= 2u && ui.tap[ui.ntap - 1u] - ui.tap[0] >= 100u) {
         seq.jump = 1;                    /* tapped: there at once */
         bpm_set((int32_t)(60000u * (ui.ntap - 1u) + (ui.tap[ui.ntap - 1u] - ui.tap[0]) / 2u) /
-                (int32_t)(ui.tap[ui.ntap - 1u] - ui.tap[0]));
+                (int32_t)(ui.tap[ui.ntap - 1u] - ui.tap[0]) * (int32_t)bpm_per(cur()));
     } else
         app_say("TAP", "AGAIN");
 }
@@ -1029,7 +1045,7 @@ static void knob_text(uint32_t k, char *t)
     int32_t v;
     t[0] = 0;
     switch (k) {
-    case KN_BPM: int_text(cur()->bpm, t); break;
+    case KN_BPM: int_text((int32_t)bpm_shown(cur()), t); break;
     case KN_DIV: int_text(cur()->div, t); text_cat(t, " A BEAT"); break;
     case KN_SWING: int_text(cur()->swing, t); text_cat(t, "%"); break;
     case KN_HUMAN: int_text(cur()->human, t); text_cat(t, "%"); break;
@@ -1101,7 +1117,7 @@ static void knob_turn(uint32_t k, int32_t d)
     dr_inst_t *s = snd_of(sinst());
     char t[16];
     switch (k) {
-    case KN_BPM: bpm_set((int32_t)cur()->bpm + d); return;
+    case KN_BPM: bpm_set((int32_t)cur()->bpm + d * (int32_t)bpm_per(cur())); return;
     case KN_DIV: div_step(d > 0 ? 1 : -1); return;
     case KN_SWING:
         if (cur()->div == 3u) {          /* 3 steps a beat: the swing is already there */
@@ -1645,7 +1661,7 @@ static void list_show(uint32_t i)        /* the list on the screen, i in the mid
             text_cat(t, ", ");
             text_cat(t, n);
             if (!ui.list_save)
-                text_cat(t, " BEATS");
+                text_cat(t, bpm_per(cur()) == 2u ? " COUNTS" : " BEATS");
         }
         ann_say(t, 0, ANN_NOW);
     }
@@ -1734,10 +1750,10 @@ static void rise_poll(void)
         rhy[ui.rise_rhythm].bpm = ui.rise_from;
         ui.rise = 0;
         ui.redraw = 1;
-    } else if (seq.beats - ui.rise_beats >= 12u) {
-        ui.rise_beats += 12u;
-        if (cur()->bpm < 240u) {
-            cur()->bpm++;
+    } else if (seq.beats - ui.rise_beats >= 12u * bpm_per(cur())) {
+        ui.rise_beats += 12u * bpm_per(cur());
+        if ((uint32_t)cur()->bpm + bpm_per(cur()) <= 240u) {
+            cur()->bpm = (uint8_t)(cur()->bpm + bpm_per(cur()));
             ui.redraw = 1;
             if (!set.sh_tempo)
                 drone_apply();
@@ -1791,7 +1807,8 @@ static void hold_action(uint32_t b, int held)
             list_show(i < list_n() ? i : 0);
         }
     } else if (!drone())
-        bpm_set(ui.rise ? (int32_t)cur()->bpm : (int32_t)cur()->bpm + (b == B_OCTUP ? 1 : -1) * (held ? 10 : 5));
+        bpm_set(ui.rise ? (int32_t)cur()->bpm
+                        : (int32_t)cur()->bpm + (b == B_OCTUP ? 1 : -1) * (held ? 10 : 5) * (int32_t)bpm_per(cur()));
 }
 
 /* those act when let go, or once held long enough (SEQ, tapping on its press, only when held) */
@@ -2181,8 +2198,8 @@ static void input(void)
         else
             dim_keys |= bit;
     }
-    if (seq.beats != ui.beats_seen) {    /* SEQ blinks the beat */
-        ui.beats_seen = seq.beats;
+    if (seq.beats / bpm_per(cur()) != ui.beats_seen) {   /* SEQ blinks the beat */
+        ui.beats_seen = seq.beats / bpm_per(cur());
         ui.beat_until = now + 80u;
     }
     lit_btn = (btn & ~(1u << B_PLAY)) | 1u << PAGE_BTN[set.page] | (set_dirty ? 1u << B_SAVE : 0u);
@@ -2366,7 +2383,7 @@ static void footer(void)
     const char *name = shown()->name;
     char t[16];
     int32_t x;
-    int_text(r->bpm, t);
+    int_text((int32_t)bpm_shown(r), t);
     x = cv_text(8, 200, &FONT_M, t, C_WHITE);
     x = cv_text(x + 4, 205, &FONT_B, "BPM", ui.rise ? C_HI : C_GRAY);
     meter_text(n, t);
@@ -2890,6 +2907,8 @@ int app_expect(const char *what, int *got)
         *got = r->div;
     else if (!strcmp(what, "bpm"))
         *got = r->bpm;
+    else if (!strcmp(what, "bpmshown"))  /* the tempo on the screen */
+        *got = (int)bpm_shown(r);
     else if (!strcmp(what, "swing"))
         *got = r->swing;
     else if (!strcmp(what, "human"))

@@ -1307,3 +1307,40 @@ wait 500
 expect maratake 1
 tap PLAY
 tap PLAY
+
+# the berimbau's page shows its toques as their sources count them: 2/4, the tempo its quarter note; they play as written,
+# in counts a minute. OCT, KNOB 1 and tapping go by what the screen shows; the kit is as it was
+tap FX
+tap FX
+tap FX
+expect mode 1
+turn ALGO -9
+wait 300
+turn PRESET -1
+turn PRESET 1
+wait 300
+expect beats 4
+expect meter 204
+expect bpm 90
+expect bpmshown 45
+tap PLAY
+wait 300
+tap OCT+
+expect bpm 100
+expect bpmshown 50
+tap OCT-
+expect bpm 90
+turn K1 1
+expect bpm 92
+expect bpmshown 46
+turn K1 -1
+expect bpmshown 45
+tap PLAY
+tap PLAY
+wait 3300
+turn ALGO 1
+wait 300
+expect beats 8
+expect meter 204
+expect bpm 136
+expect bpmshown 68
