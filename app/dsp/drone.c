@@ -127,6 +127,12 @@ void dn_shruti(int on, uint32_t notes, int32_t low, float level, float bellows, 
 
 int dn_string(void) { return tp.last; }
 
+float dn_bellows(int *pull)
+{
+    *pull = sh.pull;
+    return sh.on || sh.gain > 0.001f ? sh.b * fm_minf(1.0f, sh.gain / (sh.level + 1e-6f)) : 0.0f;
+}
+
 /* string i plucked: its pitch (a few cents off), its ring, its jawari sweeping from the top again */
 static void pluck(uint32_t i)
 {

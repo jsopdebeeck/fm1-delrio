@@ -9,6 +9,7 @@
 #define NV 16u                           /* voices */
 #define PER_INST 4u                      /* an instrument's strokes sounding at once, at most */
 #define HOLD_S 0.012f                    /* a shortened stroke keeps its attack this long before it falls */
+#define MAXN 256u                        /* frames a render, at most */
 
 typedef struct {
     const int8_t *pcm;
@@ -26,6 +27,27 @@ static uint8_t take_next[DR_NINST][DR_NART];
 static volatile float bend_to[DR_NINST];   /* the glide: where it goes (main loop), where it is (audio) */
 static volatile uint8_t bend_art[DR_NINST];
 static float bend_now[DR_NINST];
+
+/* the berimbaus' gourds: their voices rendered apart, through a resonant low-pass that closes as the gourd does (from
+ * 3.5 kHz, open, to ~380 Hz, closed on the belly), mixed in as far as it is closed (open: as recorded) */
+static const uint8_t GOURD_INST[3] = {DR_BERIMBAU, DR_MEDIO, DR_VIOLA};
+static struct {
+    volatile float to;
+    float now, ic1, ic2;
+    float buf[MAXN];
+} G[3];
+
+static int gourd_of(uint32_t inst)
+{
+    return inst == DR_BERIMBAU ? 0 : inst == DR_MEDIO ? 1 : inst == DR_VIOLA ? 2 : -1;
+}
+
+void dr_gourd(uint32_t inst, float closed)
+{
+    int g = gourd_of(inst);
+    if (g >= 0)
+        G[g].to = fm_clampf(closed, 0.0f, 1.0f);
+}
 
 static struct {                          /* the click: a short sine */
     float ph, inc, env, amp;
@@ -113,7 +135,7 @@ void dr_hit(uint32_t inst, uint32_t art, float vel, uint32_t delay)
     take_next[inst][a] = (uint8_t)((take + 1u) % n);
     s = &DR_SAMPLES[DR_FIRST[inst][a] + take];
     /* the hand on the triangle; the maracas' next stroke; the berimbau's one wire struck again */
-    if ((inst == DR_TRIANGLE && art == 2u) || inst == DR_MARACAS || inst == DR_BERIMBAU)
+    if ((inst == DR_TRIANGLE && art == 2u) || inst == DR_MARACAS || gourd_of(inst) >= 0)
         for (i = 0; i < NV; i++)
             if (V[i].on && V[i].inst == inst && !V[i].stopping)
                 stop(&V[i]);
@@ -195,8 +217,15 @@ void dr_render(float *out, uint32_t n)
 {
     uint32_t i, k;
     float glide[DR_NINST];
+    int g;
+    if (n > MAXN)
+        n = MAXN;
     for (i = 0; i < n; i++)
         out[i] = 0.0f;
+    for (g = 0; g < 3; g++)
+        if (G[g].to > 0.0f || G[g].now > 0.0f)
+            for (i = 0; i < n; i++)
+                G[g].buf[i] = 0.0f;
     for (k = 0; k < DR_NINST; k++) {     /* the glides, a block at a time: there in about 30 ms */
         float was = bend_now[k];
         bend_now[k] += (bend_to[k] - bend_now[k]) * 0.18f;
@@ -207,6 +236,10 @@ void dr_render(float *out, uint32_t n)
         if (!v->on)
             continue;
         float gk = v->g * (1.0f / 32768.0f);   /* the level and the samples' scale, once */
+        float *o = out;
+        g = gourd_of(v->inst);
+        if (g >= 0 && (G[g].to > 0.0f || G[g].now > 0.0f))   /* a gourd closing: rendered apart */
+            o = G[g].buf;
         if (v->art == bend_art[v->inst] && glide[v->inst] != 1.0f)
             v->inc *= glide[v->inst];
         if (v->delay >= n) {             /* not this block yet */
@@ -234,7 +267,7 @@ void dr_render(float *out, uint32_t n)
                 v->lp += (s - v->lp) * split_k;
                 s = v->lp + (s - v->lp) * v->wires;
             }
-            out[i] += s;
+            o[i] += s;
             v->pos += v->inc;
             if (v->hold)
                 v->hold--;
@@ -242,6 +275,31 @@ void dr_render(float *out, uint32_t n)
                 v->env *= v->fall;
         }
     }
+    for (g = 0; g < 3; g++) {            /* the gourds: their low-pass (a TPT state-variable filter, Q 2) */
+        float c, fc, tg, a1, a2, a3, w;
+        if (!(G[g].to > 0.0f || G[g].now > 0.0f))
+            continue;
+        G[g].now += (G[g].to - G[g].now) * 0.25f;   /* a block at a time: there in ~20 ms */
+        if (G[g].now < 0.001f && G[g].to <= 0.0f) {
+            G[g].now = 0.0f;             /* open again: as recorded, the filter at rest */
+            G[g].ic1 = G[g].ic2 = 0.0f;
+        }
+        c = G[g].now;
+        fc = 3500.0f * fm_exp2f(-3.2f * c);
+        tg = fm_tanf(3.14159265f * fc / SR);
+        a1 = 1.0f / (1.0f + tg * (tg + 0.5f));
+        a2 = tg * a1;
+        a3 = tg * a2;
+        w = fm_minf(1.0f, c * 3.0f);     /* as far as it is closed */
+        for (i = 0; i < n; i++) {
+            float x = G[g].buf[i], v3 = x - G[g].ic2, v1 = a1 * G[g].ic1 + a2 * v3,
+                  v2 = G[g].ic2 + a2 * G[g].ic1 + a3 * v3;
+            G[g].ic1 = 2.0f * v1 - G[g].ic1;
+            G[g].ic2 = 2.0f * v2 - G[g].ic2;
+            out[i] += x + w * (v2 - x);
+        }
+    }
+    (void)GOURD_INST;
     if (clk.env > 0.0003f)
         for (i = 0; i < n; i++) {
             float s;

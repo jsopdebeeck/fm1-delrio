@@ -24,3 +24,4 @@ void dn_shruti(int on, uint32_t notes, int32_t low, float level, float bellows, 
 void dn_panic(void);                     /* any context: silence now */
 void dn_render(float *out, uint32_t n);  /* audio interrupt: added into out */
 int dn_string(void);                     /* the tanpura's string plucked last, 0..3 (-1: none yet) */
+float dn_bellows(int *pull);             /* the shruti's bellows now: their breath 0..1 (0 silent), *pull the pull */

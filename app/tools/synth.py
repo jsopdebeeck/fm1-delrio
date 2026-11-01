@@ -16,6 +16,13 @@ the kit's folder (tools/kit.py makes the firmware's samples from them).
   berimbau_dim  the stone pressed on the wire (preso): a tone higher, shorter
   berimbau_tsch the stone resting lightly on it (chiado): a short buzz
   caxixi_shake_1, caxixi_shake_2   the basket rattle, forward and back
+  agogo_high, agogo_low   the two iron bells struck by the stick: a cone's inharmonic partials, the strike's click
+  pandeiro_tum  the thumb at the head's edge: its low boom, the jingles (platinelas) a little
+  pandeiro_pa   the open hand's slap: the head's high modes, a crack, the jingles loud
+  pandeiro_chia the jingles alone, the frame shaken
+  atabaque_tum  the tall drum's bass: its long body's air, deep and long
+  atabaque_pa   its open tone: the head's modes from ~250 Hz, ringing longer than the djembe's
+  reco_scrape   the stick along the reco-reco's notches: a quick train of clicks through its resonance
 Needs numpy."""
 import argparse
 import wave
@@ -181,10 +188,94 @@ def caxixi_shake_2():
     return shake(0.10, 16, 0.6, 0.035)
 
 
+def bell(f, d):
+    """an agogo's iron cone struck: its inharmonic partials (the higher ones dying sooner), the stick's click"""
+    parts = [(1.0, 1.0, 0.42), (2.71, 0.45, 0.15), (4.65, 0.25, 0.08), (6.3, 0.12, 0.05), (8.1, 0.06, 0.03)]
+    return attack(mix(*[partial(d, f * r, f * r, 0, a, tau) for r, a, tau in parts],
+                      noise(d, 2000, 9000, 0.25, 0.003)), 0.2)
+
+
+def agogo_high():
+    return bell(1060.0, 0.6)
+
+
+def agogo_low():
+    return bell(760.0, 0.7)
+
+
+def jingles(d, n, amp):
+    """the pandeiro's platinelas: pairs of small cymbals, each a few high inharmonic partials, struck a little apart"""
+    y = np.zeros(int(d * SR))
+    for _ in range(n):
+        at = int(abs(rng.normal(0.004, 0.006)) * SR)
+        f = rng.uniform(3200, 5200)
+        j = mix(*[partial(d, f * r, f * r, 0, amp * rng.uniform(0.4, 1.0) * a, rng.uniform(0.03, 0.07))
+                  for r, a in ((1.0, 1.0), (1.47, 0.6), (2.09, 0.4))],
+                noise(d, 5000, 12000, amp * 0.5, 0.004))
+        y[at:] += j[:len(y) - at]
+    return y
+
+
+def pandeiro_tum():
+    d = 0.45
+    return attack(mix(partial(d, 132, 112, 0.04, 1.0, 0.16),        # the head's low mode, the thumb leaving it
+                      partial(d, 270, 250, 0.03, 0.25, 0.06),
+                      noise(d, 80, 1200, 0.2, 0.01),
+                      jingles(d, 6, 0.12)), 1.0)
+
+
+def pandeiro_pa():
+    d = 0.35
+    modes = [(1.0, 0.5, 0.05), (1.59, 0.45, 0.04), (2.14, 0.4, 0.03), (2.65, 0.3, 0.025), (3.5, 0.2, 0.02)]
+    return attack(mix(*[partial(d, 420 * r * 1.03, 420 * r, 0.01, a, tau) for r, a, tau in modes],
+                      noise(d, 1200, 8000, 0.7, 0.012),             # the slap's crack
+                      jingles(d, 10, 0.35)), 0.3)
+
+
+def pandeiro_chia():
+    return attack(jingles(0.2, 12, 0.4), 1.5)
+
+
+def atabaque_tum():
+    d = 0.75
+    return attack(mix(partial(d, 82, 64, 0.06, 1.0, 0.26),          # the long body's air
+                      partial(d, 175, 158, 0.04, 0.35, 0.09),       # the head's lowest mode
+                      partial(d, 120, 116, 0.04, 0.2, 0.12),
+                      noise(d, 50, 700, 0.22, 0.014)), 2.0)        # the palm
+
+
+def atabaque_pa():
+    d = 0.55
+    f = 252
+    modes = [(1.0, 1.0, 0.2), (1.59, 0.45, 0.12), (2.14, 0.3, 0.08), (2.30, 0.2, 0.07), (2.65, 0.12, 0.05)]
+    return attack(mix(*[partial(d, f * r * 1.02, f * r, 0.03, a, tau) for r, a, tau in modes],
+                      partial(d, 66, 64, 0.05, 0.12, 0.15),
+                      noise(d, 1200, 5000, 0.12, 0.006)), 0.8)
+
+
+def reco_scrape():
+    """the stick along the notches: about forty a second, a little faster as the stroke goes, each a click that sets
+    the body ringing"""
+    d = 0.28
+    y = np.zeros(int(d * SR))
+    t, k = 0.0, 0
+    while t < 0.22:
+        c = noise(0.02, 1500, 9000, rng.uniform(0.6, 1.0), 0.0025)
+        at = int(t * SR)
+        y[at:at + len(c)] += c[:len(y) - at]
+        t += 1 / (34 + 1.2 * k)
+        k += 1
+    y = 0.5 * y + 1.2 * bandpass(y, 1350.0, 4.0) + 0.6 * bandpass(y, 3100.0, 5.0)
+    return attack(y * np.exp(-t_of(d) / 0.2), 0.3)
+
+
 STROKES = {"djembe_bass": djembe_bass, "djembe_tone": djembe_tone, "djembe_slap": djembe_slap,
            "udu_bass": udu_bass, "udu_tone": udu_tone, "udu_slap": udu_slap,
            "berimbau_dom": berimbau_dom, "berimbau_dim": berimbau_dim, "berimbau_tsch": berimbau_tsch,
-           "caxixi_shake_1": caxixi_shake_1, "caxixi_shake_2": caxixi_shake_2}
+           "caxixi_shake_1": caxixi_shake_1, "caxixi_shake_2": caxixi_shake_2,
+           "agogo_high": agogo_high, "agogo_low": agogo_low, "pandeiro_tum": pandeiro_tum, "pandeiro_pa": pandeiro_pa,
+           "pandeiro_chia": pandeiro_chia, "atabaque_tum": atabaque_tum, "atabaque_pa": atabaque_pa,
+           "reco_scrape": reco_scrape}
 
 
 def write(path, y):

@@ -1,19 +1,24 @@
 /* SPDX-License-Identifier: MPL-2.0 */
-/* FM-1_DelRio: a rhythm box of ceremony percussion. Six instruments (djembe, cajon, udu, clapsticks, maracas, triangle), each
- * with its strokes; and, played alone (FX), the berimbau with its caxixi and its toques (played as the kit is), or a
- * drone (the tanpura, the shruti box: their own screen, drone.c). A rhythm is a bar of 2 to 8 beats, 2 to 4 steps a
- * beat, and each instrument's strokes on its steps. The white keys are the selected instrument's steps (a press: its next stroke, then none); the black keys play the
- * instruments, grouped as they are: djembe 3, cajon 2, udu 3, clapsticks and maracas, triangle. Each setting has one
- * control: SELECT the instrument, ALGORITHM the beats (2 to 8), PRESET the rhythm among those with that many beats
- * (each as it is written; each number of beats has a FREE one, the player's own), PLAY plays it in a loop (PLAY again stops),
- * REC records what the black keys play onto the nearest step (from a stop, after a bar counted in), SEL mutes the
- * instrument, EDIT twice clears it, SEQ taps the tempo, ARP held makes the djembe's strokes flams (a step's, a black
- * key's), OCT- / OCT+ the tempo (5 BPM a press, 10 held), LFO the presets listed one by one (held: the one shown
- * chosen), SAVE keeps everything, MASTER the volume; a bar longer than the 16 white keys has them follow the step
- * sounding. On the home page KNOB 1-4 set the tempo, the steps a beat, the swing (with 2 or 4 steps a beat) and the
- * human feel; ENV opens the instrument's SOUND, with only what a player of it can change (its level; the djembe's and
- * the udu's tuning; the djembe's, the maracas' and the triangle's decay; how far pressing the udu's bass key lowers it,
- * as a palm closing the pot's opening), GLO the SETUP.
+/* FM-1_DelRio: a rhythm box of ceremony percussion. Six instruments (djembe, cajon, udu, clapsticks, maracas, triangle)
+ * and the agogo, each with its strokes; the berimbau's page (FX): the capoeira's bateria, three berimbaus (gunga, medio,
+ * viola), caxixi, pandeiro, atabaque, agogo, reco-reco, with the toques (played as the kit is); and two drones (the
+ * tanpura, the shruti box: their own screen, drone.c), alone or under the rhythm. A rhythm is a bar of 2 to 8 beats,
+ * 2 to 4 steps a beat, and each row's strokes on its steps (a row an instrument of the mode's: ROW_INST). The white
+ * keys are the selected instrument's steps (a press: its next stroke, then none); the black keys play the instruments,
+ * grouped as they are: djembe 3, cajon 2, udu 3, clapsticks and maracas, triangle (the berimbau's: PAD). Each setting
+ * has one control: SELECT the instrument, ALGORITHM the beats (2 to 8), PRESET the rhythm among those with that many
+ * beats (each as it is written, at its tempo as last set; each number of beats has a FREE one, the player's own),
+ * PLAY plays it in a loop (PLAY again stops on the next bar's first step; a third time, now), a rhythm chosen while
+ * playing comes in on the next bar, REC records what the black keys play onto the nearest step (from a stop, after a
+ * bar counted in), SEL mutes the instrument, EDIT twice clears it, SEQ taps the tempo, ARP held makes the djembe's
+ * strokes flams (a step's, a black key's) and the fourth group's keys the agogo, OCT- / OCT+ the tempo (5 BPM a
+ * press, 10 held; it glides there over a bar), LFO the presets listed one by one (held: the one shown chosen), SAVE
+ * keeps everything, MASTER the volume; a bar longer than the 16 white keys has them follow the step sounding. On the
+ * home page KNOB 1-4 set the tempo, the steps a beat, the swing (with 2 or 4 steps a beat) and the human feel; ENV
+ * opens the instrument's SOUND, with only what a player of it can change (its level; the djembe's, the udu's, the
+ * atabaque's and the berimbaus' tuning; the djembe's, the maracas' and the triangle's decay; how far pressing the
+ * udu's bass key lowers it, as a palm closing the pot's opening; how far a berimbau's gourd closes on the belly, and
+ * how often it varies its toque), GLO the SETUP.
  * The sequencer runs in the audio interrupt, to the sample. Part of the unity build (device/unity.c,
  * host/plat_host.c), after the platform: gfx.c and announce.c are in scope. */
 #include "fastmath.h"
@@ -27,28 +32,64 @@ typedef struct {
     uint16_t rgb;
     uint8_t nart;
     char letter[DR_NART];                /* on the steps, and in the rhythms below */
+    const char *word[DR_NART];           /* the stroke's name, on a step wide enough for it (0: its letter) */
+    int8_t pitch;                        /* semitones over its strokes as recorded (the medio, the viola: the gunga's) */
     dr_inst_t def;                       /* the sound at first: level, tune, decay, wires */
 } inst_t;
 static const inst_t INST[NINST] = {
-    {"DJEMBE", RGB(240, 140, 40), 3, {'B', 'T', 'S'}, {0.85f, 0.0f, 1.0f, 1.0f}},
-    {"CAJON", RGB(236, 206, 72), 2, {'B', 'S', 0}, {0.9f, 0.0f, 1.0f, 1.0f}},
-    {"UDU", RGB(222, 82, 60), 3, {'B', 'T', 'S'}, {0.85f, 0.0f, 1.0f, 1.0f}},
-    {"CLAPSTICKS", RGB(124, 204, 84), 1, {'X', 0, 0}, {0.65f, 0.0f, 1.0f, 1.0f}},
-    {"MARACAS", RGB(232, 96, 184), 1, {'X', 0, 0}, {0.7f, 0.0f, 1.0f, 1.0f}},
-    {"TRIANGLE", RGB(92, 192, 242), 2, {'O', 'M', 0}, {0.5f, 0.0f, 1.0f, 1.0f}},
+    {"DJEMBE", RGB(240, 140, 40), 3, {'B', 'T', 'S'}, {0}, 0, {0.85f, 0.0f, 1.0f, 1.0f}},
+    {"CAJON", RGB(236, 206, 72), 2, {'B', 'S', 0}, {0}, 0, {0.9f, 0.0f, 1.0f, 1.0f}},
+    {"UDU", RGB(222, 82, 60), 3, {'B', 'T', 'S'}, {0}, 0, {0.85f, 0.0f, 1.0f, 1.0f}},
+    {"CLAPSTICKS", RGB(124, 204, 84), 1, {'X', 0, 0}, {0}, 0, {0.65f, 0.0f, 1.0f, 1.0f}},
+    {"MARACAS", RGB(232, 96, 184), 1, {'X', 0, 0}, {0}, 0, {0.7f, 0.0f, 1.0f, 1.0f}},
+    {"TRIANGLE", RGB(92, 192, 242), 2, {'O', 'M', 0}, {0}, 0, {0.5f, 0.0f, 1.0f, 1.0f}},
     /* the berimbau's (FX): the wire struck free (DOM, O), the stone pressed on it (DIM, I: a tone higher), the stone
-     * resting on it (TSCH, X: a buzz); the caxixi in the same hand */
-    {"BERIMBAU", RGB(64, 200, 120), 3, {'O', 'I', 'X'}, {0.85f, 0.0f, 1.0f, 1.0f}},
-    {"CAXIXI", RGB(244, 204, 64), 1, {'X', 0, 0}, {0.7f, 0.0f, 1.0f, 1.0f}},
+     * resting on it (TSCH, X: a buzz); the caxixi in the same hand. The gunga, the lowest of the roda's three */
+    {"GUNGA", RGB(64, 200, 120), 3, {'O', 'I', 'X'}, {"DOM", "DIM", "TCH"}, 0, {0.85f, 0.0f, 1.0f, 1.0f}},
+    {"CAXIXI", RGB(244, 204, 64), 1, {'X', 0, 0}, {0}, 0, {0.7f, 0.0f, 1.0f, 1.0f}},
+    /* the agogo's two bells, high and low: the kit's (ARP and the clapsticks' and the maracas' keys) and the bateria's */
+    {"AGOGO", RGB(196, 200, 214), 2, {'H', 'L', 0}, {"HIGH", "LOW", 0}, 0, {0.6f, 0.0f, 1.0f, 1.0f}},
+    /* the rest of the capoeira's bateria: the medio and the viola (the gunga's strokes, higher), the pandeiro (its
+     * thumb's TUM, its slap PA, its jingles CHIA), the atabaque (its bass TUM, its open PA), the reco-reco */
+    /* tuned as a bateria commonly is, each one's DIM the next one's DOM: a tone up each (opencapoeira.com, "Tuning
+     * berimbaus in a bateria", 2025) */
+    {"MEDIO", RGB(40, 176, 176), 3, {'O', 'I', 'X'}, {"DOM", "DIM", "TCH"}, 2, {0.75f, 0.0f, 1.0f, 1.0f}},
+    {"VIOLA", RGB(150, 222, 90), 3, {'O', 'I', 'X'}, {"DOM", "DIM", "TCH"}, 4, {0.7f, 0.0f, 1.0f, 1.0f}},
+    {"PANDEIRO", RGB(240, 150, 60), 3, {'T', 'P', 'C'}, {"TUM", "PA", "CHIA"}, 0, {0.7f, 0.0f, 1.0f, 1.0f}},
+    {"ATABAQUE", RGB(206, 92, 64), 2, {'T', 'P', 0}, {"TUM", "PA", 0}, 0, {0.8f, 0.0f, 1.0f, 1.0f}},
+    {"RECO-RECO", RGB(186, 140, 240), 1, {'R', 0, 0}, {0}, 0, {0.55f, 0.0f, 1.0f, 1.0f}},
 };
-enum { I_DJEMBE, I_CAJON, I_UDU, I_CLAPSTICKS, I_MARACAS, I_TRIANGLE, I_BERIMBAU, I_CAXIXI };
-#define KIT_NINST 6u                     /* the kit's: the first six */
-/* the black keys, left to right: instrument and stroke (0: none). The kit's; the berimbau's, its strokes and the
- * caxixi twice (a hand each), the last key none */
+enum { I_DJEMBE, I_CAJON, I_UDU, I_CLAPSTICKS, I_MARACAS, I_TRIANGLE, I_BERIMBAU, I_CAXIXI, I_AGOGO, I_MEDIO, I_VIOLA,
+       I_PANDEIRO, I_ATABAQUE, I_RECO, I_NONE = 0xFF };
+#define NINST_V09 8u                     /* 0.9's instruments: the kit's six, the berimbau and the caxixi */
+/* a rhythm's rows of steps: the kit's six and the agogo; the berimbau's, the gunga and the caxixi where 0.9 had
+ * them (its toques kept as they were), the rest of the bateria before them */
+#define NROW 8u
+enum { RK_AGOGO = 6 };
+enum { RB_MEDIO, RB_VIOLA, RB_PANDEIRO, RB_ATABAQUE, RB_AGOGO, RB_RECO, RB_GUNGA, RB_CAXIXI };
+static const uint8_t ROW_INST[2][NROW] = {
+    {I_DJEMBE, I_CAJON, I_UDU, I_CLAPSTICKS, I_MARACAS, I_TRIANGLE, I_AGOGO, I_NONE},
+    {I_MEDIO, I_VIOLA, I_PANDEIRO, I_ATABAQUE, I_AGOGO, I_RECO, I_BERIMBAU, I_CAXIXI},
+};
+/* SELECT goes through them in this order: the kit's; the berimbau's, the three berimbaus first */
+static const uint8_t ROW_ORDER[2][NROW] = {{0, 1, 2, 3, 4, 5, RK_AGOGO, 0xFF},
+                                           {RB_GUNGA, RB_MEDIO, RB_VIOLA, RB_CAXIXI, RB_PANDEIRO, RB_ATABAQUE,
+                                            RB_AGOGO, RB_RECO}};
+static const uint8_t ROW_N[2] = {7, 8};
+/* the black keys, left to right: row and stroke. The kit's; the berimbau's: the berimbau shown (the gunga, the
+ * medio or the viola) DOM DIM TSCH, the caxixi and the reco-reco, the pandeiro TUM PA CHIA, the atabaque TUM PA,
+ * and VIRADA: the berimbau shown varies the next bar. With ARP held, the fourth group's two (the kit's clapsticks
+ * and maracas, the atabaque) are the agogo's high and low bells */
+#define PAD_SHOWN 0xF0u                  /* the berimbau shown */
+#define PAD_VIRADA 0xF1u
 static const uint8_t PAD[2][11][2] = {
     {{0, 1}, {0, 2}, {0, 3}, {1, 1}, {1, 2}, {2, 1}, {2, 2}, {2, 3}, {3, 1}, {4, 1}, {5, 1}},
-    {{6, 1}, {6, 2}, {6, 3}, {7, 1}, {7, 1}, {6, 1}, {6, 2}, {6, 3}, {7, 1}, {7, 1}, {6, 0}},
+    {{PAD_SHOWN, 1}, {PAD_SHOWN, 2}, {PAD_SHOWN, 3}, {RB_CAXIXI, 1}, {RB_RECO, 1}, {RB_PANDEIRO, 1},
+     {RB_PANDEIRO, 2}, {RB_PANDEIRO, 3}, {RB_ATABAQUE, 1}, {RB_ATABAQUE, 2}, {PAD_VIRADA, 1}},
 };
+/* the gunga's, the medio's, the viola's place in set.virada (-1: not a berimbau) */
+static int ber_idx(uint32_t i) { return i == I_BERIMBAU ? 0 : i == I_MEDIO ? 1 : i == I_VIOLA ? 2 : -1; }
+#define AGOGO_PAD 8u                     /* with ARP: this key and the next, the agogo's high and low */
 static const uint8_t WHITE[16] = PLAT_WHITE_KEYS, BLACK[11] = PLAT_BLACK_KEYS;
 #define TRIANGLE_PAD 10u                 /* held, the triangle rings; let go, the hand closes on it */
 #define TAP_MS 180u                      /* a triangle key let go sooner: a muted stroke (REC records it so) */
@@ -59,7 +100,7 @@ static const uint8_t WHITE[16] = PLAT_WHITE_KEYS, BLACK[11] = PLAT_BLACK_KEYS;
 /* ---------------------------------------------------------------- the rhythms --- */
 #define NSTEPS 32u                       /* 8 beats of 4 */
 #define NRHY_KIT 39u                     /* the kit's rhythms, then the berimbau's toques */
-#define NRHY 51u
+#define NRHY 52u                         /* (RODA ANGOLA after 0.9's 51: their places kept) */
 #define ART(v) ((uint32_t)(v) >> 6)      /* a step: its stroke (0 none, 1..3) in the top two bits, */
 #define FLAM(v) ((uint32_t)(v) >> 5 & 1u)   /* a flam (the djembe's) in the next, */
 #define VEL(v) (((uint32_t)(v) & 31u) * 4u + 3u)   /* its velocity (3..127) below */
@@ -70,104 +111,13 @@ typedef struct {
     uint8_t bpm;                         /* 40 .. 240 */
     uint8_t swing;                       /* 0 .. 100 %: 100 the off-steps a triplet late */
     uint8_t human;                       /* 0 .. 100 %: the strokes' timing and strength loosened */
-    uint8_t mute;                        /* bit i: instrument i silent */
+    uint8_t mute;                        /* bit i: row i silent */
     uint8_t rsv[2];
-    uint8_t step[NINST][NSTEPS];
+    uint8_t step[NROW][NSTEPS];          /* each row's (its instrument the mode's: ROW_INST) */
 } rhythm_t;
 static rhythm_t rhy[NRHY];
 
-/* the rhythms at first: one string an instrument, a character a step: the stroke's letter (capital: strong, small:
- * soft), "F" its last stroke (the slap) as a flam, "." none. From the literature:
- *   MARCHA, VALSA, MAZURCA: Santo Daime's three rhythms, as its maracá plays them (f soft, F strong): marcha f f f F,
- *     valsa F F f, mazurca (6/8) f f f F F F (Jornal Grande Bahia, "Abaixo o maracá. Viva o maracá", 2016)
- *   IJEXA, BARRAVENTO: Umbanda's atabaque toques on the djembe, Tum its bass, Ta its tone, the marking stroke (M)
- *     strong: Ijexá "Ta TaTa Tum Ta", Barravento (6/8) "Tum TaTa TumTum" (Templo Tata Possum, Curso de Atabaque, 2024)
- *   BAIAO: the zabumba on the first beat's first and fourth sixteenths (here the djembe's bass), the triangle's
- *     sixteenths closed, open on the off-beats (ANPPOM 2018); SAMBA: the surdo soft on 1, strong on 2 (the cajon's
- *     bass), the ganzá's sixteenths (the maracas)
- *   IJEXA CANTO, XOTE, MARCHA 2/4, TOADA, and BAIAO's djembe: the grooves the urban neo-ayahuasca circles put on the
- *     djembe under their cantos (practical adaptations, not canonical transcriptions; the Huni Kuin's own cantos have
- *     the voice, a maracá at most): IJEXA CANTO for the slow, swaying ones, BAIAO or MARCHA 2/4 for the ones that
- *     dance, TOADA for the ternary ones
- *   Each instrument's own: KUKU, the djembe's accompaniment "B.TT..S.B.TT..S." (M. Gasewicz, "A rhythm notation for
- *     djembe and dundun drums", BachoTeX 2023); LANDO, the Afro-Peruvian cajon's "B . F . B B | . F B . F B" in 6/4,
- *     F a flam (Wikipedia, "Landó (music)"; Thomann's cajon guide); BULERIAS, the flamenco cajon's slaps on the
- *     compás's accents, 3 6 8 10 12 of 12 (K. Kocoshis, Percussive Notes 2025); JOROPO, the llanero maracas' six
- *     eighths accented as 6/8 (Radio Nacional de Colombia, "Joropo, más allá de un ritmo de las llanuras")
- *   Brazil's on the djembe, as djembegorilla.com's library has them (its grids of sixteenths; its muted tones and
- *     taps soft tones here): AFOXE (two bars), AFRO SAMBA, BOSSA NOVA, FUNK IJEXA, SAMBA DJEMBE, XOTE DJEMBE
- *   West Africa's, from Paul Nas's box notations ("West African Percussions"): DJOLE, the Temine's mask dance (its
- *     third djembe part; the kenkeni's bell on the clapsticks, the dundunba on the cajon), YANKADI, the Sousou's
- *     slow dance (its first djembe part, the dundunba's bell on every pulse) */
-typedef struct {
-    const char *name;
-    uint8_t beats, div, bpm, swing;
-    uint8_t free;                        /* the player's own: kept as left, not written again when chosen */
-    const char *pat[NINST];              /* the kit's: djembe, cajon, udu, clapsticks, maracas, triangle; the
-                                          * berimbau's: berimbau, caxixi (none: 0) */
-} rdef_t;
-/* grouped by their beats (ALGORITHM), each group ending with its FREE one (PRESET goes round a group) */
-static const rdef_t RDEF[] = {
-    {"HEARTBEAT", 2, 4, 64, 0, 0, {"Bb..Bb..", "", "B.......", "", "..x...x.", ""}},
-    {"BAIAO", 2, 4, 100, 0, 0, {"B..B..S.", "", "", "", "", "MMOMMMOM"}},
-    {"XOTE", 2, 4, 84, 0, 0, {"B..BS...", "", "", "", "", ""}},
-    {"SAMBA", 2, 4, 100, 0, 0, {"", "b...B...", "", "", "xxxXxxxX", ""}},
-    {"MARCHA 2/4", 2, 4, 108, 0, 0, {"B.T.B.T.", "", "", "", "", ""}},
-    {"MAZURCA", 2, 3, 60, 0, 0, {"", "", "", "", "xxxXXX", ""}},
-    {"BARRAVENTO", 2, 3, 72, 0, 0, {"B.ttbb", "", "", "", "", ""}},
-    {"JOROPO", 2, 3, 132, 0, 0, {"", "", "", "", "XxxXxx", ""}},
-    {"FREE", 2, 4, 90, 0, 1, {"", "", "", "", "", ""}},
-    {"THREE", 3, 4, 84, 0, 0, {"", "B...S...S...", "", "", "X.x.X.x.X.x.", "O..........."}},
-    {"VALSA", 3, 2, 120, 0, 0, {"", "", "", "", "X.X.x.", ""}},
-    {"TOADA", 3, 2, 100, 0, 0, {"B.T.T.", "", "", "", "", ""}},
-    {"FREE", 3, 4, 90, 0, 1, {"", "", "", "", "", ""}},
-    {"FOUR", 4, 4, 92, 0, 0, {"", "B...S...B.b.S...", "", "", "x.X.x.X.x.X.x.X.", "O.......M......."}},
-    {"JOURNEY", 4, 2, 116, 0, 0, {"BbbbBbbb", "", "B.......", "", "", ""}},
-    {"SHAKER", 4, 4, 76, 0, 0, {"", "", "B.......b.......", "", "XxxxXxxxXxxxXxxx", "O..............."}},
-    {"CLAVE", 4, 4, 100, 0, 0, {"....T.T.....T.TS", "B.......B.......", "", "X..X..X...X.X...", "x.x.x.x.x.x.x.x.", ""}},
-    {"AFRO 12/8", 4, 3, 100, 0, 0, {"S..TT.S..TT.", "", "B.....b.....", "X.X.XX.X.X.X", "X.xX.xX.xX.x", ""}},
-    {"MARCHA", 4, 2, 120, 0, 0, {"", "", "", "", "x.x.x.X.", ""}},
-    {"IJEXA", 4, 2, 96, 0, 0, {"T.ttB.t.", "", "", "", "x.x.x.x.", ""}},
-    {"IJEXA CANTO", 4, 4, 88, 0, 0, {"B.T.S.TTB.T.S...", "", "", "", "", ""}},
-    {"KUKU", 4, 4, 120, 0, 0, {"B.TT..S.B.TT..S.", "", "", "", "", ""}},
-    {"AFRO SAMBA", 4, 4, 80, 0, 0, {"BTTTBtBtBTTTBBBB", "", "", "", "", ""}},
-    {"BOSSA NOVA", 4, 4, 80, 0, 0, {"TttTBtTBBtTBBTtB", "", "", "", "", ""}},
-    {"FUNK IJEXA", 4, 4, 95, 0, 0, {"BBBSS.T.BBBSS.TT", "", "", "", "", ""}},
-    {"SAMBA DJEMBE", 4, 4, 100, 0, 0, {"BT.TB.TBB.TBBT.T", "", "", "", "", ""}},
-    {"XOTE DJEMBE", 4, 4, 80, 0, 0, {"TTSST.BSTTSST.B.", "", "", "", "", ""}},
-    {"DJOLE", 4, 4, 120, 0, 0, {"T.SSB.SSTTSSB.SS", "B.......B.......", "", "..XX..XX..XX..XX", "", ""}},
-    {"YANKADI", 4, 4, 90, 0, 0, {"B.TTBSS.B.T.BSS.", "", "", "xxxxxxxxxxxxxxxx", "", ""}},
-    {"FREE", 4, 4, 90, 0, 1, {"", "", "", "", "", ""}},
-    {"FIVE", 5, 2, 110, 0, 0, {"", "B.s.s.B.S.", "", "", "XxXxXxXxXx", "O........."}},
-    {"FREE", 5, 2, 90, 0, 1, {"", "", "", "", "", ""}},
-    {"LANDO", 6, 2, 96, 0, 0, {"", "B.F.BB.FB.FB", "", "", "", ""}},
-    {"BULERIAS", 6, 2, 108, 0, 0, {"", "..S..S.S.S.S", "", "", "", ""}},
-    {"FREE", 6, 2, 90, 0, 1, {"", "", "", "", "", ""}},
-    {"SEVEN", 7, 2, 150, 0, 0, {"", "B...S...B...S.", "", "X...X...X.....", "x.x.x.x.x.x.x.", ""}},
-    {"FREE", 7, 2, 90, 0, 1, {"", "", "", "", "", ""}},
-    {"AFOXE", 8, 4, 115, 0, 0, {"B..T..B.T..T..B.T..T..B.TT.T..B.", "", "", "", "", ""}},
-    {"FREE", 8, 2, 90, 0, 1, {"", "", "", "", "", ""}},
-    /* the berimbau's toques, as the Cordao de Ouro teaches them ("Toques do berimbau", Flensburg 2020), counted
-     * "0 - 1 - 2 - 3": the two chiados (TSCH, soft) on 0, the free DOM (O) and the pressed DIM (I) on the counts;
-     * the caxixi in the pause, where the source shakes it. Each count an eighth of the toque's 2/4 bar (its BPM
-     * here, the bar's quarter half of it), a quarter slower than a roda plays them, for the ceremony: Angola's
-     * quarter 45, Sao Bento Grande's 66. SB REGIONAL, Mestre Bimba's, over two counts: "tsch tsch DOM, tsch
-     * DIM, tsch tsch DOM DOM DIM". And from opencapoeira.com's "Toques de berimbau" (its | a chiado, || two): JOGO
-     * DE FORA, Jogo de Dentro turned over; CAVALARIA whole, "|| DOM | DOM || DOM DIM DOM" (the Cordao de Ouro's
-     * its last count); IDALINA "|| DOM DOM DIM DOM DOM | DIM"; MIUDINHO "|| DIM | DIM | DIM DOM DIM" */
-    {"ANGOLA", 4, 2, 90, 0, 0, {[I_BERIMBAU] = "xxO.I...", [I_CAXIXI] = "......x."}},
-    {"SB PEQUENO", 4, 2, 104, 0, 0, {[I_BERIMBAU] = "xxI.O...", [I_CAXIXI] = "......x."}},
-    {"SB GRANDE", 4, 2, 132, 0, 0, {[I_BERIMBAU] = "xxI.O.O."}},
-    {"BANGUELA", 4, 2, 96, 0, 0, {[I_BERIMBAU] = "xxO.I.I."}},
-    {"JOGO DE DENTRO", 4, 2, 100, 0, 0, {[I_BERIMBAU] = "xxI.O.I."}},
-    {"JOGO DE FORA", 4, 2, 100, 0, 0, {[I_BERIMBAU] = "xxO.I.O."}},
-    {"FREE", 4, 2, 90, 0, 1, {0}},
-    {"SB REGIONAL", 8, 2, 136, 0, 0, {[I_BERIMBAU] = "xxO.x.I.xxO.O.I."}},
-    {"CAVALARIA", 8, 2, 138, 0, 0, {[I_BERIMBAU] = "xxO.x.O.xxO.I.O."}},
-    {"IDALINA", 8, 2, 112, 0, 0, {[I_BERIMBAU] = "xxO.O.I.O.O.x.I."}},
-    {"MIUDINHO", 8, 2, 90, 0, 0, {[I_BERIMBAU] = "xxI.x.I.x.I.O.I."}},
-    {"FREE", 8, 2, 90, 0, 1, {0}},
-};
+#include "rhythms.h"                     /* RDEF: the rhythms as written, with their sources */
 typedef char rdef_one_each[sizeof RDEF / sizeof RDEF[0] == NRHY ? 1 : -1];   /* a rhythm for each place */
 
 /* kept in the store: the FREE rhythms and the two chosen (the kit's, the berimbau's); the others come as written */
@@ -181,33 +131,6 @@ typedef struct {
 static keep_t keep;
 typedef char keep_fits[sizeof(keep_t) <= 3840u ? 1 : -1];   /* one store object */
 
-static void rhythm_default(uint32_t k)
-{
-    rhythm_t one, *r = &one;             /* built aside, then put in place at once: it may be the one playing */
-    const rdef_t *d = &RDEF[k];
-    uint32_t i, s, a;
-    for (i = 0; i < sizeof *r; i++)
-        ((uint8_t *)r)[i] = 0;
-    r->beats = d->beats;
-    r->div = d->div;
-    r->bpm = d->bpm;
-    r->swing = d->swing;
-    for (i = 0; i < NINST; i++)
-        for (s = 0; s < NSTEPS && d->pat[i] && d->pat[i][s]; s++)
-            for (a = 0; a < INST[i].nart; a++) {
-                char c = d->pat[i][s];
-                if (c == INST[i].letter[a])
-                    r->step[i][s] = STEP(a + 1u, 112u, 0u);
-                else if (c == INST[i].letter[a] + 32)   /* small: soft */
-                    r->step[i][s] = STEP(a + 1u, 70u, 0u);
-                else if (c == 'F' && a + 1u == INST[i].nart)   /* the slap, a flam */
-                    r->step[i][s] = STEP(a + 1u, 112u, 1u);
-            }
-    i = plat_lock();
-    rhy[k] = one;
-    plat_unlock(i);
-}
-
 /* -------------------------------------------------------------- the settings --- */
 enum { PG_HOME, PG_SOUND, PG_SETUP, NPAGES };
 static const char *const PAGE_NAME[NPAGES] = {"HOME", "SOUND", "SETUP"};
@@ -219,10 +142,11 @@ static const char *const MODE_NAME[NMODES] = {"KIT", "BERIMBAU", "TANPURA", "SHR
 static const uint16_t MODE_RGB[NMODES] = {RGB(240, 140, 40), RGB(64, 200, 120), RGB(168, 124, 240),
                                           RGB(72, 204, 176)};
 static uint32_t rhy_mode(uint32_t k) { return k >= NRHY_KIT ? MODE_BERIMBAU : MODE_KIT; }   /* a rhythm's */
-static int inst_in(uint32_t i, uint32_t mode)   /* an instrument of the kit's, or of the berimbau's */
+static int inst_in(uint32_t i, uint32_t mode)   /* a row of the kit's, or of the berimbau's */
 {
-    return mode == MODE_BERIMBAU ? i == I_BERIMBAU || i == I_CAXIXI : i < KIT_NINST;
+    return i < ROW_N[mode == MODE_BERIMBAU];
 }
+static uint32_t row_inst(uint32_t k, uint32_t row) { return ROW_INST[rhy_mode(k) == MODE_BERIMBAU][row]; }   /* rhythm k's */
 static const char *const NOTE_ABC[12] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
 enum { CLICK_OFF, CLICK_REC, CLICK_ON };
 #define SET_MAGIC 0x39534452u            /* "RDS9": the settings record; another magic loads defaults (0.8's
@@ -249,11 +173,50 @@ typedef struct {
     uint8_t tp_jawari;                   /* its strings' buzz on the bridge: 0 closed .. 100 open, % */
     uint8_t sh_kind, sh_root;            /* the shruti's: its reeds one by one, or a chord (PRESETS) on a key */
     uint8_t sh_tempo;                    /* its bellows' strokes a minute (a push, a pull), 20 .. 120 */
+    /* after 0.9's record (which loads with what follows as at first) */
+    uint8_t bpm[NRHY];                   /* each rhythm's tempo as last set (0: as written): it comes back with it */
+    dr_inst_t snd_x[NINST - NINST_V09];  /* the instruments after 0.9's: their sounds */
+    uint8_t cabaca;                      /* the berimbaus' gourds: how far a key pressed all the way closes them, % */
+    uint8_t virada[3];                   /* the gunga's, the medio's, the viola's variations: 0 none, 1 every 8 bars,
+                                          * 2 every 4, 3 every 2, 4 every bar */
 } settings_t;
+#define SET_V09 __builtin_offsetof(settings_t, bpm)   /* 0.9's record, this long */
 static settings_t set;
 static uint8_t set_dirty;                /* changed since the last save: SAVE is lit */
 
+static void rhythm_default(uint32_t k)
+{
+    rhythm_t one, *r = &one;             /* built aside, then put in place at once: it may be the one playing */
+    const rdef_t *d = &RDEF[k];
+    uint32_t i, s, a;
+    for (i = 0; i < sizeof *r; i++)
+        ((uint8_t *)r)[i] = 0;
+    r->beats = d->beats;
+    r->div = d->div;
+    r->bpm = set.bpm[k] ? set.bpm[k] : d->bpm;
+    r->swing = d->swing;
+    for (i = 0; i < NROW; i++) {
+        const inst_t *in = row_inst(k, i) < NINST ? &INST[row_inst(k, i)] : 0;
+        for (s = 0; in && s < NSTEPS && d->pat[i] && d->pat[i][s]; s++)
+            for (a = 0; a < in->nart; a++) {
+                char c = d->pat[i][s];
+                if (c == in->letter[a])
+                    r->step[i][s] = STEP(a + 1u, 112u, 0u);
+                else if (c == in->letter[a] + 32)   /* small: soft */
+                    r->step[i][s] = STEP(a + 1u, 70u, 0u);
+                else if (c == 'F' && a + 1u == in->nart)   /* the slap, a flam */
+                    r->step[i][s] = STEP(a + 1u, 112u, 1u);
+            }
+    }
+    i = plat_lock();
+    rhy[k] = one;
+    plat_unlock(i);
+}
+
 static rhythm_t *cur(void) { return &rhy[set.rhythm]; }
+static dr_inst_t *snd_of(uint32_t i) { return i < NINST_V09 ? &set.snd[i] : &set.snd_x[i - NINST_V09]; }
+static uint32_t sinst(void) { return row_inst(set.rhythm, set.inst); }   /* the instrument shown */
+static const inst_t *shown(void) { return &INST[sinst()]; }
 static int berimbau(void) { return set.mode == MODE_BERIMBAU; }
 static int drone(void) { return set.mode >= MODE_TANPURA; }
 static uint32_t nsteps(const rhythm_t *r) { return (uint32_t)r->beats * r->div; }
@@ -269,9 +232,21 @@ static struct {
     volatile uint32_t count;             /* count-in steps left (clicks only) */
     volatile int32_t step;               /* the step sounding (-1 before the first) */
     volatile float left, len;            /* samples to the next step, and the step's length */
-    volatile uint8_t skip[NINST];        /* 1 + a step: that instrument's next stroke there is already played */
+    volatile uint8_t skip[NROW];         /* 1 + a step: that row's next stroke there is already played */
     volatile uint32_t hits[NINST];       /* strokes played, each instrument (the pads' lights, the checks) */
     volatile uint32_t beats;             /* beats played (SEQ's light) */
+    volatile uint8_t next;               /* 1 + a rhythm chosen while playing: it comes in on the next bar's first step */
+    volatile uint8_t vreq;               /* 1 + a berimbau's row: VIRADA, it varies the next bar */
+    uint8_t vary;                        /* the rows varying this bar (bit a row), */
+    uint8_t vkind;                       /* how (made from the toque), */
+    uint8_t vph[3], vbar[3];             /* or the gunga's, the medio's, the viola's sourced phrase (1 + its set << 3
+                                          * | its place; 0 none) and its bar */
+    uint32_t bar;                        /* bars played since PLAY */
+    volatile uint8_t stop_at;            /* PLAY while playing: the next bar's first step is the last */
+    volatile uint8_t jump;               /* the tempo at once (tapped, a rhythm come in), not glided */
+    volatile uint32_t switched;          /* rhythms come in (the main loop shows the new one) */
+    float bpm_now, bpm_inc;              /* the tempo playing, gliding to the rhythm's over a bar */
+    uint8_t bpm_to;
     uint32_t rnd;
 } seq;
 static struct {                          /* the black keys' strokes (0: a hand on it), from the main loop to the audio */
@@ -286,9 +261,33 @@ static float rnd01(void)
     return (float)(seq.rnd >> 8) * (1.0f / 16777216.0f);
 }
 
+/* the tempo changed while playing glides there over a bar (OCT-, OCT+, KNOB 1: no jolt under the singing); tapped, or
+ * a rhythm come in, it is there at once. A step at a time */
+static void tempo_step(const rhythm_t *r, uint32_t ns)
+{
+    if (seq.jump || seq.bpm_now < 1.0f) {
+        seq.jump = 0;
+        seq.bpm_now = (float)r->bpm;
+        seq.bpm_to = r->bpm;
+        seq.bpm_inc = 0.0f;
+        return;
+    }
+    if (r->bpm != seq.bpm_to) {
+        seq.bpm_to = r->bpm;
+        seq.bpm_inc = ((float)r->bpm - seq.bpm_now) / (float)ns;
+    }
+    if (seq.bpm_inc != 0.0f) {
+        seq.bpm_now += seq.bpm_inc;
+        if ((seq.bpm_inc > 0.0f) == (seq.bpm_now >= (float)seq.bpm_to)) {
+            seq.bpm_now = (float)seq.bpm_to;
+            seq.bpm_inc = 0.0f;
+        }
+    }
+}
+
 static float step_len(const rhythm_t *r, uint32_t s)   /* samples; with swing, the off-steps late */
 {
-    float l = SR * 60.0f / ((float)r->bpm * (float)r->div);
+    float l = SR * 60.0f / (seq.bpm_now * (float)r->div);
     if (r->div % 2u == 0u && r->swing) {
         float w = (float)r->swing * (1.0f / 300.0f);   /* 100 %: a third of a step */
         l *= s & 1u ? 1.0f - w : 1.0f + w;
@@ -299,6 +298,104 @@ static float step_len(const rhythm_t *r, uint32_t s)   /* samples; with swing, t
 static int click_now(void)
 {
     return set.click == CLICK_ON || (set.click == CLICK_REC && (seq.rec || seq.count));
+}
+
+/* a berimbau's variation of its toque (VIRADAS, VIRADA). For the two toques the sources write variations of, one of
+ * theirs, two bars long (counted as the toques, 0 the chiados; a DOM closed at once into a chiado, "dom-ch", a DOM and
+ * a soft TSCH): ANGOLA's, the viola's "common variations" in Wikipedia's "Capoeira toques"; SAO BENTO GRANDE de
+ * Angola's, Elias's "So Ritmo" (2017), its "Viradas". Else one bar made from the toque, not transcribed: DOBRADO its
+ * DOM and DIM in the bar's second half struck twice, REPIQUE the last beat's steps all DIM, CHIADO the second half's
+ * empty steps a soft TSCH */
+static const struct {
+    const char *base;                    /* the toque, as the row has it (4 beats of 2) */
+    const char *phrase[6];               /* its variations, two bars each */
+} VSRC[2] = {
+    {"xxO.I...", {"xxO.xxI.xxO.I...", "xxO.IOIO.xO.I...", 0}},
+    {"xxI.O.O.", {"xxI.O.OxxOI.O.O.", "xxI.O..O.OI.O.O.", "xxI.O..O.OI.OIO.", "xxI.OxOxOxIxOxOx", "xxI.O.O.IOI.O.O.", 0}},
+};
+enum { VK_DOBRADO, VK_REPIQUE, VK_CHIADO, NVK };
+
+static uint32_t vstep(char c)            /* a phrase's step: DOM O, DIM I, TSCH X; small soft; "." none */
+{
+    uint32_t a = c == 'O' || c == 'o' ? 1u : c == 'I' || c == 'i' ? 2u : c == 'X' || c == 'x' ? 3u : 0u;
+    return a ? STEP(a, c >= 'a' ? 70u : 112u, 0u) : 0u;
+}
+
+static int vsrc_of(const rhythm_t *r, uint32_t row)   /* the sourced variations of the row's toque (-1: none) */
+{
+    uint32_t k, s;
+    if (nsteps(r) != 8u)
+        return -1;
+    for (k = 0; k < 2u; k++) {
+        for (s = 0; s < 8u && ART(r->step[row][s]) == ART(vstep(VSRC[k].base[s])); s++)
+            ;
+        if (s == 8u)
+            return (int)k;
+    }
+    return -1;
+}
+static uint32_t vary(const rhythm_t *r, uint32_t row, uint32_t s)
+{
+    uint32_t ns = nsteps(r), v = r->step[row][s], p, g = row == RB_GUNGA ? 0u : row == RB_MEDIO ? 1u : 2u;
+    if (seq.vph[g])                      /* a sourced phrase, its bar (8 steps: vsrc_of) */
+        return s >= 8u ? v : vstep(VSRC[(seq.vph[g] - 1u) >> 3].phrase[(seq.vph[g] - 1u) & 7u][seq.vbar[g] * 8u + s]);
+    switch (seq.vkind) {
+    case VK_DOBRADO:
+        p = s ? r->step[row][s - 1u] : 0u;
+        return !ART(v) && s >= ns / 2u && (ART(p) == 1u || ART(p) == 2u) ? STEP(ART(p), 70u, 0u) : v;
+    case VK_REPIQUE:
+        return s >= ns - r->div ? STEP(2u, s == ns - r->div ? 112u : 80u, 0u) : v;
+    default:
+        return !ART(v) && s >= ns / 2u ? STEP(3u, 60u, 0u) : v;
+    }
+}
+
+/* the bar's first step: which berimbaus vary it (each every so many bars, VIRADAS; the one VIRADA asked for) */
+static void bar_start(void)
+{
+    static const uint8_t EVERY[5] = {0, 8, 4, 2, 1};
+    static const uint8_t ROWS[3] = {RB_GUNGA, RB_MEDIO, RB_VIOLA};
+    const rhythm_t *r = cur();
+    uint32_t i, q = seq.vreq, start = 0;
+    seq.bar++;
+    seq.vary = 0;
+    for (i = 0; i < 3u; i++)             /* a sourced phrase goes on into its second bar */
+        if (seq.vph[i] && ++seq.vbar[i] >= 2u)
+            seq.vph[i] = 0;
+    if (rhy_mode(set.rhythm) != MODE_BERIMBAU) {
+        seq.vreq = 0;
+        for (i = 0; i < 3u; i++)
+            seq.vph[i] = 0;
+        return;
+    }
+    for (i = 0; i < 3u; i++) {
+        uint32_t e = EVERY[set.virada[i]];
+        if (e && seq.bar % e == 0u)
+            start |= 1u << i;
+    }
+    if (q) {
+        seq.vreq = 0;
+        start |= 1u << (q - 1u == RB_GUNGA ? 0u : q - 1u == RB_MEDIO ? 1u : 2u);
+    }
+    for (i = 0; i < 3u; i++) {
+        int k;
+        if (seq.vph[i]) {
+            seq.vary |= (uint8_t)(1u << ROWS[i]);
+            continue;
+        }
+        if (!(start >> i & 1u))
+            continue;
+        seq.vary |= (uint8_t)(1u << ROWS[i]);
+        if ((k = vsrc_of(r, ROWS[i])) >= 0) {   /* one of the sources' phrases */
+            uint32_t n = 0;
+            while (VSRC[k].phrase[n])
+                n++;
+            seq.vph[i] = (uint8_t)(((uint32_t)k << 3 | (uint32_t)(rnd01() * (float)n) % n) + 1u);
+            seq.vbar[i] = 0;
+        }
+    }
+    if (seq.vary)
+        seq.vkind = (uint8_t)((uint32_t)(rnd01() * (float)NVK) % NVK);
 }
 
 static void seq_next(uint32_t at)        /* the next step starts at sample at of this block */
@@ -312,21 +409,36 @@ static void seq_next(uint32_t at)        /* the next step starts at sample at of
             seq.beats++;
         }
         seq.count--;
+        tempo_step(r, ns);
         seq.len = step_len(r, s);
         return;
     }
     s = seq.step < 0 || (uint32_t)seq.step + 1u >= ns ? 0u : (uint32_t)seq.step + 1u;
+    if (s == 0u && seq.next) {           /* the rhythm chosen comes in, on its first step, at its tempo */
+        set.rhythm = (uint8_t)(seq.next - 1u);
+        seq.next = 0;
+        seq.jump = 1;
+        for (i = 0; i < NROW; i++)
+            seq.skip[i] = 0;
+        seq.vph[0] = seq.vph[1] = seq.vph[2] = 0;   /* (a variation was the old toque's) */
+        seq.switched++;
+        r = cur();
+        ns = nsteps(r);
+    }
     seq.step = (int32_t)s;
+    tempo_step(r, ns);
     seq.len = step_len(r, s);
+    if (s == 0u)
+        bar_start();
     if (s % r->div == 0u) {
         seq.beats++;
         if (click_now())
             dr_click(s == 0u, at);
     }
-    for (i = 0; i < NINST; i++) {
-        uint32_t v = r->step[i][s], d = at;
+    for (i = 0; i < NROW; i++) {
+        uint32_t v = seq.vary >> i & 1u ? vary(r, i, s) : r->step[i][s], d = at, in = row_inst(set.rhythm, i);
         float vel;
-        if (!ART(v))
+        if (!ART(v) || in >= NINST)
             continue;
         if (seq.skip[i] == s + 1u) {     /* recorded ahead of the step: it was played as it was played */
             seq.skip[i] = 0;
@@ -341,31 +453,51 @@ static void seq_next(uint32_t at)        /* the next step starts at sample at of
             vel *= 1.0f - rnd01() * h * 0.3f;
         }
         if (FLAM(v)) {                   /* the grace stroke on the step, the stroke just after */
-            dr_hit(i, ART(v), vel * FLAM_GRACE, d);
+            dr_hit(in, ART(v), vel * FLAM_GRACE, d);
             d += (uint32_t)(FLAM_S * SR);
         }
-        dr_hit(i, ART(v), vel, d);
-        seq.hits[i]++;
+        dr_hit(in, ART(v), vel, d);
+        seq.hits[in]++;
+    }
+    if (s == 0u && seq.stop_at) {        /* the bar's first step played: the last */
+        seq.playing = 0;
+        seq.rec = 0;
+        seq.stop_at = 0;
     }
 }
 
 static void seq_start(int count_in)
 {
     uint32_t i;
-    for (i = 0; i < NINST; i++)
+    for (i = 0; i < NROW; i++)
         seq.skip[i] = 0;
     seq.step = -1;
     seq.left = 0.0f;
+    seq.next = 0;
+    seq.stop_at = 0;
+    seq.jump = 1;
+    seq.bar = 0;
+    seq.vary = 0;
+    seq.vph[0] = seq.vph[1] = seq.vph[2] = 0;
+    tempo_step(cur(), nsteps(cur()));
     seq.len = step_len(cur(), 0);
     seq.count = count_in ? nsteps(cur()) : 0u;
     seq.playing = 1;
 }
 
-static void seq_stop(void)
+static void seq_stop(void)              /* now */
 {
     seq.playing = 0;
     seq.rec = 0;
     seq.count = 0;
+    seq.next = 0;
+    seq.stop_at = 0;
+}
+
+static uint32_t rhythm_shown(void)       /* the rhythm chosen: the one coming in at the next bar, or the one playing */
+{
+    uint32_t n = seq.next;
+    return n ? n - 1u : set.rhythm;
 }
 
 /* ------------------------------------------------------------------- audio --- */
@@ -393,7 +525,7 @@ void app_render(int32_t *lr, uint32_t n, uint32_t master_q12)
             float t = seq.left;
             if ((int32_t)seq.step >= (int32_t)nsteps(cur()))
                 seq.step = -1;           /* the bar got shorter */
-            while (t < (float)m) {
+            while (seq.playing && t < (float)m) {   /* (a stop on the bar's first step ends it) */
                 seq_next((uint32_t)t);
                 t += seq.len;
             }
@@ -429,12 +561,17 @@ static struct {
     uint32_t hits_seen[NINST], lit_until[NINST];   /* a pad lights when its instrument sounds */
     uint32_t beats_seen, beat_until;
     int32_t drawn_step;
+    uint32_t switched;                   /* seq.switched seen */
+    uint32_t bellows_t;                  /* the shruti's bellows drawn last */
     float bend;                          /* the udu's bass, from its key's pressure: semitones */
+    float gourd;                         /* the berimbau shown's gourd, from its keys' pressure: 0 open .. 1 closed */
+    uint8_t gourd_inst;
     uint32_t tri_down;                   /* the triangle's key: when it went down, */
     int32_t tri_step;                    /* the step it recorded (-1: none), */
     uint8_t tri_rhythm;                  /* in which rhythm */
     uint32_t glow;                       /* the buttons glowing at the last input (the host's checks) */
-    uint8_t drone_on;                    /* the drone shown sounds (PLAY) */
+    uint8_t drone;                       /* the drone sounding (its PLAY): MODE_TANPURA, MODE_SHRUTI; 0 none. It goes on
+                                          * under the kit or the berimbau */
     int8_t string_drawn;                 /* the tanpura's string the screen shows plucked */
     int8_t batt;                         /* the battery shown (plat_battery's: -1 not read yet), */
     uint8_t batt_off;                    /* the keys' readings let go for its reading, */
@@ -449,12 +586,14 @@ static struct {
     uint8_t redraw;
 } ui;
 
+static int drone_on(void) { return ui.drone && ui.drone == set.mode; }   /* the drone shown sounds */
+
 void app_panic(void)
 {
     seq_stop();
     dr_panic();
     dn_panic();
-    ui.drone_on = 0;                     /* (shown off too: an update that stops halfway leaves it so) */
+    ui.drone = 0;                        /* (shown off too: an update that stops halfway leaves it so) */
     ui.redraw = 1;
 }
 
@@ -515,11 +654,7 @@ void app_say(const char *a, const char *b)
     }
 }
 
-static void say_inst(const char *a, const char *b)   /* in the instrument's colour */
-{
-    app_say(a, b);
-    ui.msg_rgb = INST[set.inst].rgb;
-}
+static void say_inst(const char *a, const char *b) { app_say(a, b); }   /* (an instrument's: its word in the accent) */
 
 static void drone_words(char *t);
 
@@ -529,12 +664,12 @@ static void speak(void)
     char t[128], n[12];
     if (ann_on() && ann_where() && drone()) {
         drone_words(t);
-        text_cat(t, ui.drone_on ? " PLAYING. " : ". ");
+        text_cat(t, drone_on() ? " PLAYING. " : ". ");
         text_cat(t, PAGE_NAME[set.page]);
         ann_say(t, 0, ANN_NOW);
     } else if (ann_on() && ann_where()) {
         t[0] = 0;
-        text_cat(t, INST[set.inst].name);
+        text_cat(t, shown()->name);
         text_cat(t, ". ");
         text_cat(t, RDEF[set.rhythm].name);
         text_cat(t, ", ");
@@ -552,25 +687,33 @@ static void speak(void)
 }
 
 /* ---------------------------------------------------------------- changes --- */
+static void drone_apply(void);
 static void changed(void)
 {
     set_dirty = 1;
     ui.redraw = 1;
 }
 
-static void sound_apply(uint32_t i) { dr_inst(i, &set.snd[i]); }
+static void sound_apply(uint32_t i)      /* (the medio's and the viola's pitch over the gunga's strokes) */
+{
+    dr_inst_t p = *snd_of(i);
+    p.tune += (float)INST[i].pitch;
+    dr_inst(i, &p);
+}
 
 static void inst_step(int32_t d)
 {
     char t[24];
-    uint32_t first = berimbau() ? I_BERIMBAU : 0u, n = berimbau() ? 2u : KIT_NINST;
-    set.inst = (uint8_t)(first + (set.inst - first + (d > 0 ? 1u : n - 1u)) % n);
+    uint32_t m = berimbau(), n = ROW_N[m], i = 0;
+    while (i < n && ROW_ORDER[m][i] != set.inst)
+        i++;
+    set.inst = ROW_ORDER[m][(i + (d > 0 ? 1u : n - 1u)) % n];   /* (in SELECT's order) */
     ui.clear_t = 0;
     ui.msg_until = 0;                    /* the title says it, large, in its colour: no message over it */
     changed();
     if (ann_on()) {                      /* a screen reader hears it */
         t[0] = 0;
-        text_cat(t, INST[set.inst].name);
+        text_cat(t, shown()->name);
         if (cur()->mute >> set.inst & 1u)
             text_cat(t, " MUTED");
         ann_say(t, 0, ANN_NOW);
@@ -609,49 +752,95 @@ static int has_strokes(const rhythm_t *r, uint32_t i)
 
 #define RHY_SAY_MS 4000u                 /* a rhythm chosen: its beats and name stay this long */
 
-/* a rhythm chosen: a written one comes as it is written (its steps, tempo, swing and strokes: what was changed in it
- * is gone); a FREE one as the player left it. The instrument shown is one it plays. Said: its beats, its name */
-static void rhythm_select(uint32_t k)
+static int any_strokes(const rhythm_t *r)
 {
     uint32_t i;
-    int any = 0;
-    if (!RDEF[k].free)
-        rhythm_default(k);
-    for (i = 0; i < NINST; i++)          /* (a stroke recorded ahead was the old rhythm's) */
-        seq.skip[i] = 0;
-    set.rhythm = (uint8_t)k;
+    for (i = 0; i < NROW; i++)
+        if (has_strokes(r, i))
+            return 1;
+    return 0;
+}
+
+/* the rhythm come in, on the screen: its first keys' page, an instrument it plays shown */
+static void rhythm_shown_fit(void)
+{
+    uint32_t i;
     ui.keypage = 0;
-    for (i = 0; i < NINST; i++)
-        any |= has_strokes(cur(), i);
-    if (any && !has_strokes(cur(), set.inst))
-        for (i = 0; i < NINST; i++)
-            if (has_strokes(cur(), i)) {
-                set.inst = (uint8_t)i;
+    if (any_strokes(cur()) && !has_strokes(cur(), set.inst))
+        for (i = 0; i < ROW_N[berimbau()]; i++)   /* (in SELECT's order) */
+            if (has_strokes(cur(), ROW_ORDER[berimbau()][i])) {
+                set.inst = ROW_ORDER[berimbau()][i];
                 break;
             }
     changed();
-    app_say(RDEF[k].name, any ? "" : "EMPTY");   /* its beats are in the footer already */
+}
+
+/* a rhythm chosen: a written one comes as it is written (its steps, swing and strokes: what was changed in it is
+ * gone; its tempo as it was last set); a FREE one as the player left it. Playing, it comes in on the next bar's
+ * first step (the one playing chosen again: it stays). Said: its name (its beats are in the footer), and NEXT while
+ * it waits for its bar */
+static void rhythm_select(uint32_t k)
+{
+    uint32_t i;
+    if (seq.playing && !seq.count && seq.step >= 0) {
+        seq.next = 0;
+        if (k != set.rhythm) {
+            if (!RDEF[k].free)
+                rhythm_default(k);
+            seq.next = (uint8_t)(k + 1u);
+        }
+        app_say(RDEF[k].name, k == set.rhythm ? "" : any_strokes(&rhy[k]) ? "NEXT" : "NEXT, EMPTY");
+    } else {
+        if (!RDEF[k].free)
+            rhythm_default(k);
+        for (i = 0; i < NROW; i++)       /* (a stroke recorded ahead was the old rhythm's) */
+            seq.skip[i] = 0;
+        set.rhythm = (uint8_t)k;
+        seq.jump = 1;
+        rhythm_shown_fit();
+        app_say(RDEF[k].name, any_strokes(cur()) ? "" : "EMPTY");
+    }
+    ui.redraw = 1;
     ui.msg_until = plat_ms() + RHY_SAY_MS;   /* time to read it while turning on */
     ui.msg_title = 1;
+}
+
+/* the rhythms in their order on the FM-1 (PRESET, the list): the kit's then the berimbau's, by their beats, each
+ * group's FREE last (its places in rhy are the store's: one added later keeps the older ones') */
+static uint8_t ORD[NRHY], POS[NRHY];
+
+static uint32_t ord_key(uint32_t k) { return rhy_mode(k) << 16 | (uint32_t)RDEF[k].beats << 12 | RDEF[k].free << 8 | k; }
+
+static void ord_init(void)
+{
+    uint32_t i, j;
+    for (i = 0; i < NRHY; i++) {
+        for (j = i; j > 0u && ord_key(ORD[j - 1u]) > ord_key(i); j--)
+            ORD[j] = ORD[j - 1u];
+        ORD[j] = (uint8_t)i;
+    }
+    for (i = 0; i < NRHY; i++)
+        POS[ORD[i]] = (uint8_t)i;
 }
 
 /* PRESET: the next rhythm with the same beats (round): the kit's, or the berimbau's toques */
 static void rhythm_step(int32_t d)
 {
-    uint32_t k = set.rhythm, n;
+    uint32_t k0 = rhythm_shown(), p = POS[k0], k = k0, n;
     for (n = 0; n < NRHY; n++) {
-        k = (k + (d > 0 ? 1u : NRHY - 1u)) % NRHY;
-        if (RDEF[k].beats == RDEF[set.rhythm].beats && rhy_mode(k) == rhy_mode(set.rhythm))
+        p = (p + (d > 0 ? 1u : NRHY - 1u)) % NRHY;
+        k = ORD[p];
+        if (RDEF[k].beats == RDEF[k0].beats && rhy_mode(k) == rhy_mode(k0))
             break;
     }
-    if (k != set.rhythm)
+    if (k != k0)
         rhythm_select(k);
 }
 
 /* ALGORITHM: the beats, 2 to 8: the first rhythm with that many (the berimbau's: the next beats it has a toque in) */
 static void meter_step(int32_t d)
 {
-    int32_t b = RDEF[set.rhythm].beats;
+    int32_t b = RDEF[rhythm_shown()].beats;
     uint32_t k;
     while ((b += d) >= 2 && b <= 8)
         for (k = 0; k < NRHY; k++)
@@ -665,7 +854,10 @@ static void bpm_set(int32_t v)
 {
     char t[12];
     cur()->bpm = (uint8_t)clamp(v, 40, 240);
+    set.bpm[set.rhythm] = cur()->bpm;    /* (the rhythm comes back at it) */
     changed();
+    if (!set.sh_tempo)                   /* the shruti's bellows at the rhythm's tempo */
+        drone_apply();
     int_text(cur()->bpm, t);
     text_cat(t, " BPM");
     app_say("TEMPO", t);
@@ -693,16 +885,17 @@ static void tap(void)
         ui.ntap = 3;
     }
     ui.tap[ui.ntap++] = now;
-    if (ui.ntap >= 2u && ui.tap[ui.ntap - 1u] - ui.tap[0] >= 100u)
+    if (ui.ntap >= 2u && ui.tap[ui.ntap - 1u] - ui.tap[0] >= 100u) {
+        seq.jump = 1;                    /* tapped: there at once */
         bpm_set((int32_t)(60000u * (ui.ntap - 1u) + (ui.tap[ui.ntap - 1u] - ui.tap[0]) / 2u) /
                 (int32_t)(ui.tap[ui.ntap - 1u] - ui.tap[0]));
-    else
+    } else
         app_say("TAP", "AGAIN");
 }
 
 /* -------------------------------------------------------------- the knobs --- */
 enum { KN_BPM, KN_DIV, KN_SWING, KN_HUMAN, KN_LEVEL, KN_TUNE, KN_DECAY, KN_WIRES, KN_BEND, KN_CLICK, KN_COUNT,
-       KN_LIGHT, KN_VEL, KN_NONE };
+       KN_LIGHT, KN_VEL, KN_CABACA, KN_VIRADA, KN_NONE };
 static const uint8_t PAGE_KNOB[NPAGES][4] = {
     {KN_BPM, KN_DIV, KN_SWING, KN_HUMAN},
     {KN_NONE, KN_NONE, KN_NONE, KN_NONE},   /* SOUND: the instrument's own (SOUND_KNOB) */
@@ -711,7 +904,9 @@ static const uint8_t PAGE_KNOB[NPAGES][4] = {
 /* SOUND: what a player of each can change. The djembe's head is tuned by its ropes and muted by a hand; the cajon's
  * snare wires are set tighter or slacker (or off), and a heel on its front deadens it; an udu comes smaller or larger,
  * and the palm over its opening lowers its bass; the maracas shake short or long, the triangle is let ring or held;
- * the berimbau's wire is tuned tighter or slacker; the clapsticks and the caxixi only play louder or softer */
+ * a berimbau's wire is tuned tighter or slacker, its gourd closed on the belly (CABACA: how far a key pressed all the
+ * way closes it), and it varies its toque now and then (VIRADAS); the atabaque's head is tuned; the clapsticks, the
+ * caxixi, the agogo, the pandeiro and the reco-reco only play louder or softer */
 static const uint8_t SOUND_KNOB[NINST][4] = {
     {KN_LEVEL, KN_TUNE, KN_DECAY, KN_NONE},
     {KN_LEVEL, KN_WIRES, KN_DECAY, KN_NONE},
@@ -719,21 +914,29 @@ static const uint8_t SOUND_KNOB[NINST][4] = {
     {KN_LEVEL, KN_NONE, KN_NONE, KN_NONE},
     {KN_LEVEL, KN_DECAY, KN_NONE, KN_NONE},
     {KN_LEVEL, KN_DECAY, KN_NONE, KN_NONE},
+    {KN_LEVEL, KN_TUNE, KN_CABACA, KN_VIRADA},
+    {KN_LEVEL, KN_NONE, KN_NONE, KN_NONE},
+    {KN_LEVEL, KN_NONE, KN_NONE, KN_NONE},
+    {KN_LEVEL, KN_TUNE, KN_CABACA, KN_VIRADA},
+    {KN_LEVEL, KN_TUNE, KN_CABACA, KN_VIRADA},
+    {KN_LEVEL, KN_NONE, KN_NONE, KN_NONE},
     {KN_LEVEL, KN_TUNE, KN_NONE, KN_NONE},
     {KN_LEVEL, KN_NONE, KN_NONE, KN_NONE},
 };
 static const char *const KNOB_NAME[KN_NONE] = {"TEMPO", "STEPS", "SWING", "HUMAN", "LEVEL", "TUNE", "DECAY",
-                                               "SNARES", "PRESSURE BEND", "CLICK", "COUNT-IN", "LIGHTS", "VELOCITY"};
+                                               "SNARES", "BEND", "CLICK", "COUNT-IN", "LIGHTS", "VELOCITY",
+                                               "CABACA", "VIRADAS"};
+static const char *const VIRADA_NAME[5] = {"OFF", "EVERY 8", "EVERY 4", "EVERY 2", "EVERY BAR"};
 #define TUNE_MAX 3.0f                    /* semitones either way */
 
 static uint32_t page_knob(uint32_t page, uint32_t k)
 {
-    return page == PG_SOUND ? SOUND_KNOB[set.inst][k] : PAGE_KNOB[page][k];
+    return page == PG_SOUND ? SOUND_KNOB[sinst()][k] : PAGE_KNOB[page][k];
 }
 
 static void knob_text(uint32_t k, char *t)
 {
-    dr_inst_t *s = &set.snd[set.inst];
+    dr_inst_t *s = snd_of(sinst());
     int32_t v;
     t[0] = 0;
     switch (k) {
@@ -772,13 +975,21 @@ static void knob_text(uint32_t k, char *t)
     case KN_COUNT: text_cat(t, set.countin ? "1 BAR" : "OFF"); break;
     case KN_LIGHT: text_cat(t, set.lights == 1u ? "LOW" : "HIGH"); break;
     case KN_VEL: text_cat(t, set.fixed ? "FIXED" : "KEYS"); break;
+    case KN_CABACA:
+        if (set.cabaca) {
+            int_text(set.cabaca, t);
+            text_cat(t, "%");
+        } else
+            text_cat(t, "OFF");
+        break;
+    case KN_VIRADA: text_cat(t, ber_idx(sinst()) < 0 ? "" : VIRADA_NAME[set.virada[ber_idx(sinst())]]); break;
     default: break;
     }
 }
 
 static int32_t knob_fill(uint32_t k, int32_t w)   /* a value's bar, 0..w; -1: no bar */
 {
-    const dr_inst_t *s = &set.snd[set.inst];
+    const dr_inst_t *s = snd_of(sinst());
     float f;
     switch (k) {
     case KN_BPM: f = (float)(cur()->bpm - 40) / 200.0f; break;
@@ -789,6 +1000,7 @@ static int32_t knob_fill(uint32_t k, int32_t w)   /* a value's bar, 0..w; -1: no
     case KN_DECAY: f = (s->decay - 0.1f) / 0.9f; break;
     case KN_WIRES: f = s->wires; break;
     case KN_BEND: f = (float)set.bend / 6.0f; break;
+    case KN_CABACA: f = (float)set.cabaca * 0.01f; break;
     default: return -1;
     }
     return (int32_t)(fm_clampf(f, 0.0f, 1.0f) * (float)w + 0.5f);
@@ -796,7 +1008,7 @@ static int32_t knob_fill(uint32_t k, int32_t w)   /* a value's bar, 0..w; -1: no
 
 static void knob_turn(uint32_t k, int32_t d)
 {
-    dr_inst_t *s = &set.snd[set.inst];
+    dr_inst_t *s = snd_of(sinst());
     char t[16];
     switch (k) {
     case KN_BPM: bpm_set((int32_t)cur()->bpm + d); return;
@@ -818,9 +1030,14 @@ static void knob_turn(uint32_t k, int32_t d)
     case KN_COUNT: set.countin ^= 1u; break;
     case KN_LIGHT: set.lights = (uint8_t)(set.lights == 1u ? 2u : 1u); break;
     case KN_VEL: set.fixed ^= 1u; break;
+    case KN_CABACA: set.cabaca = (uint8_t)clamp((int32_t)set.cabaca + 5 * d, 0, 100); break;
+    case KN_VIRADA:
+        if (ber_idx(sinst()) >= 0)
+            set.virada[ber_idx(sinst())] = (uint8_t)clamp((int32_t)set.virada[ber_idx(sinst())] + (d > 0 ? 1 : -1), 0, 4);
+        break;
     default: return;
     }
-    sound_apply(set.inst);
+    sound_apply(sinst());
     changed();
     knob_text(k, t);
     if (ann_on()) {                      /* the page shows the value: a screen reader hears it */
@@ -864,7 +1081,7 @@ static int flam_held(void) { return (int)(plat_buttons() >> B_ARP & 1u); }
 /* REC: a stroke onto the nearest step (the one sounding, or the next; the next is then not played again this time
  * round). During the count-in, only in its last half step (its last step has the count at 0, no step yet): onto the
  * first step */
-static int32_t record(uint32_t inst, uint32_t art, uint32_t vel, uint32_t flam)   /* its step; -1: not recorded */
+static int32_t record(uint32_t row, uint32_t art, uint32_t vel, uint32_t flam)   /* its step; -1: not recorded */
 {
     rhythm_t *r = cur();
     uint32_t f = plat_lock(), ns = nsteps(r), count = seq.count, target, ahead = 0;
@@ -886,9 +1103,9 @@ static int32_t record(uint32_t inst, uint32_t art, uint32_t vel, uint32_t flam) 
     } else {
         target = (uint32_t)step;
     }
-    r->step[inst][target] = STEP(art, vel, flam);
+    r->step[row][target] = STEP(art, vel, flam);
     if (ahead)
-        seq.skip[inst] = (uint8_t)(target + 1u);
+        seq.skip[row] = (uint8_t)(target + 1u);
     changed();
     return (int32_t)target;
 }
@@ -902,31 +1119,52 @@ static void step_key(uint32_t w, uint32_t k)
     if (w >= page_steps(r) || s >= nsteps(r))
         return;
     v = r->step[set.inst][s];
-    if (set.inst == I_DJEMBE && flam_held()) {
+    if (sinst() == I_DJEMBE && flam_held()) {
         a = ART(v) ? ART(v) : 1u;
         flam = ART(v) ? !FLAM(v) : 1u;
     } else {
         a = ART(v) + 1u;
-        if (a > INST[set.inst].nart)
+        if (a > shown()->nart)
             a = 0;
         flam = FLAM(v);
     }
     r->step[set.inst][s] = a ? STEP(a, key_vel(k), flam) : 0u;
     if (a && !seq.playing)
-        pad_play(set.inst, a, key_vel(k), flam);
+        pad_play(sinst(), a, key_vel(k), flam);
     ui.clear_t = 0;
     changed();
 }
 
-static void pad_key(uint32_t b, uint32_t k)
+/* a black key: its row and stroke (0: none on it); the berimbau's first three, the berimbau shown; with ARP, the
+ * fourth group's two the agogo's bells */
+static uint32_t pad_row(uint32_t b, uint32_t *art)
 {
     const uint8_t *p = PAD[berimbau()][b];
-    uint32_t vel = key_vel(k), flam = p[0] == I_DJEMBE && flam_held();
+    *art = p[1];
+    if (flam_held() && (b == AGOGO_PAD || b == AGOGO_PAD + 1u)) {
+        *art = b - AGOGO_PAD + 1u;
+        return berimbau() ? RB_AGOGO : RK_AGOGO;
+    }
+    if (p[0] == PAD_SHOWN)
+        return ber_idx(sinst()) >= 0 ? set.inst : RB_GUNGA;
+    return p[0];
+}
+
+static void pad_key(uint32_t b, uint32_t k)
+{
+    uint32_t art, row = pad_row(b, &art), in, vel = key_vel(k), flam;
     int32_t s;
-    if (!p[1])                           /* no stroke on it */
+    if (row == PAD_VIRADA) {             /* the berimbau shown varies the next bar */
+        seq.vreq = (uint8_t)((ber_idx(sinst()) >= 0 ? set.inst : RB_GUNGA) + 1u);
+        say_inst("VIRADA", "NEXT BAR");
         return;
-    pad_play(p[0], p[1], vel, flam);
-    s = record(p[0], p[1], vel, flam);
+    }
+    if (!art)                            /* no stroke on it */
+        return;
+    in = ROW_INST[berimbau()][row];
+    flam = in == I_DJEMBE && flam_held();
+    pad_play(in, art, vel, flam);
+    s = record(row, art, vel, flam);
     if (!berimbau() && b == TRIANGLE_PAD) {   /* how long it is held tells open from muted */
         ui.tri_down = plat_ms();
         ui.tri_step = s;
@@ -1015,6 +1253,15 @@ static void shruti_name(char *t)         /* "A MINOR"; "NOTES" */
     text_cat(t, SH_NAME[set.sh_kind]);
 }
 
+/* the shruti's bellows: their own tempo, or the rhythm's (0: RHYTHM; above 120 half of it) */
+static uint32_t shruti_tempo(void)
+{
+    uint32_t b = set.sh_tempo ? set.sh_tempo : cur()->bpm;
+    while (b > 120u)
+        b /= 2u;
+    return b;
+}
+
 static void drone_apply(void)
 {
     dn_tanpura_t p;
@@ -1023,9 +1270,9 @@ static void drone_apply(void)
     p.cycle_s = (float)set.tp_cycle * 0.1f;
     p.jawari = (float)set.tp_jawari * 0.01f;
     p.level = (float)set.tp_level * 0.01f;
-    dn_tanpura(set.mode == MODE_TANPURA && ui.drone_on, &p);
-    dn_shruti(set.mode == MODE_SHRUTI && ui.drone_on, set.sh_notes, 53, (float)set.sh_level * 0.01f,
-              (float)set.sh_bellows * 0.01f, 60.0f / (float)set.sh_tempo);
+    dn_tanpura(ui.drone == MODE_TANPURA, &p);
+    dn_shruti(ui.drone == MODE_SHRUTI, set.sh_notes, 53, (float)set.sh_level * 0.01f, (float)set.sh_bellows * 0.01f,
+              60.0f / (float)shruti_tempo());
 }
 
 /* the kit and the berimbau each keep their rhythm and instrument: the ones shown are the mode's */
@@ -1041,13 +1288,13 @@ static void rhythm_box_fit(void)
     ui.keypage = 0;
 }
 
-/* FX: the next mode; what was sounding stops (each is played alone) */
-static void mode_step(void)
+/* the mode shown: the kit, the berimbau, a drone. The rhythm playing goes on under a drone's screen, and a drone
+ * under the kit's or the berimbau's; the kit and the berimbau (one sequencer) stop each other */
+static void mode_show(uint32_t m)
 {
-    set.mode = (uint8_t)((set.mode + 1u) % NMODES);
-    seq_stop();
-    ui.drone_on = 0;
-    drone_apply();
+    set.mode = (uint8_t)m;
+    if (!drone() && rhy_mode(set.rhythm) != set.mode)
+        seq_stop();
     rhythm_box_fit();
     ui.list_on = 0;
     if (drone() && set.page == PG_SOUND)
@@ -1058,6 +1305,14 @@ static void mode_step(void)
     app_say(MODE_NAME[set.mode], "");
     ui.msg_until = plat_ms() + RHY_SAY_MS;
     ui.msg_title = 1;
+    ui.msg_rgb = MODE_RGB[set.mode];
+}
+
+/* FX: the next, the drones right after the kit (the kit playing on under them), then the berimbau */
+static void mode_step(void)
+{
+    static const uint8_t NEXT[NMODES] = {MODE_TANPURA, MODE_KIT, MODE_SHRUTI, MODE_BERIMBAU};
+    mode_show(NEXT[set.mode]);
 }
 
 static void solo_key(uint32_t k)
@@ -1131,7 +1386,9 @@ static void solo_say(uint32_t i)
     } else {
         static const char *const NAME[3] = {"BREATHING ", "TEMPO ", "LEVEL "};
         text_cat(t, NAME[i]);
-        int_text(i == 0u ? set.sh_bellows : i == 1u ? set.sh_tempo : set.sh_level, n);
+        if (i == 1u && !set.sh_tempo)
+            text_cat(t, "RHYTHM ");
+        int_text(i == 0u ? set.sh_bellows : i == 1u ? (int32_t)shruti_tempo() : set.sh_level, n);
         text_cat(n, i == 1u ? " BPM" : "%");
     }
     text_cat(t, n);
@@ -1173,17 +1430,17 @@ static uint32_t list_n(void)
 
 static uint32_t list_now(void)           /* the one chosen */
 {
-    return set.mode == MODE_KIT ? set.rhythm : berimbau() ? set.rhythm - NRHY_KIT
+    return set.mode == MODE_KIT ? POS[rhythm_shown()] : berimbau() ? POS[rhythm_shown()] - NRHY_KIT
            : set.mode == MODE_TANPURA ? set.tp_preset : set.sh_kind;
 }
 
 static const char *list_name(uint32_t i)
 {
     return set.mode == MODE_TANPURA ? TP_PRESET[i].name : set.mode == MODE_SHRUTI ? SH_NAME[i]
-           : RDEF[i + (berimbau() ? NRHY_KIT : 0u)].name;
+           : RDEF[ORD[i + (berimbau() ? NRHY_KIT : 0u)]].name;
 }
 
-static uint32_t list_beats(uint32_t i) { return drone() ? 0u : RDEF[i + (berimbau() ? NRHY_KIT : 0u)].beats; }
+static uint32_t list_beats(uint32_t i) { return drone() ? 0u : RDEF[ORD[i + (berimbau() ? NRHY_KIT : 0u)]].beats; }
 
 static int list_shown(void) { return ui.list_on; }
 
@@ -1218,7 +1475,7 @@ static void list_choose(void)
     if (drone())
         drone_preset(i);
     else
-        rhythm_select(i + (berimbau() ? NRHY_KIT : 0u));
+        rhythm_select(ORD[i + (berimbau() ? NRHY_KIT : 0u)]);
 }
 
 /* OCT- / OCT+: the tempo, 5 BPM a press, 10 held; LFO: the list shown or closed, held: the one shown chosen */
@@ -1269,7 +1526,8 @@ static void solo_knob(uint32_t i, int32_t d)
     } else if (i == 0)                   /* the shruti: KNOB 1 its breathing, KNOB 2 its bellows' tempo, 3 its level */
         set.sh_bellows = (uint8_t)clamp((int32_t)set.sh_bellows + 5 * d, 0, 100);
     else if (i == 1)
-        set.sh_tempo = (uint8_t)clamp((int32_t)set.sh_tempo + d, 20, 120);
+        set.sh_tempo = (uint8_t)(set.sh_tempo ? ((int32_t)set.sh_tempo + d < 20 ? 0 : clamp((int32_t)set.sh_tempo + d, 20, 120))
+                                 : d > 0 ? 20 : 0);   /* under 20: RHYTHM, the rhythm's tempo */
     else if (i == 2)
         set.sh_level = (uint8_t)clamp((int32_t)set.sh_level + 5 * d, 0, 100);
     else
@@ -1285,15 +1543,19 @@ static void solo_button(uint32_t b)
     case B_FX:
         mode_step();
         break;
-    case B_PLAY:
-        ui.drone_on ^= 1u;
+    case B_PLAY:                         /* this drone on (the other stopped), or off */
+        ui.drone = (uint8_t)(drone_on() ? 0u : set.mode);
         drone_apply();
         ui.redraw = 1;
         break;
     case B_SAVE:
         save_all();
         break;
-    case B_HOME:
+    case B_HOME:                         /* on its own page already: back to the rhythm, the drone sounding on */
+        if (set.page == PG_HOME && !list_shown()) {
+            mode_show(rhy_mode(set.rhythm));
+            break;
+        }
         set.page = PG_HOME;
         ui.list_on = 0;
         ui.redraw = 1;
@@ -1368,14 +1630,14 @@ static void solo_input(uint32_t keys, uint32_t btn)
     lit_keys |= keys;
     lit_btn = (btn & used & ~(1u << B_PLAY)) | 1u << B_FX | 1u << (set.page == PG_SETUP ? B_GLO : B_HOME)
               | (set_dirty ? 1u << B_SAVE : 0u);
-    if (ui.drone_on)
+    if (drone_on())
         lit_btn |= LED_PLAY_GREEN;
     if (ui.clear_t && now - ui.clear_t < 2000u)
         lit_btn |= 1u << B_EDIT;
     if (list_shown())
         lit_btn |= 1u << B_LFO;
     dim_btn = ~lit_btn & used & ~(1u << B_PLAY);
-    if (!ui.drone_on)
+    if (!drone_on())
         dim_btn |= LED_PLAY_GREEN;
     ui.glow = dim_btn;
     plat_lights(lit_btn, lit_keys, dim_btn, dim_keys & ~lit_keys, set.lights);
@@ -1394,11 +1656,15 @@ static void button(uint32_t b)
             return;
         }
     switch (b) {
-    case B_PLAY:
-        if (seq.playing)
-            seq_stop();
-        else
+    case B_PLAY:                         /* playing: it stops on the next bar's first step; again, now */
+        if (!seq.playing)
             seq_start(0);
+        else if (seq.stop_at || seq.count || seq.step < 0)
+            seq_stop();
+        else {
+            seq.stop_at = 1;
+            app_say("STOP", "ON THE 1");
+        }
         ui.redraw = 1;
         break;
     case B_REC:
@@ -1414,7 +1680,7 @@ static void button(uint32_t b)
     case B_SEL:
         r->mute ^= (uint8_t)(1u << set.inst);
         changed();
-        say_inst(INST[set.inst].name, (r->mute >> set.inst & 1u) ? "MUTED" : "ON");
+        say_inst(shown()->name, (r->mute >> set.inst & 1u) ? "MUTED" : "ON");
         break;
     case B_EDIT:
         if (ui.clear_t && plat_ms() - ui.clear_t < 2000u) {
@@ -1422,7 +1688,7 @@ static void button(uint32_t b)
                 r->step[set.inst][i] = 0;
             ui.clear_t = 0;
             changed();
-            say_inst(INST[set.inst].name, "CLEARED");
+            say_inst(shown()->name, "CLEARED");
         } else {
             ui.clear_t = plat_ms();
             say_inst("EDIT AGAIN", "TO CLEAR");
@@ -1431,11 +1697,8 @@ static void button(uint32_t b)
     case B_SEQ:
         tap();
         break;
-    case B_ARP:                          /* held: the djembe's flams */
-        if (berimbau())
-            break;
-        app_say("FLAM", "ARP + DJEMBE KEY");
-        ui.msg_rgb = INST[I_DJEMBE].rgb;
+    case B_ARP:                          /* held: the djembe's flams, the agogo on the fourth group's keys */
+        app_say("ARP", berimbau() ? "AGOGO" : "FLAMS, AGOGO");
         break;
     case B_SAVE:
         save_all();
@@ -1532,6 +1795,21 @@ static void input(void)
             dr_bend(I_UDU, 1, b);
         }
     }
+    {   /* a berimbau's keys pressed: its gourd closes on the belly as far as the pressure goes (CABACA) */
+        uint32_t gi = berimbau() && ber_idx(sinst()) >= 0 ? sinst() : I_BERIMBAU, p = 0;
+        float c;
+        for (i = 0; berimbau() && i < 3u; i++)
+            if ((keys >> BLACK[i] & 1u) && touch_pressure(BLACK[i]) > p)
+                p = touch_pressure(BLACK[i]);
+        c = (float)set.cabaca * 0.01f * (float)p * (1.0f / 127.0f);
+        if (gi != ui.gourd_inst || c != ui.gourd) {
+            if (gi != ui.gourd_inst)
+                dr_gourd(ui.gourd_inst, 0.0f);
+            dr_gourd(gi, c);
+            ui.gourd_inst = (uint8_t)gi;
+            ui.gourd = c;
+        }
+    }
     if (keys != ui.keys)
         ui.redraw = 1;
     ui.keys = keys;
@@ -1564,12 +1842,20 @@ static void input(void)
             ui.lit_until[i] = now + 90u;
         }
     for (i = 0; i < 11u; i++) {
-        uint32_t bit = 1u << BLACK[i], in = PAD[berimbau()][i][0];
-        if (!PAD[berimbau()][i][1])
+        uint32_t bit = 1u << BLACK[i], art, row = pad_row(i, &art), in;
+        if (row == PAD_VIRADA) {         /* VIRADA: lit while one waits for its bar */
+            if ((keys & bit) || seq.vreq)
+                lit_keys |= bit;
+            else
+                dim_keys |= bit;
             continue;
+        }
+        if (!art)
+            continue;
+        in = ROW_INST[berimbau()][row];
         if ((keys & bit) || (int32_t)(ui.lit_until[in] - now) > 0)
             lit_keys |= bit;
-        else if (in == set.inst)
+        else if (row == set.inst)
             mid_keys |= bit;
         else
             dim_keys |= bit;
@@ -1581,8 +1867,8 @@ static void input(void)
     lit_btn = (btn & ~(1u << B_PLAY)) | 1u << PAGE_BTN[set.page] | (set_dirty ? 1u << B_SAVE : 0u);
     if (seq.rec)                         /* PLAY: red recording, green playing (its two LEDs) */
         lit_btn |= 1u << B_PLAY;
-    else if (seq.playing || (btn >> B_PLAY & 1u))
-        lit_btn |= LED_PLAY_GREEN;
+    else if ((seq.playing && (!seq.stop_at || (now / 150u) & 1u)) || (btn >> B_PLAY & 1u))
+        lit_btn |= LED_PLAY_GREEN;       /* (blinking: it stops on the bar's first step) */
     if (seq.rec && (!seq.count || (now / 150u) & 1u))   /* counting in: REC blinks */
         lit_btn |= 1u << B_REC;
     if (r->mute >> set.inst & 1u)
@@ -1593,8 +1879,8 @@ static void input(void)
         lit_btn |= 1u << B_SEQ;
     if (list_shown())
         lit_btn |= 1u << B_LFO;
-    /* the ones that do something glow, the others stay dark: ARP but in the kit (the djembe's flams) */
-    dim_btn = ~lit_btn & ((1u << NB) - 1u) & ~(1u << B_PLAY | (berimbau() ? 1u << B_ARP : 0u));
+    /* the ones that do something glow (ARP: the djembe's flams, the agogo) */
+    dim_btn = ~lit_btn & ((1u << NB) - 1u) & ~(1u << B_PLAY);
     if (!(lit_btn & (1u << B_PLAY | LED_PLAY_GREEN)))
         dim_btn |= LED_PLAY_GREEN;       /* PLAY glows green */
     ui.glow = dim_btn;
@@ -1605,6 +1891,9 @@ static void input(void)
 void app_input_only(void) { input(); }
 
 /* ----------------------------------------------------------------- screen --- */
+/* The screen's rules: the greys for its structure (rules, empty steps, labels), white for values, an instrument's or a
+ * drone's colour only for it (its title, its steps, its bars, the band), the accent (C_HI) only for what waits (a
+ * message's word, the rhythm coming in at the next bar); green playing, red recording. No text under FONT_B. */
 #define C_BOX RGB(20, 22, 26)
 #define C_REC RGB(240, 60, 50)
 #define C_GO RGB(90, 210, 110)
@@ -1640,7 +1929,7 @@ static void text_c(int32_t cx, int32_t y, const felucca_font_t *f, const char *s
 static void solo_row(int32_t y, uint32_t i, const char *name, const char *value)   /* a setting: K, name, value */
 {
     char k[3] = {'K', (char)('1' + i), 0};
-    int32_t x = cv_text(8, y + 8, &FONT_XS, k, C_DIM) + 6;
+    int32_t x = cv_text(8, y + 5, &FONT_B, k, C_DIM) + 6;
     cv_text(x, y, &FONT_M, name, C_GRAY);
     cv_text(232 - text_w(&FONT_M, value), y, &FONT_M, value, C_WHITE);
 }
@@ -1659,7 +1948,7 @@ static void battery_mark(void)
     int32_t i;
     uint16_t c = ui.batt ? C_GRAY : C_REC;
     if (ui.batt == 4)
-        cv_text(234 - text_w(&FONT_XS, "USB"), 11, &FONT_XS, "USB", C_GRAY);
+        cv_text(234 - text_w(&FONT_B, "USB"), 9, &FONT_B, "USB", C_GRAY);
     if (ui.batt < 0 || ui.batt > 3)
         return;
     frame(211, 12, 21, 11, 1, c);
@@ -1674,22 +1963,23 @@ static void header(void)
     const rhythm_t *r = cur();
     if (plat_ms() < ui.msg_until && ui.msg_title) {   /* a rhythm's name, large, in white (a long one smaller) */
         int32_t x = cv_text(8, text_w(&FONT_L, ui.msg[0]) <= 228 ? 2 : 6,
-                            text_w(&FONT_L, ui.msg[0]) <= 228 ? &FONT_L : &FONT_M, ui.msg[0], C_WHITE) + 10;
+                            text_w(&FONT_L, ui.msg[0]) <= 228 ? &FONT_L : &FONT_M, ui.msg[0],
+                            ui.msg_rgb ? ui.msg_rgb : C_WHITE) + 10;
         if (ui.msg[1][0])
-            cv_text(x, 11, &FONT_B, ui.msg[1], C_GRAY);
+            cv_text(x, 11, &FONT_B, ui.msg[1], C_HI);
     } else if (plat_ms() < ui.msg_until) {
         int32_t x = cv_text(8, 6, &FONT_M, ui.msg[0], C_WHITE) + 10;
         const felucca_font_t *f = x + text_w(&FONT_M, ui.msg[1]) > 236 ? &FONT_B : &FONT_M;
-        cv_text(x, f == &FONT_M ? 6 : 11, f, ui.msg[1], ui.msg_rgb ? ui.msg_rgb : C_HI);
+        cv_text(x, f == &FONT_M ? 6 : 11, f, ui.msg[1], C_HI);
     } else if (set.page == PG_SETUP) {
         cv_text(8, 2, &FONT_L, "SETUP", C_WHITE);
     } else if (drone()) {
         cv_text(8, 2, &FONT_L, MODE_NAME[set.mode], MODE_RGB[set.mode]);
-        if (ui.drone_on)                 /* sounding: the green triangle, left of the battery */
+        if (drone_on())                 /* sounding: the green triangle, left of the battery */
             play_mark(190, 10);
     } else {
         int muted = (int)(r->mute >> set.inst & 1u);
-        cv_text(8, 2, &FONT_L, INST[set.inst].name, muted ? C_DIM : INST[set.inst].rgb);
+        cv_text(8, 2, &FONT_L, shown()->name, muted ? C_DIM : shown()->rgb);
     }
     if (plat_ms() >= ui.msg_until)       /* (a message has the whole width) */
         battery_mark();
@@ -1701,7 +1991,7 @@ static void header(void)
 static void draw_steps(void)
 {
     const rhythm_t *r = cur();
-    const inst_t *in = &INST[set.inst];
+    const inst_t *in = shown();
     int32_t beats = r->beats, div = r->div, gap = 4, top = 42, h = 154;
     int32_t ch = (h - (beats - 1) * gap) / beats, cw = (226 - (div - 1) * gap) / div, b, c;
     uint32_t p0 = ui.keypage * page_steps(r), p1 = p0 + page_steps(r);
@@ -1722,8 +2012,9 @@ static void draw_steps(void)
                 char t[2] = {in->letter[a - 1u], 0};
                 const felucca_font_t *f = ch >= 28 ? &FONT_M : &FONT_B;
                 int32_t ty = y + (ch - (ch >= 28 ? 24 : 16)) / 2;
+                const char *w = in->word[a - 1u] && text_w(f, in->word[a - 1u]) <= cw - 6 ? in->word[a - 1u] : t;
                 cv_rect(x, y, cw, ch, col);
-                text_c(x + cw / 2, ty, f, t, C_BLACK);
+                text_c(x + cw / 2, ty, f, w, C_BLACK);   /* its name where it fits (DOM, DIM, TCH), else its letter */
                 if (FLAM(v))                 /* a flam: the grace stroke small before it */
                     cv_text(x + cw / 2 - text_w(f, t) / 2 - text_w(&FONT_XS, t) - 2, ty + (ch >= 28 ? 8 : 2),
                             &FONT_XS, t, C_BLACK);
@@ -1736,24 +2027,18 @@ static void draw_steps(void)
     }
 }
 
-/* the footer: the tempo and the beats large, the rhythm's name, and what it is doing (a green triangle playing, a
- * red dot recording, the beats to go counting in) */
+/* the footer: the tempo large, the rhythm's name (its beats are the grid's rows), and what it is doing (a green
+ * triangle playing, a red dot recording, the beats to go counting in, a white square stopping on the bar) */
 static void footer(void)
 {
     const rhythm_t *r = cur();
-    const char *name = RDEF[set.rhythm].name;
+    const char *name = RDEF[rhythm_shown()].name;   /* (the one coming in at the next bar, in the accent) */
     char t[16];
     int32_t x;
     int_text(r->bpm, t);
     x = cv_text(8, 204, &FONT_M, t, C_WHITE);
-    x = cv_text(x + 3, 212, &FONT_XS, "BPM", C_GRAY);
-    int_text(r->beats, t);
-    x = cv_text(x + 10, 204, &FONT_M, t, C_HI);
-    x = cv_text(x + 3, 212, &FONT_XS, "BEATS", C_GRAY);
-    if (text_w(&FONT_B, name) <= 210 - x - 6)
-        cv_text(210 - text_w(&FONT_B, name), 208, &FONT_B, name, C_WHITE);
-    else
-        cv_text(210 - text_w(&FONT_XS, name), 210, &FONT_XS, name, C_WHITE);
+    cv_text(x + 4, 209, &FONT_B, "BPM", C_GRAY);
+    cv_text(210 - text_w(&FONT_B, name), 209, &FONT_B, name, seq.next ? C_HI : C_WHITE);
     if (seq.count) {                     /* counting in: the beats to go */
         int_text((int32_t)((seq.count + r->div - 1u) / r->div), t);
         cv_text(232 - text_w(&FONT_M, t), 204, &FONT_M, t, C_REC);
@@ -1763,7 +2048,9 @@ static void footer(void)
         cv_rect(230, 209, 2, 2, C_BLACK);
         cv_rect(218, 221, 2, 2, C_BLACK);
         cv_rect(230, 221, 2, 2, C_BLACK);
-    } else if (seq.playing)
+    } else if (seq.playing && seq.stop_at)   /* stopping on the bar's first step: a square */
+        cv_rect(219, 209, 13, 13, C_WHITE);
+    else if (seq.playing)
         play_mark(219, 208);
 }
 
@@ -1772,7 +2059,7 @@ static void draw_page(void)
 {
     uint32_t i;
     char t[24];
-    uint16_t col = set.page == PG_SOUND ? INST[set.inst].rgb : C_HI;
+    uint16_t col = set.page == PG_SOUND ? shown()->rgb : C_HI;
     for (i = 0; i < 4u; i++) {
         uint32_t kn = page_knob(set.page, i);
         int32_t y = 42 + (int32_t)i * 48, f;
@@ -1804,7 +2091,7 @@ static void draw_solo(void)
     uint32_t i;
     if (set.mode == MODE_TANPURA) {
         static const int8_t OFF[4] = {0, 0, 0, -12};
-        int plucked = ui.drone_on ? dn_string() : -1;
+        int plucked = drone_on() ? dn_string() : -1;
         for (i = 0; i < 4u; i++) {
             int32_t x = 8 + (int32_t)i * 57, midi = tanpura_sa() + (i ? OFF[i] : FIRST_OFF[set.tp_first]);
             int on = plucked == (int)i;
@@ -1842,15 +2129,23 @@ static void draw_solo(void)
             }
             x = 8 + (int32_t)(n % 4u) * 57;
             y = 46 + (int32_t)(n / 4u) * 48;
-            if (ui.drone_on)
+            if (drone_on())
                 cv_rect(x, y, 52, 42, col);
             else {
                 cv_rect(x, y, 52, 42, C_BOX);
                 frame(x, y, 52, 42, 2, col);
             }
             note_text(53 + (int32_t)k, t);
-            text_c(x + 26, y + 9, &FONT_M, t, ui.drone_on ? C_BLACK : C_WHITE);
+            text_c(x + 26, y + 9, &FONT_M, t, drone_on() ? C_BLACK : C_WHITE);
             n++;
+        }
+        {   /* the bellows: their breath as a bar from the left, lighter on the pull */
+            int pull;
+            float b = drone_on() ? dn_bellows(&pull) : 0.0f;
+            int32_t w = (int32_t)(fm_clampf(b, 0.0f, 1.0f) * 224.0f + 0.5f);
+            cv_rect(8, 142, 224, 6, C_LINE);
+            if (w > 0)
+                cv_rect(8, 142, w, 6, pull ? rgb_scale(col, 150u) : col);
         }
         if (!n)
             text_c(120, 82, &FONT_M, set.sh_kind == SH_NOTES ? "PRESS THE KEYS" : "PRESS A KEY", C_GRAY);
@@ -1871,7 +2166,10 @@ static void draw_solo(void)
         } else
             text_cat(t, "STEADY");
         solo_row(156, 0, "BREATHING", t);
-        int_text(set.sh_tempo, t);
+        t[0] = 0;
+        if (!set.sh_tempo)               /* the rhythm's tempo: said so */
+            text_cat(t, "= ");
+        int_text((int32_t)shruti_tempo(), t + text_len(t));
         text_cat(t, " BPM");
         solo_row(182, 1, "TEMPO", t);
         int_text(set.sh_level, t);
@@ -1884,12 +2182,12 @@ static void draw_solo(void)
  * chosen marked at the left */
 static void draw_list(void)
 {
-    uint16_t col = drone() ? MODE_RGB[set.mode] : INST[set.inst].rgb;
+    uint16_t col = drone() ? MODE_RGB[set.mode] : shown()->rgb;
     int32_t n = (int32_t)list_n(), lo = -(n - 1) / 2 < -2 ? -2 : -(n - 1) / 2, hi = n / 2 > 2 ? 2 : n / 2, o;
     char t[4];
     for (o = lo; o <= hi; o++) {
         uint32_t i = (uint32_t)(((int32_t)ui.list_i + o + n * 3) % n), b = list_beats(i);
-        int32_t y = 44 + (o + 2) * 38, x;
+        int32_t y = 44 + (o + 2) * 38;
         uint16_t fg = o ? C_GRAY : C_BLACK;
         const felucca_font_t *f = o ? &FONT_B : &FONT_M;
         if (!o)
@@ -1899,9 +2197,37 @@ static void draw_list(void)
         cv_text(14, y + (o ? 9 : 5), f, list_name(i), fg);
         if (b) {                         /* its beats, at the right */
             int_text((int32_t)b, t);
-            x = cv_text(230 - text_w(&FONT_XS, "BEATS") - 3 - text_w(f, t), y + (o ? 9 : 5), f, t, fg);
-            cv_text(x + 3, y + 13, &FONT_XS, "BEATS", fg);
+            cv_text(228 - text_w(f, t), y + (o ? 9 : 5), f, t, fg);
         }
+    }
+}
+
+/* the bottom band, under the steps: the mode's instruments in SELECT's order, the one shown tall; the others in
+ * their colour when they play in the rhythm, dark when not, grey when muted, white as they strike; a drone sounding
+ * under it, last, in its colour */
+static void band_insts(void)
+{
+    const rhythm_t *r = cur();
+    uint32_t m = berimbau(), n = ROW_N[m], k = n + (ui.drone ? 1u : 0u), i;
+    int32_t w = (240 - ((int32_t)k - 1) * 2) / (int32_t)k;
+    for (i = 0; i < k; i++) {
+        int32_t x = (int32_t)i * (w + 2);
+        uint32_t row = i < n ? ROW_ORDER[m][i] : 0u;
+        uint16_t c;
+        int tall = 0;
+        if (i == n)
+            c = MODE_RGB[ui.drone];
+        else if (r->mute >> row & 1u)
+            c = C_DIM;
+        else if (seq.playing && !seq.count && seq.step >= 0 && ART(r->step[row][seq.step]))
+            c = C_WHITE;
+        else
+            c = has_strokes(r, row) ? INST[ROW_INST[m][row]].rgb : C_LINE;
+        if (i < n && row == set.inst)
+            tall = 1;
+        else if (i < n && c != C_WHITE && c != C_LINE && c != C_DIM)
+            c = rgb_scale(c, 150u);
+        cv_rect(x, tall ? 232 : 236, i == k - 1u ? 240 - x : w, tall ? 8 : 4, c);
     }
 }
 
@@ -1922,7 +2248,10 @@ static void draw(void)
             footer();
         } else
             draw_page();
-        cv_rect(0, 235, 240, 5, set.page == PG_SETUP ? C_HI : drone() ? MODE_RGB[set.mode] : INST[set.inst].rgb);
+        if (set.page == PG_HOME && !drone() && !list_shown())
+            band_insts();
+        else
+            cv_rect(0, 235, 240, 5, set.page == PG_SETUP ? C_HI : drone() ? MODE_RGB[set.mode] : shown()->rgb);
         cv_blit(0, (uint32_t)top);
     }
 }
@@ -2065,7 +2394,7 @@ static void settings_default(void)
     set.fixed = 0;
     set.bend = 3;
     for (i = 0; i < NINST; i++)
-        set.snd[i] = INST[i].def;
+        *snd_of(i) = INST[i].def;
     set.mode = MODE_KIT;
     set.tp_sa = 1;                       /* C#: MALE KALI 1 */
     set.tp_first = 0;                    /* Pa */
@@ -2082,12 +2411,19 @@ static void settings_default(void)
     set.sh_kind = SH_NOTES;              /* the reeds one by one (SA PA would play the same on C4) */
     set.sh_root = 7;
     set.sh_tempo = 40;                   /* a push and a pull in 3 s */
+    for (i = 0; i < NRHY; i++)
+        set.bpm[i] = 0;                  /* as written */
+    set.cabaca = 80;
+    set.virada[0] = set.virada[1] = 0;   /* the gunga and the medio keep to the toque; */
+    set.virada[2] = 2;                   /* the viola varies it every 4 bars (a sourced variation: 2 of them) */
 }
 
 void app_init(void)
 {
     uint32_t i;
-    int ok = plat_store_load(OBJ_SETTINGS, &set, sizeof set) == (int)sizeof set && set.magic == SET_MAGIC
+    int ok;
+    settings_default();                  /* (an older record, shorter, leaves what follows it as at first) */
+    ok = plat_store_load(OBJ_SETTINGS, &set, sizeof set) >= (int)SET_V09 && set.magic == SET_MAGIC
              && set.rhythm < NRHY && set.other_rhythm < NRHY && rhy_mode(set.rhythm) != rhy_mode(set.other_rhythm)
              && inst_in(set.inst, rhy_mode(set.rhythm)) && inst_in(set.other_inst, rhy_mode(set.other_rhythm))
              && set.page < NPAGES && set.click <= CLICK_ON
@@ -2095,13 +2431,18 @@ void app_init(void)
              && set.mode < NMODES && set.tp_sa < 12u && set.tp_first < 3u && set.tp_high <= 1u && set.tp_cycle >= 20u
              && set.tp_cycle <= 80u && set.tp_level <= 100u && set.sh_level <= 100u && set.sh_bellows <= 100u
              && set.sh_notes < 1u << NKEYS && set.tp_preset < NTP && set.tp_jawari <= 100u && set.sh_kind < NSH && set.sh_root < NKEYS
-             && set.sh_tempo >= 20u && set.sh_tempo <= 120u;
-    for (i = 0; ok && i < NINST; i++)
-        ok = set.snd[i].level >= 0.0f && set.snd[i].level <= 1.0f && set.snd[i].tune >= -TUNE_MAX
-             && set.snd[i].tune <= TUNE_MAX && set.snd[i].decay >= 0.1f && set.snd[i].decay <= 1.0f
-             && set.snd[i].wires >= 0.0f && set.snd[i].wires <= 1.0f;
+             && (!set.sh_tempo || (set.sh_tempo >= 20u && set.sh_tempo <= 120u));
+    for (i = 0; ok && i < NINST; i++) {
+        const dr_inst_t *d = snd_of(i);
+        ok = d->level >= 0.0f && d->level <= 1.0f && d->tune >= -TUNE_MAX && d->tune <= TUNE_MAX && d->decay >= 0.1f
+             && d->decay <= 1.0f && d->wires >= 0.0f && d->wires <= 1.0f;
+    }
+    ok = ok && set.cabaca <= 100u && set.virada[0] <= 4u && set.virada[1] <= 4u && set.virada[2] <= 4u;
+    for (i = 0; ok && i < NRHY; i++)
+        ok = !set.bpm[i] || (set.bpm[i] >= 40u && set.bpm[i] <= 240u);
     if (!ok)
         settings_default();
+    ord_init();
     rhythm_box_fit();
     for (i = 0; i < NRHY; i++)           /* the rhythms as written; then the ones kept, each that is sound */
         rhythm_default(i);
@@ -2151,9 +2492,19 @@ void app_frame(void)
         ui.msg_until = 0;
         ui.redraw = 1;
     }
-    if (set.mode == MODE_TANPURA && ui.drone_on && dn_string() != ui.string_drawn) {   /* the next string plucked */
+    if (set.mode == MODE_SHRUTI && drone_on() && !list_shown() && set.page == PG_HOME
+        && now - ui.bellows_t >= 80u) {  /* the bellows' bar moving */
+        ui.bellows_t = now;
+        ui.redraw = 1;
+    }
+    if (set.mode == MODE_TANPURA && drone_on() && dn_string() != ui.string_drawn) {   /* the next string plucked */
         ui.string_drawn = (int8_t)dn_string();
         ui.redraw = 1;
+    }
+    if (ui.switched != seq.switched) {   /* the rhythm chosen came in on its bar */
+        ui.switched = seq.switched;
+        rhythm_shown_fit();
+        drone_apply();                   /* (its tempo: the shruti's bellows may follow it) */
     }
     if (ui.drawn_step != (seq.playing ? seq.step : -2) || last_count != seq.count) {   /* the step moved on */
         ui.drawn_step = seq.playing ? seq.step : -2;
@@ -2193,6 +2544,20 @@ int app_expect(const char *what, int *got)
         *got = (int)seq.count;
     else if (!strcmp(what, "step"))
         *got = seq.step;
+    else if (!strcmp(what, "vreq"))      /* VIRADA waits for its bar */
+        *got = seq.vreq != 0u;
+    else if (!strcmp(what, "vary"))      /* the rows varying this bar */
+        *got = seq.vary;
+    else if (!strcmp(what, "vph"))       /* the gunga's sourced phrase: 1 + its set << 3 | its place; 0 none */
+        *got = seq.vph[0];
+    else if (!strcmp(what, "gourd"))     /* the berimbau shown's gourd, % closed */
+        *got = (int)(ui.gourd * 100.0f + 0.5f);
+    else if (!strcmp(what, "next"))      /* a rhythm chosen waits for its bar */
+        *got = seq.next != 0u;
+    else if (!strcmp(what, "stopat"))    /* PLAY waits for the bar's first step to stop */
+        *got = seq.stop_at;
+    else if (!strcmp(what, "bpmnow"))    /* the tempo playing (gliding), whole BPM */
+        *got = (int)(seq.bpm_now + 0.5f);
     else if (!strcmp(what, "page"))
         *got = set.page;
     else if (!strcmp(what, "batt"))      /* the battery shown: 0..3 bars, 4 USB power, -1 none yet */
@@ -2216,9 +2581,9 @@ int app_expect(const char *what, int *got)
     else if (!strcmp(what, "bend"))      /* the udu's bass: its glide now, tenths of a semitone */
         *got = (int)(dr_bent(I_UDU) * 10.0f + (dr_bent(I_UDU) < 0.0f ? -0.5f : 0.5f));
     else if (!strcmp(what, "wires"))     /* the instrument's snare wires, % */
-        *got = (int)(set.snd[set.inst].wires * 100.0f + 0.5f);
+        *got = (int)(snd_of(sinst())->wires * 100.0f + 0.5f);
     else if (!strcmp(what, "tune"))      /* the instrument's tuning, tenths of a semitone */
-        *got = (int)(set.snd[set.inst].tune * 10.0f + (set.snd[set.inst].tune < 0.0f ? -0.5f : 0.5f));
+        *got = (int)(snd_of(sinst())->tune * 10.0f + (snd_of(sinst())->tune < 0.0f ? -0.5f : 0.5f));
     else if (what[0] == 'v' && what[1] >= '0' && what[1] <= '9')   /* vN: its velocity */
         *got = ART(r->step[set.inst][atoi(what + 1) % NSTEPS]) ? (int)VEL(r->step[set.inst][atoi(what + 1) % NSTEPS]) : 0;
     else if (!strncmp(what, "hits", 4))  /* hitsI: instrument I's strokes played since boot */
@@ -2230,7 +2595,9 @@ int app_expect(const char *what, int *got)
     } else if (!strcmp(what, "mode"))    /* the kit 0, the berimbau 1, the tanpura 2, the shruti 3 */
         *got = set.mode;
     else if (!strcmp(what, "drone"))     /* the drone shown sounds */
-        *got = ui.drone_on;
+        *got = drone_on();
+    else if (!strcmp(what, "dronebg"))   /* the drone sounding, shown or not: 2 the tanpura, 3 the shruti, 0 none */
+        *got = ui.drone;
     else if (!strcmp(what, "sa"))        /* the tanpura's Sa, 0 C .. 11 B */
         *got = set.tp_sa;
     else if (!strcmp(what, "first"))     /* its first string: 0 Pa, 1 Ma, 2 Ni */

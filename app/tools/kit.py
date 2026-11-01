@@ -39,6 +39,12 @@ KIT = [
     ("triangle", 44100, [("open", 1.60), ("muted", 0.35)]),
     ("berimbau", 16000, [("dom", 0.90), ("dim", 0.55), ("tsch", 0.20)]),   # the berimbau mode's (FX)
     ("caxixi", 32000, [("shake", 0.16)]),
+    ("agogo", 32000, [("high", 0.60), ("low", 0.70)]),                   # the kit's (ARP) and the bateria's
+    ("medio", "berimbau"),                                               # the bateria's: the gunga's strokes, played
+    ("viola", "berimbau"),                                               # higher (app.c's INST pitch)
+    ("pandeiro", 32000, [("tum", 0.45), ("pa", 0.35), ("chia", 0.20)]),
+    ("atabaque", 22050, [("tum", 0.75), ("pa", 0.55)]),
+    ("reco", 32000, [("scrape", 0.28)]),
 ]
 # each stroke's level against its instrument's others, dB (normalised to the same peak, a short stroke sounds softer)
 TRIM = {"djembe_tone": 1.5, "djembe_slap": 6.0, "cajon_bass": 3.0, "cajon_slap": 5.0, "udu_bass": -1.5,
@@ -123,7 +129,11 @@ def build(src, out):
     lines, table, slots = [], [], []
     total = 0
     credits = (src / "CREDITS.txt").read_text().strip().splitlines() if (src / "CREDITS.txt").exists() else []
-    for inst, rate, strokes in KIT:
+    for entry in KIT:
+        if len(entry) == 2:                                          # another's strokes, not stored again
+            slots.append(slots[[e[0] for e in KIT].index(entry[1])])
+            continue
+        inst, rate, strokes = entry
         row = []
         for stroke, longest in strokes:
             name = f"{inst}_{stroke}"
@@ -148,7 +158,7 @@ def build(src, out):
                 table.append(f"    {{S{i}, E{i}, {len(q)}u, {rate}.0f, {10 ** (TRIM.get(name, 0.0) / 20):.3f}f}},   /* {k} */")
                 total += len(m8) + len(shifts)
         slots.append(row)
-    nart = max(len(s) for _, _, s in KIT)
+    nart = max(len(e[2]) for e in KIT if len(e) == 3)
     first = ",\n".join("    {" + ", ".join(str(row[a][0]) if a < len(row) else "0" for a in range(nart)) + "}"
                        for row in slots)
     count = ",\n".join("    {" + ", ".join(str(row[a][1]) if a < len(row) else "0" for a in range(nart)) + "}"

@@ -75,13 +75,13 @@ tap LFO
 tap HOME
 expect list 0
 
-# SELECT: the instruments, round
+# SELECT: the instruments, round (the agogo last)
 turn SELECT 1
 expect inst 1
-turn SELECT 5
+turn SELECT 6
 expect inst 0
 turn SELECT -1
-expect inst 5
+expect inst 6
 turn SELECT 1
 expect inst 0
 
@@ -121,6 +121,15 @@ expect playing 1
 wait 2000
 expect hits0 >9
 expect hits2 >0
+# PLAY again: it stops on the next bar's first step (blinking till then); a second time, now
+tap PLAY
+expect playing 1
+wait 2000
+expect playing 0
+tap PLAY
+expect playing 1
+tap PLAY
+expect playing 1
 tap PLAY
 expect playing 0
 wait 300
@@ -206,6 +215,7 @@ tap REC
 expect rec 0
 expect playing 1
 tap PLAY
+tap PLAY
 expect playing 0
 
 # the nearest step, exactly: no count-in, 60 BPM, 2 steps a beat (500 ms a step)
@@ -231,6 +241,7 @@ wait 230
 tapkey b2
 expect s3 3
 tap PLAY
+tap PLAY
 expect playing 0
 expect rec 0
 # counted in (4 steps of 500 ms): a stroke in the count-in's last half step goes onto step 0; one sooner is not kept
@@ -250,6 +261,7 @@ tapkey b0
 expect s0 1
 expect strokes 1
 tap PLAY
+tap PLAY
 expect playing 0
 tap EDIT
 tap EDIT
@@ -259,7 +271,7 @@ expect countin 0
 tap HOME
 
 # the triangle's key: held, it rings; let go, the hand closes on it (nothing else sounds now)
-turn SELECT -1
+turn SELECT -2
 expect inst 5
 key b10 down
 wait 300
@@ -279,8 +291,9 @@ wait 400
 key b10 up
 expect s3 1
 tap PLAY
+tap PLAY
 expect playing 0
-turn SELECT 1
+turn SELECT 2
 expect inst 0
 
 # 4 beats, then AFRO 12/8: the clapsticks' bell
@@ -315,12 +328,14 @@ tap PLAY
 wait 2900
 expect keypage 1
 tap PLAY
+tap PLAY
 expect keypage 1
 tapkey w0
 expect s16 1
 tap PLAY
 wait 300
 expect keypage 0
+tap PLAY
 tap PLAY
 
 # no swing with 3 steps a beat (the rhythm swings already)
@@ -421,7 +436,7 @@ expect rhythm 18
 expect s0 0
 expect strokes 3
 tap HOME
-# a written rhythm comes as written: what was changed in it (a stroke, the tempo), away and back, is gone
+# a written rhythm comes as written: what was changed in its steps, away and back, is gone; its tempo stays as set
 turn K1 10
 expect bpm 130
 turn PRESET 1
@@ -429,6 +444,8 @@ expect rhythm 19
 expect bpm 96
 turn PRESET -1
 expect rhythm 18
+expect bpm 130
+turn K1 -10
 expect bpm 120
 expect strokes 4
 # 2 beats: MAZURCA (the maracas only, in 6/8), BARRAVENTO (the djembe only): the instrument shown follows
@@ -516,9 +533,50 @@ turn PRESET 7
 expect rhythm 7
 expect inst 4
 
-# FX: the kit, the berimbau, then the drones, each played alone (what was playing stops)
+# playing, a rhythm chosen comes in on the next bar's first step, at its tempo (its name yellow in the footer till
+# then); the one playing chosen again while another waits: it stays
 tap PLAY
 expect playing 1
+wait 300
+turn PRESET -1
+expect rhythm 7
+expect next 1
+shot next.png
+wait 1000
+expect rhythm 6
+expect next 0
+expect bpm 72
+turn PRESET 1
+expect next 1
+turn PRESET -1
+expect next 0
+wait 1800
+expect rhythm 6
+# the tempo set while playing glides there over a bar
+tap OCT+
+expect bpm 77
+expect bpmnow <77
+wait 2000
+expect bpmnow 77
+# PLAY: it stops on the next bar's first step (a white square in the footer)
+tap PLAY
+expect stopat 1
+expect playing 1
+shot stopping.png
+wait 1800
+expect playing 0
+expect stopat 0
+turn PRESET 1
+expect rhythm 7
+expect inst 4
+
+# FX: the kit, then the drones (the kit plays on under them), then the berimbau, which stops the kit
+tap PLAY
+expect playing 1
+tap FX
+expect mode 2
+expect playing 1
+tap FX
 tap FX
 expect mode 1
 expect playing 0
@@ -535,20 +593,22 @@ expect s1 3
 expect s2 1
 expect s4 2
 expect s6 0
-expect glowARP 0
+expect glowARP 1
 expect glowFX 1
 shot berimbau.png
-turn SELECT 1
+# SELECT: the gunga, the medio, the viola, the caxixi, the pandeiro, the atabaque, the agogo, the reco-reco
+turn SELECT 3
 expect inst 7
 expect strokes 1
 expect s6 1
-turn SELECT 1
+turn SELECT 5
 expect inst 6
-turn SELECT -1
+turn SELECT -5
 expect inst 7
-turn SELECT -1
+turn SELECT -3
 expect inst 6
-# its black keys: DOM DIM TSCH, the caxixi twice, again; the last key none
+# its black keys: the berimbau shown DOM DIM TSCH, the caxixi, the reco-reco, the pandeiro TUM PA CHIA, the atabaque
+# TUM PA (with ARP the agogo's two bells), VIRADA
 peakreset
 tapkey b0
 expect hits6 1
@@ -557,12 +617,27 @@ expect peak_db_max >-24
 tapkey b3
 expect hits7 1
 tapkey b4
-expect hits7 2
+expect hits13 1
 tapkey b5
-expect hits6 2
+tapkey b7
+expect hits11 2
+tapkey b9
+expect hits12 1
+press ARP
+tapkey b8
+tapkey b9
+release ARP
+expect hits8 2
+expect hits12 1
+turn SELECT 1
+expect inst 0
+tapkey b1
+expect hits9 1
+expect hits6 1
+turn SELECT -1
 tapkey b10
-expect hits6 2
-expect hits7 2
+expect hits6 1
+expect vreq 1
 # PRESET: the toques with its beats (round); ALGORITHM: the beats it has a toque in, 4 and 8
 turn PRESET 1
 expect rhythm 40
@@ -587,9 +662,29 @@ peakreset
 tap PLAY
 wait 4200
 expect playing 1
-expect hits7 >2
+expect vreq 0
+expect hits7 >1
 expect peak_db_max >-24
 shot berimbau-playing.png
+# VIRADAS (a berimbau's SOUND, KNOB 4): the gunga every bar, its toque varied (DOBRADO, REPIQUE or CHIADO)
+tap ENV
+turn K4 4
+shot sound-gunga.png
+wait 3000
+expect vary 64
+turn K4 -4
+wait 3000
+expect vary 0
+tap HOME
+# its keys pressed harder: the gourd closes on the belly, as far as the pressure goes (CABACA: 80 % at the most)
+key b0 down 100 127
+wait 300
+expect gourd >30
+expect gourd <81
+key b0 up
+wait 100
+expect gourd 0
+tap PLAY
 tap PLAY
 # its FREE toque: a white key, its next stroke (DOM, DIM, TSCH, none)
 turn PRESET -1
@@ -605,6 +700,7 @@ expect s0 0
 tapkey w2
 expect s2 1
 # the tanpura
+tap FX
 tap FX
 expect mode 2
 expect drone 0
@@ -725,9 +821,12 @@ expect drone 0
 expect notes 0
 # the kit as it was left (JOROPO, the maracas); the berimbau too (its FREE toque, as written on it)
 tap FX
+tap FX
 expect mode 0
 expect rhythm 7
 expect inst 4
+tap FX
+tap FX
 tap FX
 expect mode 1
 expect rhythm 45
@@ -735,6 +834,71 @@ expect inst 6
 expect s2 1
 expect strokes 1
 tap FX
-tap FX
-tap FX
 expect mode 0
+
+# a drone goes on under the rhythm: the kit playing, the tanpura's screen (the kit on), its PLAY; HOME there, back to
+# the kit, both sounding
+tap PLAY
+expect playing 1
+tap FX
+expect mode 2
+tap PLAY
+expect drone 1
+tap HOME
+expect mode 0
+expect playing 1
+expect dronebg 2
+peakreset
+wait 1500
+expect peak_db_max >-30
+shot kit-drone.png
+# the berimbau stops the kit, not the drone
+tap FX
+tap FX
+tap FX
+expect mode 1
+expect playing 0
+expect dronebg 2
+# the shruti's PLAY stops the tanpura; its bellows at the rhythm's tempo (KNOB 2 under 20: RHYTHM)
+tap FX
+tap FX
+tap FX
+expect mode 3
+tap PLAY
+expect dronebg 3
+turn K2 -150
+expect shtempo 0
+shot shruti-rhythm.png
+turn K2 1
+expect shtempo 20
+turn K2 -1
+tap PLAY
+expect dronebg 0
+
+# RODA ANGOLA: the bateria whole, after ANGOLA's group (its FREE last): the gunga ANGOLA, the medio SAO BENTO
+# PEQUENO, the viola SAO BENTO GRANDE de Angola, the pandeiro, the atabaque, the agogo, the reco-reco
+tap FX
+expect mode 1
+turn PRESET -1
+expect rhythm 51
+expect inst 6
+expect strokes 4
+turn SELECT 2
+expect inst 1
+expect strokes 5
+turn SELECT 2
+expect inst 2
+expect strokes 4
+turn SELECT -4
+expect inst 6
+# VIRADA on ANGOLA: one of the sources' two-bar variations (set 0, Wikipedia's), then the toque again
+tapkey b10
+tap PLAY
+wait 300
+expect vph >0
+expect vph <3
+shot roda.png
+wait 5600
+expect vph 0
+tap PLAY
+tap PLAY

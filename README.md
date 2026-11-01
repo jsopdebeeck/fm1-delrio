@@ -2,16 +2,18 @@
 
 A firmware that turns the M-VAVE FM-1 into a small rhythm box of hand percussion, made to accompany songs in a
 circle: **djembe, cajon, udu, clapsticks, maracas and triangle**. Choose a rhythm, set the tempo, press PLAY and sing;
-or play the instruments on the keys, record them into the loop, and shape them step by step. Three more instruments
-are each played alone: **the berimbau** with its toques, and two drones, **the tanpura** and **the shruti box**.
+or play the instruments on the keys, record them into the loop, and shape them step by step. **The berimbau** has its
+own page, with its toques and the capoeira's bateria (the medio and the viola, pandeiro, atabaque, agogô, reco-reco);
+two drones, **the tanpura** and **the shruti box**, sound alone or under the rhythm.
 
 By Jess Del Rio. Its splash screen says DEL RIO; its USB name is "FM-1 DelRio", its identity FM-1_48 and the version
-(FM-1_48000200 is 0.2).
+(FM-1_48010000 is 1.0).
 
-![Four of the firmware's screens: the djembe's steps playing HEARTBEAT, the clapsticks' bell in AFRO 12/8, the maracá's strokes in MARCHA, and the cajon's SOUND page](docs/img/screens.png)
+![Four of the firmware's screens: the djembe's steps in HEARTBEAT, the capoeira's bateria in RODA ANGOLA, the gunga's SOUND page, and the tanpura playing](docs/img/screens.png)
 
-*The FM-1's 240 × 240 screen: an instrument's steps in its colour, a row a beat, the step playing framed in white;
-the tempo, the beats and the rhythm at the bottom; a page of large sliders. [All the screens](docs/img/all-screens.png).*
+*The FM-1's 240 × 240 screen: an instrument's steps in its colour, a row a beat, the step playing framed in white; the
+tempo and the rhythm at the bottom, over a band of the page's instruments; a page of large sliders. [All the
+screens](docs/img/all-screens.png).*
 
 ## What it does
 
@@ -29,28 +31,45 @@ the tempo, the beats and the rhythm at the bottom; a page of large sliders. [All
   sounding.
 - **PLAY loops the rhythm; REC records what you play on the black keys**, each stroke onto the nearest step, over
   what is there. From a stop, a bar is counted in first. The sequencer runs in the audio interrupt, to the sample.
+- **Everything changes on the bar.** A rhythm chosen while one plays comes in on the next bar's first beat (its name
+  yellow in the footer till then). PLAY while playing stops on the next bar's first beat, its strokes the last (PLAY
+  blinks, a white square in the footer); PLAY again stops at once. A tempo set while playing glides there over a bar;
+  a tapped one (SEQ) is there at once.
+- **Each rhythm keeps its tempo**: set it once, and it comes back at it, away and back (SAVE keeps it).
 - **39 rhythms, grouped by their beats.** ALGORITHM chooses the beats; PRESETS goes round the rhythms with those beats,
   each coming as it is written. Each number of beats has a FREE rhythm of your own.
-- **The berimbau, played alone (FX)**, as the kit is played:
-  - its black keys: DOM (the wire struck free), DIM (the stone pressed on it, a tone higher), TSCH (the stone resting
-    on it, a buzz), then the caxixi; the same again, for the other hand;
+- **The berimbau and the capoeira's bateria (FX)**, played as the kit is:
+  - three berimbaus, as in a roda: the GUNGA (the lowest), the MEDIO and the VIOLA, a tone up each (each one's DIM the
+    next one's DOM, as a bateria is commonly tuned); SELECT
+    shows each, then the caxixi, the PANDEIRO, the ATABAQUE, the AGOGÔ and the RECO-RECO, each with its steps;
+  - its black keys: the berimbau shown, DOM (the wire struck free), DIM (the stone pressed on it, a tone higher), TSCH
+    (the stone resting on it, a buzz); the caxixi and the reco-reco; the pandeiro's TUM (thumb), PA (slap) and CHIA
+    (its jingles); the atabaque's TUM and PA (with ARP held, the agogô's high and low bells); the last, VIRADA;
+  - **the cabaça**: a berimbau's keys pressed harder close its gourd on the belly, its sound muffled as far as the
+    pressure goes, the "wah" of a roda (SOUND, CABACA: how far, 0 to 100 %);
+  - **viradas**: each berimbau varies its toque now and then (SOUND, VIRADAS: every 8, 4 or 2 bars, every bar, or
+    never; the viola every 4 at first), and VIRADA has the berimbau shown vary from the next bar. ANGOLA and SAO
+    BENTO GRANDE de Angola play the sources' own variations, two bars each (below); the other toques a bar made from
+    the toque, not transcribed: its DOM and DIM struck twice in the bar's second half (dobrado), its last beat all DIM
+    (repique), or its rests filled with soft chiados;
   - its toques: ANGOLA, SB PEQUENO, SB GRANDE, BANGUELA, JOGO DE DENTRO, JOGO DE FORA, SB REGIONAL, CAVALARIA,
     IDALINA and MIUDINHO, and two FREE ones, a quarter slower than a roda plays them (ANGOLA at 90: its quarter
     note at 45);
-  - SELECT: the berimbau or its caxixi, each with its steps;
-  - the strokes recorded from Paulo Gonçalves's berimbau.
+  - the berimbau's strokes recorded from Paulo Gonçalves's; the bateria's synthesised (`app/tools/synth.py`).
 - **Only what a player can change.** Each instrument's SOUND page has only what is real for it:
   - djembe: level, tuning (its ropes), decay (a hand on the head);
   - cajon: level, snare wires (down to off), decay (a heel on the front);
   - udu: level, size (tuning), how far a pressed key lowers the bass (a palm closing the opening);
   - maracas: level, a short or long shake;
   - triangle: level, ring;
-  - berimbau: level, tuning (its wire);
-  - clapsticks, caxixi: level.
+  - gunga, medio, viola: level, tuning (its wire), cabaça, viradas;
+  - atabaque: level, tuning;
+  - clapsticks, caxixi, agogô, pandeiro, reco-reco: level.
 - **Played like the instruments.**
   - The triangle rings while its key is held, and the hand closes on it when let go. A short tap is a muted stroke.
   - Pressing the udu's bass key harder lowers its pitch.
-  - With ARP held, the djembe's strokes are flams.
+  - With ARP held, the djembe's strokes are flams, and the clapsticks' and the maracas' keys the agogô's two bells
+    (high, low: ijexá's and afoxé's bell).
   - The maracas are one pair of hands, so a stroke stops the one before.
 - **One control per setting:**
   - SELECT: the instrument.
@@ -58,11 +77,13 @@ the tempo, the beats and the rhythm at the bottom; a page of large sliders. [All
   - EDIT twice: clear.
   - SEQ: tap tempo.
   - SAVE: keep everything.
-  - FX: the kit, the berimbau, the tanpura or the shruti box.
+  - FX: the kit, the tanpura, the shruti box, the berimbau.
   - OCT− / OCT+: the tempo, 5 BPM a press, 10 held.
-  - LFO: the presets listed, with their beats, from the one chosen; the list stays, KNOB 3 goes through it without
+  - LFO: the presets listed, with their beats (the number at the right), from the one chosen; the list stays, KNOB 3 goes through it without
     changing anything; LFO held chooses the one shown, LFO again closes the list.
-- **Two drones, each played alone (FX):**
+- **Two drones (FX), alone or under the rhythm.** The kit playing, FX shows the tanpura (the kit plays on); its PLAY
+  starts it, HOME (on its page) goes back to the kit, the drone sounding on. One drone at a time; the berimbau's page
+  stops the kit, not the drone.
   - TANPURA: four strings plucked in turn (Pa – Sa – Sa – low Sa), buzzing on their bridge (the jawari). A key sets Sa;
     ALGORITHM tunes the first string (SA PA, SA MA for the ragas without Pa, SA NI); PRESETS sets its character: MEDITATION (slow, a soft jawari), MANTRA (round), RAGA
     (the concert tanpura's open jawari), KIRTAN (quicker, brighter). KNOB 1 the jawari, KNOB 2 the cycle, KNOB 3 the
@@ -70,9 +91,12 @@ the tempo, the beats and the rhythm at the bottom; a page of large sliders. [All
   - SHRUTI: the shruti box's reeds, held while the bellows breathe. PRESETS: the chord a key plays, SA PA (root, fifth,
     octave), MAJOR or MINOR; or NOTES, each key opening or closing its reed. The bellows go back and forth in time:
     KNOB 1 how strongly they breathe (steady at 0; at the most the sound falls away where the hand turns), KNOB 2 their
-    tempo (a push, then a pull, each a beat), KNOB 3 the level.
+    tempo (a push, then a pull, each a beat; under 20, RHYTHM: the rhythm's tempo, halved above 120), KNOB 3 the
+    level. A bar under the reeds shows the bellows breathing.
   - Both are synthesised as they play: no samples.
-- **A minimal screen, large type, a colour per instrument.** At start, a maned wolf (the lobo-guará of the cerrado)
+- **A minimal screen, large type, a colour per instrument.** Under the steps, a band of the page's instruments: the
+  one shown tall, the others in their colour when they play in the rhythm (white as they strike, grey muted), and a
+  drone sounding under it. The berimbaus' steps read DOM, DIM, TCH. At start, a maned wolf (the lobo-guará of the cerrado)
   walks into the cerrado at dusk, in big pixels (80 x 80, 32 colours), his four legs stepping in turn, and stops
   before the setting sun; a key, a button or a knob skips it. The pictures are Jess Del Rio's (`app/art/`);
   `app/tools/opening.py` makes the scene and cuts the wolf out.
@@ -96,7 +120,7 @@ The berimbau's toques:
 
 | Beats | Toques |
 | --- | --- |
-| 4 | ANGOLA, SB PEQUENO, SB GRANDE, BANGUELA, JOGO DE DENTRO, JOGO DE FORA, FREE |
+| 4 | ANGOLA, SB PEQUENO, SB GRANDE, BANGUELA, JOGO DE DENTRO, JOGO DE FORA, RODA ANGOLA, FREE |
 | 8 | SB REGIONAL, CAVALARIA, IDALINA, MIUDINHO, FREE |
 
 Where they come from:
@@ -130,6 +154,15 @@ Where they come from:
   over two counts: "tsch tsch DOM, tsch DIM, tsch tsch DOM DOM DIM". JOGO DE FORA (Jogo de Dentro turned over),
   CAVALARIA (whole: "tsch tsch DOM, tsch DOM, tsch tsch DOM DIM DOM"), IDALINA and MIUDINHO follow
   [opencapoeira.com's notations](https://opencapoeira.com/toques-de-berimbau/), its | a chiado, || two.
+- **The roda of capoeira Angola (RODA ANGOLA)**: the gunga plays ANGOLA, the medio SÃO BENTO PEQUENO and the viola
+  SÃO BENTO GRANDE de Angola, as the Companhia Pernas Pro Ar's "Toques de Berimbau" (2023) and Capoeira Baobá (2026)
+  give them. The pandeiro and the atabaque as Elias's *Só Ritmo* (Grupo Capoeira Brasil, 2017) writes their capoeira
+  grooves; the agogô and the reco-reco as Wikipedia's "Capoeira music" has them (uncited there). Sources disagree on
+  the atabaque (Wikipedia's open tones are *Só Ritmo*'s basses).
+- **The viradas**: ANGOLA's, the viola's "common variations" in Wikipedia's "Capoeira toques"; SÃO BENTO GRANDE de
+  Angola's, *Só Ritmo*'s "Viradas".
+- **IJEXA's agogô**, high and low in sixteenths: Gilson de Assis, *Brazilian Conga* (Advance Music, 2006), "Ijexá",
+  Agogo 1; the same in Pascoal Meirelles's teaching book (UFRJ, 2024).
 - **Choosing for a canto such as Jiboia**, by ear:
   - IJEXA CANTO when it drags and sways;
   - BAIAO or MARCHA 2/4 when it pushes you to dance;
@@ -145,7 +178,7 @@ firmwares' projects or samples.
 
 ## The sounds
 
-`app/kit/` holds one WAV per stroke. `app/tools/kit.py build` turns them into `app/dsp/kit_samples.c` (about 233 KB of
+`app/kit/` holds one WAV per stroke. `app/tools/kit.py build` turns them into `app/dsp/kit_samples.c` (about 346 KB of
 the FM-1's flash: 8 bits a sample, in blocks of 16 that each keep their own scale, the noise about 44 dB under each
 block's loudest). The tanpura and the shruti box use no samples: they are synthesised as they play.
 
@@ -156,7 +189,8 @@ block's loudest). The tanpura and the shruti box use no samples: they are synthe
 | Udu, tone and slap | ["Pong Pop" by AncientOracle](https://freesound.org/s/476883/), cut | CC BY 4.0 |
 | Berimbau (DOM; DIM, a tone higher and damped; TSCH, damped) | ["Berimbau_03"](https://freesound.org/s/177068/), ["Berimbau_01"](https://freesound.org/s/177004/) and ["Berimbau_02"](https://freesound.org/s/177003/) by Paulo Gonçalves, cut | CC BY 4.0 |
 | Caxixi | ["Musical, percussion, caxixi, shake…"](https://freesound.org/s/856789/) by Oldome, cut | CC0 1.0 |
-| Djembe | synthesised by `app/tools/synth.py` | |
+| Djembe; agogô, pandeiro, atabaque, reco-reco | synthesised by `app/tools/synth.py` | |
+| Medio, viola | the berimbau's strokes, played 3 and 7 semitones higher | CC BY 4.0 |
 
 Any stroke can be replaced by your own recording: drop a WAV named after it (`djembe_bass.wav`, `triangle_muted.wav`…)
 into `app/kit/` and run `app/tools/kit.py build`.
