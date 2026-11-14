@@ -226,3 +226,5 @@ licences (above, and `app/kit/CREDITS.txt`).
 
 It is built on fm1-base by Charles Vestal and on felucca-bsp, from Felucca by Leo Kuroshita (Hügelton Instruments).
 M-VAVE and FM-1 are trademarks of their owners; this firmware is not affiliated with M-VAVE.
+
+You can also try Del Rio in the browser, no flashing needed, in the free community [FM-1 Emulator](https://fm1-emulator.atst.tools/).
