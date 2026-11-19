@@ -611,10 +611,12 @@ void app_render(int32_t *lr, uint32_t n, uint32_t master_q12)
 
 /* -------------------------------------------------------------------- text --- */
 static struct {
-    char msg[2][24];                     /* a short message over the header */
+    char msg[3][24];                     /* a change said, large, for a moment, in a panel over the page: its title
+                                          * (none: the value alone), its value, a word under the value */
     uint32_t msg_until;
-    uint16_t msg_rgb;
-    uint8_t msg_title;                   /* the message is a rhythm's name: as large as a title */
+    uint16_t msg_rgb[3];                 /* their colours (0: white, white, the accent) */
+    int16_t msg_bar;                     /* a bar under the value, 0..224 (-1: none), */
+    uint16_t msg_bar_rgb;                /* in this colour (0: white) */
     uint32_t keys, btn;
     uint8_t keypage;                     /* the white keys' page of steps */
     uint32_t clear_t;                    /* EDIT once: a second press within 2 s clears the instrument */
@@ -718,32 +720,53 @@ static void meter_text(const rhythm_t *r, char *t)   /* "4/4" */
     text_cat(t, meter_low(r) == 8u ? "/8" : "/4");
 }
 
+#define SAY_MS 1000u                     /* what is said stays this long: a second (the page under it is what is played) */
+
+/* a change on the screen, large, for a moment, in a panel over the page (draw_say): its title, its value under it, a
+ * word under the value; or a value alone */
+static void msg_show(const char *title, const char *value, const char *sub, uint32_t ms)
+{
+    const char *s[3] = {title, value, sub};
+    uint32_t k, i;
+    if (!value || !value[0]) {
+        s[0] = 0;
+        s[1] = title;
+    }
+    for (k = 0; k < 3u; k++) {
+        for (i = 0; i < 23u && s[k] && s[k][i]; i++)
+            ui.msg[k][i] = s[k][i];
+        ui.msg[k][i] = 0;
+        ui.msg_rgb[k] = 0;
+    }
+    ui.msg_bar = -1;
+    ui.msg_bar_rgb = 0;
+    ui.msg_until = plat_ms() + ms;
+    ui.redraw = 1;
+}
+
+/* what was said goes, the screen is back: a key, PLAY, REC, a page's button */
+static void msg_end(void)
+{
+    if (ui.msg_until)
+        ui.redraw = 1;
+    ui.msg_until = 0;
+}
+
 void app_say(const char *a, const char *b)
 {
-    uint32_t i;
     char t[48];
-    for (i = 0; i < 23u && a && a[i]; i++)
-        ui.msg[0][i] = a[i];
-    ui.msg[0][i] = 0;
-    for (i = 0; i < 23u && b && b[i]; i++)
-        ui.msg[1][i] = b[i];
-    ui.msg[1][i] = 0;
-    ui.msg_until = plat_ms() + 2000u;
-    ui.msg_rgb = 0;
-    ui.msg_title = 0;
-    ui.redraw = 1;
+    msg_show(a, b, 0, SAY_MS);
     if (ann_on()) {                          /* and to a screen reader (announce.c, fm1-reader) */
         t[0] = 0;
         text_cat(t, ui.msg[0]);
-        if (ui.msg[1][0]) {
+        if (ui.msg[0][0])
             text_cat(t, " ");
-            text_cat(t, ui.msg[1]);
-        }
+        text_cat(t, ui.msg[1]);
         ann_say(t, 0, ANN_NOW);
     }
 }
 
-static void say_inst(const char *a, const char *b) { app_say(a, b); }   /* (an instrument's: its word in the accent) */
+static void say_inst(const char *a, const char *b) { app_say(a, b); }   /* (an instrument's, or about one) */
 
 static void drone_words(char *t);
 
@@ -790,6 +813,7 @@ static void sound_apply(uint32_t i)      /* (the medio's and the viola's pitch o
     dr_inst(i, &p);
 }
 
+/* SELECT: the next instrument, said briefly: SELECT INSTRUMENT over its name, in its colour (grey while muted) */
 static void inst_step(int32_t d)
 {
     char t[24];
@@ -798,7 +822,8 @@ static void inst_step(int32_t d)
         i++;
     set.inst = ROW_ORDER[m][(i + (d > 0 ? 1u : n - 1u)) % n];   /* (in SELECT's order) */
     ui.clear_t = 0;
-    ui.msg_until = 0;                    /* the footer says it, in its colour; the rhythm's name at the top, no message */
+    msg_show("SELECT INSTRUMENT", shown()->name, 0, SAY_MS);
+    ui.msg_rgb[1] = cur()->mute >> set.inst & 1u ? C_DIM : shown()->rgb;
     changed();
     if (ann_on()) {                      /* a screen reader hears it */
         t[0] = 0;
@@ -839,7 +864,7 @@ static int has_strokes(const rhythm_t *r, uint32_t i)
     return 0;
 }
 
-#define RHY_SAY_MS 4000u                 /* a rhythm chosen: its beats and name stay this long */
+#define RHY_SAY_MS 1500u                 /* a rhythm chosen: its name stays this long, a little more to read it */
 
 static int any_strokes(const rhythm_t *r)
 {
@@ -866,8 +891,8 @@ static void rhythm_shown_fit(void)
 
 /* a rhythm chosen: a written one comes as it is written (its steps, swing and strokes: what was changed in it is
  * gone; its tempo as it was last set); a FREE one as the player left it. Playing, it comes in on the next bar's
- * first step (the one playing chosen again: it stays). Said: its name (its beats are in the footer), and NEXT while
- * it waits for its bar */
+ * first step (the one playing chosen again: it stays). Said: PRESET over its name, large, and NEXT under it while it
+ * waits for its bar */
 static void rhythm_select(uint32_t k)
 {
     uint32_t i;
@@ -889,9 +914,9 @@ static void rhythm_select(uint32_t k)
         rhythm_shown_fit();
         app_say(rhythm_name(k), "");
     }
-    ui.redraw = 1;
-    ui.msg_until = plat_ms() + RHY_SAY_MS;   /* time to read it while turning on */
-    ui.msg_title = 1;
+    msg_show("PRESET", rhythm_name(k), seq.next ? "NEXT" : "", RHY_SAY_MS);   /* time to read it while turning on */
+    if (seq.next)
+        ui.msg_rgb[1] = C_HI;            /* (it waits) */
 }
 
 /* what PRESET and the list show: the written rhythms and the FREE places that hold one (only SAVE's list shows an empty
@@ -946,7 +971,11 @@ static void meter_step(int32_t d)
         for (i = 0; i < NRHY; i++) {
             uint32_t k = ORD[i];
             if (rhy[k].beats == (uint32_t)b && rhy_mode(k) == rhy_mode(set.rhythm) && rhythm_listed(k)) {
+                char t[4];
                 rhythm_select(k);
+                int_text(b, t);          /* said: the beats, the rhythm's name under them */
+                msg_show(berimbau() ? "COUNTS" : "BEATS", t, rhythm_name(k), RHY_SAY_MS);
+                ui.msg_rgb[2] = seq.next ? C_HI : C_WHITE;
                 return;
             }
         }
@@ -964,6 +993,7 @@ static void bpm_set(int32_t v)
     int_text((int32_t)bpm_shown(cur()), t);
     text_cat(t, " BPM");
     app_say("TEMPO", t);
+    ui.msg_bar = (int16_t)(((int32_t)cur()->bpm - 40) * 224 / 200);
 }
 
 static void pct_step(uint8_t *p, int32_t d, const char *name)
@@ -974,6 +1004,7 @@ static void pct_step(uint8_t *p, int32_t d, const char *name)
     int_text(*p, t);
     text_cat(t, "%");
     app_say(name, t);
+    ui.msg_bar = (int16_t)((int32_t)*p * 224 / 100);
 }
 
 /* SEQ: the tempo from the last taps (two at least, less than 1.5 s apart) */
@@ -1147,7 +1178,10 @@ static void knob_turn(uint32_t k, int32_t d)
     sound_apply(sinst());
     changed();
     knob_text(k, t);
-    if (ann_on()) {                      /* the page shows the value: a screen reader hears it */
+    msg_show(KNOB_NAME[k], t, 0, SAY_MS);   /* said large, its bar in the instrument's colour */
+    ui.msg_bar = (int16_t)knob_fill(k, 224);
+    ui.msg_bar_rgb = set.page == PG_SOUND ? shown()->rgb : 0;
+    if (ann_on()) {                      /* a screen reader hears it */
         char a[40] = "";
         text_cat(a, KNOB_NAME[k]);
         text_cat(a, " ");
@@ -1225,6 +1259,7 @@ static void step_key(uint32_t w, uint32_t k)
     uint32_t s = ui.keypage * page_steps(r) + w, v, a, flam;
     if (w >= page_steps(r) || s >= nsteps(r))
         return;
+    msg_end();
     v = r->step[set.inst][s];
     if (sinst() == I_DJEMBE && flam_held()) {
         a = ART(v) ? ART(v) : 1u;
@@ -1263,6 +1298,7 @@ static void pad_key(uint32_t b, uint32_t k)
 {
     uint32_t art, row = pad_row(b, &art), in, vel = key_vel(k), flam;
     int32_t s;
+    msg_end();
     if (row == PAD_VIRADA && flam_held()) {
         ladainha_press();
         return;
@@ -1462,10 +1498,11 @@ static void mode_show(uint32_t m)
     ui.keypage = 0;
     ui.clear_t = 0;
     changed();
-    app_say(MODE_NAME[set.mode], "");
-    ui.msg_until = plat_ms() + RHY_SAY_MS;
-    ui.msg_title = 1;
-    ui.msg_rgb = MODE_RGB[set.mode];
+    app_say(MODE_NAME[set.mode], "");    /* said large, in its colour (a drone's: its page's title says it) */
+    if (drone())
+        msg_end();
+    else
+        ui.msg_rgb[1] = MODE_RGB[set.mode];
 }
 
 /* FX: the next, the drones right after the kit (the kit playing on under them), then the berimbau */
@@ -1477,6 +1514,7 @@ static void mode_step(void)
 
 static void solo_key(uint32_t k)
 {
+    msg_end();
     if (set.mode == MODE_TANPURA)        /* a key: its note is Sa */
         set.tp_sa = (uint8_t)((53u + k) % 12u);
     else if (set.sh_kind == SH_NOTES)    /* a key: its reed opens or closes */
@@ -1501,8 +1539,7 @@ static void tanpura_first(int32_t d)
     drone_apply();
     text_cat(t, FIRST_NAME[f]);          /* SA PA, SA MA, SA NI: as the tanpura is said to be tuned */
     app_say(t, "");
-    ui.msg_until = plat_ms() + RHY_SAY_MS;
-    ui.msg_title = 1;
+    msg_show("TUNING", t, 0, RHY_SAY_MS);
 }
 
 /* a drone's screen in words (speak): its name, the tanpura's Sa, tuning and character, the shruti's chord */
@@ -1522,40 +1559,60 @@ static void drone_words(char *t)
         shruti_name(t + text_len(t));
 }
 
-/* a drone's knob turned: its setting to a screen reader (the screen shows it) */
+/* a drone's knob turned: its name and its value said large, its bar in the drone's colour; a screen reader hears them */
 static void solo_say(uint32_t i)
 {
-    char t[32], n[12];
-    if (!ann_on())
-        return;
-    t[0] = n[0] = 0;
+    char t[32], n[12], v[12];
+    const char *name;
+    int32_t bar = -1;
+    t[0] = n[0] = v[0] = 0;
     if (set.mode == MODE_TANPURA) {
-        static const char *const NAME[4] = {"JAWARI ", "CYCLE ", "REGISTER ", "LEVEL "};
-        text_cat(t, NAME[i]);
+        static const char *const NAME[4] = {"JAWARI", "CYCLE", "REGISTER", "LEVEL"};
+        name = NAME[i];
         if (i == 1u) {
             int_text(set.tp_cycle / 10, n);
             text_cat(n, ".");
             int_text(set.tp_cycle % 10, n + text_len(n));
             text_cat(n, " S");
+            bar = ((int32_t)set.tp_cycle - 20) * 224 / 60;
         } else if (i == 2u)
             text_cat(n, set.tp_high ? "HIGH" : "LOW");
         else {
             int_text(i ? set.tp_level : set.tp_jawari, n);
             text_cat(n, "%");
+            bar = (int32_t)(i ? set.tp_level : set.tp_jawari) * 224 / 100;
         }
+        text_cat(v, n);
     } else {
-        static const char *const NAME[3] = {"BREATHING ", "TEMPO ", "LEVEL "};
-        text_cat(t, NAME[i]);
-        if (i == 1u && !set.sh_tempo)
-            text_cat(t, "RHYTHM ");
+        static const char *const NAME[3] = {"BREATHING", "TEMPO", "LEVEL"};
+        name = NAME[i];
         int_text(i == 0u ? set.sh_bellows : i == 1u ? (int32_t)shruti_tempo() : set.sh_level, n);
         text_cat(n, i == 1u ? " BPM" : "%");
+        if (i == 0u && !set.sh_bellows)
+            text_cat(v, "STEADY");       /* (as its page writes them) */
+        else {
+            if (i == 1u && !set.sh_tempo)
+                text_cat(v, "= ");
+            text_cat(v, n);
+        }
+        if (i != 1u)
+            bar = (int32_t)(i ? set.sh_level : set.sh_bellows) * 224 / 100;
     }
+    msg_show(name, v, 0, SAY_MS);
+    ui.msg_bar = (int16_t)bar;
+    ui.msg_bar_rgb = MODE_RGB[set.mode];
+    if (!ann_on())
+        return;
+    text_cat(t, name);
+    text_cat(t, " ");
+    if (set.mode == MODE_SHRUTI && i == 1u && !set.sh_tempo)
+        text_cat(t, "RHYTHM ");
     text_cat(t, n);
     ann_say(t, 0, ANN_NOW);
 }
 
-/* PRESETS in a drone: the tanpura's character, the shruti's chord (on the key pressed last); its name large */
+/* PRESETS in a drone: the tanpura's character, the shruti's chord (on the key pressed last); said large, PRESET over
+ * its name */
 static void drone_preset(uint32_t i)
 {
     char t[24];
@@ -1563,16 +1620,16 @@ static void drone_preset(uint32_t i)
         set.tp_preset = (uint8_t)i;
         set.tp_cycle = TP_PRESET[i].cycle;
         set.tp_jawari = TP_PRESET[i].jawari;
-        app_say(TP_PRESET[i].name, "");
+        t[0] = 0;
+        text_cat(t, TP_PRESET[i].name);
     } else {
         set.sh_kind = (uint8_t)i;
         if (i != SH_NOTES)
             set.sh_notes = chord(set.sh_root, i);
         shruti_name(t);
-        app_say(t, "");
     }
-    ui.msg_until = plat_ms() + RHY_SAY_MS;
-    ui.msg_title = 1;
+    app_say(t, "");
+    msg_show("PRESET", t, 0, RHY_SAY_MS);
     changed();
     drone_apply();
 }
@@ -1867,6 +1924,8 @@ static void play_stop(void)
 
 static void solo_button(uint32_t b)
 {
+    if (b == B_PLAY || b == B_HOME || b == B_GLO)
+        msg_end();
     switch (b) {
     case B_FX:
         mode_step();
@@ -1986,11 +2045,14 @@ static void button(uint32_t b)
         if (b == PAGE_BTN[i]) {          /* (the presets' list closed: the page shown) */
             if (b == B_HOME)
                 battery_show(3000u);
+            msg_end();
             set.page = (uint8_t)i;
             ui.list_on = 0;
             ui.redraw = 1;
             return;
         }
+    if (b == B_PLAY || b == B_REC)
+        msg_end();
     switch (b) {
     case B_PLAY:
         if (!seq.playing)
@@ -2013,6 +2075,7 @@ static void button(uint32_t b)
         r->mute ^= (uint8_t)(1u << set.inst);
         changed();
         say_inst(shown()->name, (r->mute >> set.inst & 1u) ? "MUTED" : "ON");
+        ui.msg_rgb[0] = shown()->rgb;
         break;
     case B_EDIT:
         if (ui.clear_t && plat_ms() - ui.clear_t < 2000u) {
@@ -2021,6 +2084,7 @@ static void button(uint32_t b)
             ui.clear_t = 0;
             changed();
             say_inst(shown()->name, "CLEARED");
+            ui.msg_rgb[0] = shown()->rgb;
         } else {
             ui.clear_t = plat_ms();
             say_inst("EDIT AGAIN", "TO CLEAR");
@@ -2229,9 +2293,10 @@ static void input(void)
 void app_input_only(void) { input(); }
 
 /* ----------------------------------------------------------------- screen --- */
-/* The screen's rules: the greys for its structure (rules, empty steps, labels), white for values, an instrument's or a
- * drone's colour only for it (its name, its steps, its bars, the band), the accent (C_HI) only for what waits (a
- * message's word, the rhythm coming in at the next bar); green playing, red recording. No text under FONT_B. */
+/* The screen's rules: the greys for its structure (rules, empty steps, labels), white for values (a list's line,
+ * SETUP's too), an instrument's or a drone's colour only for it (its name, its steps, its bars, the band, a drone's
+ * presets, its rule under a rhythm's name), the accent (C_HI) only for what waits (a message's word, the rhythm coming
+ * in at the next bar, the place SAVE will write); green playing, red recording. No text under FONT_B. */
 #define C_BOX RGB(20, 22, 26)
 #define C_REC RGB(240, 60, 50)
 #define C_GO RGB(90, 210, 110)
@@ -2295,27 +2360,28 @@ static void battery_mark(void)
         cv_rect(213 + i * 6, 14, 5, 7, C_GRAY);
 }
 
-/* a title, large; one too long to clear the battery, smaller */
-static int32_t title(const char *t, uint16_t rgb)
+/* a title, large; one too long for its room, smaller. Its room: the whole width, but when the top right is taken for
+ * long (the battery low, a bar counted in). A large title reaching the battery's place (title_wide) goes without it,
+ * the few seconds it would show */
+#define TITLE_ROOM 196                   /* clear of the battery */
+static int title_wide;
+static int32_t title_room(void) { return ui.batt == 0 || ui.batt == 1 || seq.count ? TITLE_ROOM : 224; }
+static int32_t title(const char *t, uint16_t rgb, int32_t room)
 {
-    int big = text_w(&FONT_L, t) <= 196;
+    int32_t w = text_w(&FONT_L, t);
+    int big = w <= room;
+    title_wide = big && w > TITLE_ROOM;
     return cv_text(8, big ? 2 : 6, big ? &FONT_L : &FONT_M, t, rgb);
 }
 
 /* the header: the rhythm large, in white (the one coming in at the next bar, in the accent); the page's title; on
- * SOUND the instrument in its colour (grey while muted); or a message */
+ * SOUND the instrument in its colour (grey while muted). Top right: the beats to go counting in, large on
+ * red; else the battery. Its rule: thick, in a drone's colour while it sounds under another page */
 static void header(void)
 {
     const rhythm_t *r = cur();
-    if (plat_ms() < ui.msg_until && ui.msg_title) {   /* a rhythm's name, as it will stay */
-        int32_t x = title(ui.msg[0], ui.msg_rgb ? ui.msg_rgb : C_WHITE) + 10;
-        if (ui.msg[1][0])
-            cv_text(x, 11, &FONT_B, ui.msg[1], C_HI);
-    } else if (plat_ms() < ui.msg_until) {
-        int32_t x = cv_text(8, 6, &FONT_M, ui.msg[0], C_WHITE) + 10;
-        const felucca_font_t *f = x + text_w(&FONT_M, ui.msg[1]) > 236 ? &FONT_B : &FONT_M;
-        cv_text(x, f == &FONT_M ? 6 : 11, f, ui.msg[1], C_HI);
-    } else if (save_list()) {
+    title_wide = 0;
+    if (save_list()) {
         cv_text(8, 2, &FONT_L, "SAVE TO", C_WHITE);
     } else if (set.page == PG_SETUP) {
         cv_text(8, 2, &FONT_L, "SETUP", C_WHITE);
@@ -2324,14 +2390,22 @@ static void header(void)
         if (drone_on())                 /* sounding: the green triangle, left of the battery */
             play_mark(190, 10);
     } else if (set.page == PG_HOME) {
-        title(rhythm_name(rhythm_shown()), seq.next ? C_HI : C_WHITE);
+        title(rhythm_name(rhythm_shown()), seq.next ? C_HI : C_WHITE, title_room());
     } else {
         int muted = (int)(r->mute >> set.inst & 1u);
         cv_text(8, 2, &FONT_L, shown()->name, muted ? C_DIM : shown()->rgb);
     }
-    if (battery_shown() && (plat_ms() >= ui.msg_until || (ui.msg_title && !ui.msg[1][0])))
-        battery_mark();                  /* (a message has the whole width, but for a title alone) */
-    cv_rect(0, 36, 240, 1, C_LINE);
+    if (seq.count) {                     /* counting in: the beats to go */
+        char t[8];
+        int_text((int32_t)((seq.count + r->div - 1u) / r->div), t);
+        cv_rect(202, 0, 38, 36, C_REC);
+        text_c(221, 2, &FONT_L, t, C_BLACK);
+    } else if (!title_wide && battery_shown())
+        battery_mark();
+    if (ui.drone && !drone())            /* a drone under this page */
+        cv_rect(0, 35, 240, 3, MODE_RGB[ui.drone]);
+    else
+        cv_rect(0, 36, 240, 1, C_LINE);
 }
 
 /* the steps: a row a beat, its steps across; a stroke fills its step in the instrument's colour (dimmer when soft)
@@ -2376,7 +2450,7 @@ static void draw_steps(void)
 }
 
 /* the footer: the tempo large, the time signature, the instrument shown, and what it is doing (a green
- * triangle playing, a red dot recording, the beats to go counting in, a white square stopping on the bar) */
+ * triangle playing, a red dot recording or counting in, a white square stopping on the bar) */
 static void footer(void)
 {
     const rhythm_t *r = cur(), *n = &rhy[rhythm_shown()];   /* (the one coming in at the next bar, in the accent) */
@@ -2389,10 +2463,7 @@ static void footer(void)
     meter_text(n, t);
     cv_text(x + 8, 205, &FONT_B, t, seq.next ? C_HI : C_WHITE);
     cv_text(210 - text_w(&FONT_B, name), 205, &FONT_B, name, r->mute >> set.inst & 1u ? C_DIM : shown()->rgb);
-    if (seq.count) {                     /* counting in: the beats to go */
-        int_text((int32_t)((seq.count + r->div - 1u) / r->div), t);
-        cv_text(232 - text_w(&FONT_M, t), 200, &FONT_M, t, C_REC);
-    } else if (seq.rec) {
+    if (seq.count || seq.rec) {
         cv_rect(218, 205, 14, 14, C_REC);
         cv_rect(218, 205, 2, 2, C_BLACK);    /* the corners off: a dot */
         cv_rect(230, 205, 2, 2, C_BLACK);
@@ -2404,12 +2475,12 @@ static void footer(void)
         play_mark(219, 204);
 }
 
-/* a page of four values, one a row: the name, the value large, a thick bar in the instrument's colour */
+/* a page of four values, one a row: the name, the value large, a thick bar in the instrument's colour (SETUP's: white) */
 static void draw_page(void)
 {
     uint32_t i;
     char t[24];
-    uint16_t col = set.page == PG_SOUND ? shown()->rgb : C_HI;
+    uint16_t col = set.page == PG_SOUND ? shown()->rgb : C_WHITE;
     for (i = 0; i < 4u; i++) {
         uint32_t kn = page_knob(set.page, i);
         int32_t y = 42 + (int32_t)i * 48, f;
@@ -2528,11 +2599,11 @@ static void draw_solo(void)
     }
 }
 
-/* the presets' list (LFO): five at most, the one shown in the middle, large on the colour, with its beats; the one
- * chosen marked at the left */
+/* the presets' list (LFO): five at most, the one shown in the middle, large on white (a drone's presets: on its
+ * colour; SAVE's places: on the accent, they wait), with its beats; the one chosen marked at the left */
 static void draw_list(void)
 {
-    uint16_t col = drone() ? MODE_RGB[set.mode] : shown()->rgb;
+    uint16_t col = save_list() ? C_HI : drone() ? MODE_RGB[set.mode] : C_WHITE;
     int32_t n = (int32_t)list_n(), lo = -(n - 1) / 2 < -2 ? -2 : -(n - 1) / 2, hi = n / 2 > 2 ? 2 : n / 2, o;
     char t[8];
     for (o = lo; o <= hi; o++) {
@@ -2543,7 +2614,7 @@ static void draw_list(void)
         if (!o)
             cv_rect(6, y, 230, 34, col);
         if (i == list_now())
-            cv_rect(0, y, 3, 34, C_WHITE);
+            cv_rect(0, y, 3, 34, C_GRAY);
         cv_text(14, y + (o ? 9 : 5), f, list_name(i), fg);
         list_value(i, t);
         if (t[0])
@@ -2552,34 +2623,34 @@ static void draw_list(void)
 }
 
 /* the bottom row, under the footer: the mode's instruments in SELECT's order, always in their place, three letters
- * each; in their colour when they play in the rhythm (the one shown full, and taller), dark when not, grey when muted,
- * white as they strike; a drone sounding under it, last, in its colour */
+ * each (the reco-reco RCO: REC is the button's); in their colour when they play in the rhythm (the one shown full, and
+ * taller), their letters grey on the dark when not, grey when muted, white as they strike */
 static void band_insts(void)
 {
     const rhythm_t *r = cur();
-    uint32_t m = berimbau(), n = ROW_N[m], k = n + (ui.drone ? 1u : 0u), i;
-    int32_t gap = k > 8u ? 1 : 2, w = (240 - ((int32_t)k - 1) * gap) / (int32_t)k;   /* (nine: the berimbau's, a drone) */
-    for (i = 0; i < k; i++) {
-        int32_t x = (int32_t)i * (w + gap), cw = i == k - 1u ? 240 - x : w, top;
-        uint32_t row = i < n ? ROW_ORDER[m][i] : 0u;
-        uint16_t rgb = i < n ? INST[ROW_INST[m][row]].rgb : MODE_RGB[ui.drone], c, fg = C_BLACK;
-        const char *name = i < n ? INST[ROW_INST[m][row]].name : MODE_NAME[ui.drone];
+    uint32_t m = berimbau(), n = ROW_N[m], i;
+    int32_t gap = 2, w = (240 - ((int32_t)n - 1) * gap) / (int32_t)n;
+    for (i = 0; i < n; i++) {
+        int32_t x = (int32_t)i * (w + gap), cw = i == n - 1u ? 240 - x : w, top;
+        uint32_t row = ROW_ORDER[m][i];
+        uint16_t rgb = INST[ROW_INST[m][row]].rgb, c, fg = C_BLACK;
+        const char *name = INST[ROW_INST[m][row]].name;
         char t[4] = {name[0], name[1], name[2], 0};
-        int here = i < n && row == set.inst;
-        if (i == n)
-            c = rgb;
-        else if (r->mute >> row & 1u)
+        int here = row == set.inst;
+        if (ROW_INST[m][row] == I_RECO)
+            t[1] = 'C', t[2] = 'O';
+        if (r->mute >> row & 1u)
             c = C_DIM;
         else if (lad_out(row)) {         /* (the ladainha: not in yet) */
             c = C_LINE;
-            fg = here ? rgb : C_DIM;
+            fg = here ? rgb : C_GRAY;
         } else if (seq.playing && !seq.count && seq.step >= 0 && ART(r->step[row][seq.step]))
             c = C_WHITE;
         else if (has_strokes(r, row))
             c = here ? rgb : rgb_scale(rgb, 192u);
         else {
             c = C_LINE;
-            fg = here ? rgb : C_DIM;
+            fg = here ? rgb : C_GRAY;
         }
         top = here ? 222 : 226;
         cv_rect(x, top, cw, 240 - top, c);
@@ -2587,9 +2658,47 @@ static void band_insts(void)
     }
 }
 
+/* a change said (msg_show): a panel under the header, framed in grey, no taller than what it says: the rest of the
+ * page still shows (the kit's: its last steps, its footer and its instruments; a page of settings or a list: the rows
+ * under the panel, whole, so the panel ends where a row begins). In
+ * it: the title, the value in the middle in the screen's largest type (every value the same size; one too long,
+ * smaller), the word under it or its bar */
+#define SAY_TOP 40
+#define SAY_W 216                        /* its text's room */
+static void draw_say(void)
+{
+    const char *v = ui.msg[1];
+    const felucca_font_t *f;
+    uint16_t c = ui.msg_rgb[1] ? ui.msg_rgb[1] : C_WHITE;
+    int32_t bot = list_shown() ? 156 : set.page == PG_SETUP ? 136 : set.mode == MODE_TANPURA ? 150
+                  : set.mode == MODE_SHRUTI ? 154 : 136;
+    int32_t y0 = SAY_TOP + 6, y1 = bot - 6, w = text_w(&FONT_L, v), mid;
+    cv_rect(2, SAY_TOP, 236, bot - SAY_TOP, C_BLACK);
+    frame(4, SAY_TOP, 232, bot - SAY_TOP, 2, C_GRAY);
+    if (ui.msg[0][0]) {
+        text_c(120, SAY_TOP + 8, &FONT_M, ui.msg[0], ui.msg_rgb[0] ? ui.msg_rgb[0] : C_WHITE);
+        y0 = SAY_TOP + 34;
+    }
+    if (ui.msg[2][0]) {
+        f = text_w(&FONT_M, ui.msg[2]) <= SAY_W ? &FONT_M : &FONT_B;
+        text_c(120, bot - 32, f, ui.msg[2], ui.msg_rgb[2] ? ui.msg_rgb[2] : C_HI);
+        y1 = bot - 34;
+    } else if (ui.msg_bar >= 0) {
+        int32_t b = ui.msg_bar * SAY_W / 224;
+        cv_rect(12, bot - 22, SAY_W, 12, C_LINE);
+        cv_rect(12, bot - 22, b, 12, ui.msg_bar_rgb ? ui.msg_bar_rgb : C_WHITE);
+        cv_rect(12 + (b > 3 ? b - 3 : 0), bot - 25, 3, 18, C_WHITE);   /* where the value sits */
+        y1 = bot - 28;
+    }
+    mid = (y0 + y1) / 2;
+    f = w <= SAY_W ? &FONT_L : text_w(&FONT_M, v) <= SAY_W ? &FONT_M : &FONT_B;
+    text_c(120, mid - f->h / 2, f, v, c);
+}
+
 static void draw(void)
 {
     int32_t top;
+    int saying = plat_ms() < ui.msg_until;   /* (the same for both bands) */
     for (top = 0; top < 240; top += 120) {
         band(top);
         header();
@@ -2607,7 +2716,10 @@ static void draw(void)
         if (set.page == PG_HOME && !drone() && !list_shown())
             band_insts();
         else
-            cv_rect(0, 232, 240, 8, set.page == PG_SETUP ? C_HI : drone() ? MODE_RGB[set.mode] : shown()->rgb);
+            cv_rect(0, 232, 240, 8, save_list() ? C_HI : drone() ? MODE_RGB[set.mode]
+                                    : list_shown() || set.page == PG_SETUP ? C_WHITE : shown()->rgb);
+        if (saying)
+            draw_say();
         cv_blit(0, (uint32_t)top);
     }
 }

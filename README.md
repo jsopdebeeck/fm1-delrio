@@ -31,8 +31,8 @@ in three letters; a page of large sliders. [All the screens](docs/img/all-screen
   sounding.
 - **PLAY loops the rhythm; REC records what you play on the black keys**, each stroke onto the nearest step, over
   what is there. From a stop, a bar is counted in first. The sequencer runs in the audio interrupt, to the sample.
-- **Everything changes on the bar.** A rhythm chosen while one plays comes in on the next bar's first beat (NEXT beside
-  its name at the top till then, its time signature in the accent). PLAY while playing stops on the next bar's first beat, its strokes the last (PLAY
+- **Everything changes on the bar.** A rhythm chosen while one plays comes in on the next bar's first beat (NEXT under
+  its name as it is chosen; till then its name at the top and its time signature in the accent). PLAY while playing stops on the next bar's first beat, its strokes the last (PLAY
   blinks, a white square in the footer); PLAY again stops at once. A tempo set while playing glides there over a bar;
   a tapped one (SEQ) is there at once.
 - **Each rhythm keeps its tempo**: set it once, and it comes back at it, away and back (SAVE keeps it).
@@ -113,14 +113,19 @@ in three letters; a page of large sliders. [All the screens](docs/img/all-screen
 - **A minimal screen, large type, a colour per instrument.** At the top, the rhythm's name. At the bottom, the tempo,
   the bar's time signature (its beats over 4; beats of three steps, their eighths over 8: 6/8, 12/8) and the instrument
   shown, in its colour. Under them, the page's instruments in three letters (DJE CAJ UDU CLA MAR TRI; GUN MED VIO
-  CAX PAN ATA AGO REC), always in their order: in their colour when they play in the rhythm, dark when not, white as
-  they strike, grey muted; the one shown taller; a drone sounding under it, last. The berimbaus' steps read DOM, DIM, TCH. The berimbau's page shows the toques as their sources count them, in 2/4, the tempo its quarter note: ANGOLA at 45 BPM, its grid a row a count, four to the bar (eight, over two bars). At start, a maned wolf (the lobo-guará of the cerrado)
+  CAX PAN ATA AGO RCO), always in their order: in their colour when they play in the rhythm, dark when not, white as
+  they strike, grey muted; the one shown taller. A drone sounding under the rhythm: the rule under the name, in the
+  drone's colour. Counting in, the beats to go large on red, top right. The lists are white, a drone's presets in its
+  colour, SAVE's places in the accent. What a knob (KNOB 1 to 4, PRESETS, ALGORITHM) or a button changes is said
+  large for a second (a rhythm's name, a second and a half), in a panel under the name, no taller than what it says (the rest of the page stays
+  in sight): its title (TEMPO, SWING, PRESET, BEATS, LEVEL...), its value under it, with its bar where it has a range;
+  then the panel goes, at once on a key, PLAY, REC or a page's button. Every value is the same size. SELECT says SELECT INSTRUMENT over the instrument's name, in its colour. The berimbaus' steps read DOM, DIM, TCH. The berimbau's page shows the toques as their sources count them, in 2/4, the tempo its quarter note: ANGOLA at 45 BPM, its grid a row a count, four to the bar (eight, over two bars). At start, a maned wolf (the lobo-guará of the cerrado)
   walks into the cerrado at dusk, in big pixels (80 x 80, 32 colours), his four legs stepping in turn, and stops
   before the setting sun; a key, a button or a knob skips it. The pictures are Jess Del Rio's (`app/art/`);
   `app/tools/opening.py` makes the scene and cuts the wolf out.
 - **The battery, top right, for 5 s after the opening, 3 s after HOME or FX, and all the time with one bar left or
   none:** three bars, the outline red when it is empty; USB while a
-  computer powers the FM-1. The keys' velocity holds the converter that reads it, so every 10 s, with no key down, it is let go for 2 ms.
+  computer powers the FM-1. A name that needs its place is shown large without it, and smaller under it when it is low. The keys' velocity holds the converter that reads it, so every 10 s, with no key down, it is let go for 2 ms.
 - **A screen reader can follow it** (fm1-reader, over USB).
 
 ### The rhythms

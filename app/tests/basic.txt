@@ -31,13 +31,15 @@ expect battshown 0
 tap FX
 expect mode 2
 expect battshown 1
-expect msg 1
+# (a drone's page: its title says it, nothing is said large; back to the kit: KIT, large)
+expect msg 0
 shot batt-fx.png
 wait 3200
 expect battshown 0
 tap HOME
 expect mode 0
 expect battshown 1
+expect msg 1
 wait 4200
 expect battshown 0
 expect msg 0
@@ -190,10 +192,10 @@ turn PRESET -1
 expect rhythm 7
 turn PRESET 1
 expect rhythm 0
-# the rhythm's beats and name stay on the screen 4 s, to be read while turning
-wait 3000
+# the rhythm's name stays on the screen 1.5 s, to be read while turning
+wait 1000
 expect msg 1
-wait 1200
+wait 700
 expect msg 0
 # (passing MAZURCA and JOROPO, the maracas came to be shown; HEARTBEAT has them too)
 expect inst 4
@@ -1344,3 +1346,60 @@ expect beats 8
 expect meter 204
 expect bpm 136
 expect bpmshown 68
+
+# what a knob, PRESET, ALGORITHM or a button does is said large on the screen (msg): its title at the top, its value
+# under it; then the page is back, at once on a key, PLAY, REC or a page's button
+expect msg 1
+wait 4200
+expect msg 0
+turn K1 1
+expect msg 1
+expect bpmshown 69
+tap ENV
+expect msg 0
+# (a SOUND page's knob, large too)
+turn K1 1
+expect msg 1
+turn K1 -1
+tap HOME
+expect msg 0
+turn K4 1
+expect msg 1
+turn K4 -1
+tap PLAY
+expect msg 0
+# (stopping on the bar: said)
+wait 300
+tap PLAY
+expect msg 1
+tap PLAY
+expect msg 0
+tap FX
+expect mode 0
+expect msg 1
+wait 2200
+expect msg 0
+# (a drone's page: its title says it; its knobs, large)
+tap FX
+expect mode 2
+expect msg 0
+turn K1 1
+expect msg 1
+turn K1 -1
+tap GLO
+expect msg 0
+tap HOME
+
+# SELECT says SELECT INSTRUMENT over the instrument's name, briefly (a second); a drone's page has no SELECT
+turn SELECT 1
+expect msg 0
+tap FX
+tap FX
+expect mode 1
+wait 2400
+expect msg 0
+turn SELECT 1
+expect msg 1
+wait 1200
+expect msg 0
+turn SELECT -1
