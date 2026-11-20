@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manual · DelRio</title>
+<meta name="description" content="The manual for DelRio, a firmware for the M-VAVE FM-1.">
+<style>
+/* paper and ink: warm white paper, ink-blue type, vermilion for what is played, mustard for asides; a shade of the
+   paper for code and callouts (CTL-1's; a firmware may restyle its site) */
+:root {
+  --paper: #fbf8f1; --sheet: #efe9dc; --rule: #ddd4c2; --ink: #1e2b5a; --muted: #5d6585;
+  --hot: #e5482e; --hot-t: #f8d3c9; --cool: #d9a21b; --cool-t: #f5e4b8;
+  --hot-ink: #c23a22;                                 /* the vermilion as text: 4.5:1 on the paper */
+  color-scheme: light;
+}
+body {
+  background: var(--paper); color: var(--ink); margin: 0;
+  font: 400 17px/1.6 "Helvetica Neue", Helvetica, Arial, sans-serif;
+  padding-inline: 16px; padding-block: 32px 64px;
+}
+main { max-width: 46rem; margin: 0 auto; }
+.page > .site { max-width: 46rem; margin-inline: auto; }
+main:focus { outline: none; }
+h1, h2, h3 { font-family: inherit; text-wrap: balance; line-height: 1.2; }
+h1 { font-size: 2.2rem; font-weight: 700; margin: 0 0 .4rem; letter-spacing: .02em; }
+h2 { font-size: 1.3rem; font-weight: 700; margin: 3rem 0 .8rem; padding-top: .8rem; border-top: 2px solid var(--ink); }
+h2 .num { color: var(--hot); margin-right: .5em; font-variant-numeric: tabular-nums; }
+h3 { font-size: 1.1rem; font-weight: 700; margin: 2rem 0 .5rem; }
+p, li { max-width: 65ch; }
+p { margin: 0 0 1rem; }
+ul, ol { padding-left: 1.3rem; margin: 0 0 1rem; }
+li { margin: .2rem 0; }
+li::marker { color: var(--hot); }
+strong { font-weight: 700; }
+a { color: var(--ink); text-decoration-color: var(--hot); text-decoration-thickness: 2px; text-underline-offset: 3px; }
+a:hover { background: var(--hot-t); }
+:focus-visible { outline: 3px solid var(--hot-ink); outline-offset: 2px; }
+.skip { position: absolute; left: 16px; top: -100px; background: var(--ink); color: var(--paper); padding: 8px 14px; border-radius: 0 0 6px 6px; z-index: 1; }
+.skip:focus { top: 0; }
+code, pre { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .86em; }
+code { background: var(--sheet); padding: .08em .35em; border-radius: 3px; }
+pre { background: var(--sheet); border-radius: 6px; padding: 14px 16px; overflow-x: auto; line-height: 1.45; margin: 0 0 1.2rem; }
+pre code { background: none; padding: 0; font-size: inherit; }
+hr { display: none; }
+.table { overflow-x: auto; margin: 0 0 1.3rem; }
+table { border-collapse: collapse; width: 100%; font-size: .95rem; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; vertical-align: top; padding: .45rem .7rem .45rem 0; border-bottom: 1px solid var(--rule); }
+th { font-weight: 700; text-transform: uppercase; letter-spacing: .06em; font-size: .78rem; color: var(--muted); border-bottom: 2px solid var(--ink); }
+td:first-child { white-space: nowrap; }
+.lede { margin-bottom: 1.6rem; }
+.status { background: var(--sheet); border-radius: 6px; padding: 12px 16px; }
+.status p { margin: 0; }
+.site { display: flex; flex-wrap: wrap; align-items: baseline; gap: .3rem 1.2rem; margin: 0 0 1.6rem; padding-bottom: .5rem; border-bottom: 2px solid var(--ink); }
+.site .home { font-size: 1.1rem; font-weight: 700; letter-spacing: .04em; color: var(--ink); text-decoration: none; }
+.site .home:hover { color: var(--hot-ink); background: none; }
+.site nav { margin-left: auto; display: flex; flex-wrap: wrap; gap: .2rem 1rem; font-size: .92rem; }
+.site nav a { color: var(--ink); text-underline-offset: 3px; }
+.site nav a[aria-current] { text-decoration: none; color: var(--hot-ink); }
+a.home { color: inherit; text-decoration: none; }
+a.home:hover { background: none; color: var(--hot-ink); }
+main > a.home { display: inline-block; font-size: .9rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 .4rem; }
+.callout { border-left: 4px solid var(--cool); background: var(--cool-t); padding: 10px 16px; margin: 0 0 1.2rem; max-width: 65ch; border-radius: 0 6px 6px 0; }
+.callout p { margin: 0; }
+details { background: var(--sheet); border-radius: 6px; padding: 0 16px; margin: 0 0 1.2rem; }
+details > summary { cursor: pointer; padding: 10px 0; }
+details[open] > summary { margin-bottom: .4rem; }
+details > :last-child { margin-bottom: 1rem; }
+.swatch { display: inline-block; width: .7em; height: .7em; margin-right: .4em; vertical-align: .02em; }
+nav.contents ol { columns: 2 14rem; column-gap: 2rem; padding-left: 1.3rem; }
+.figs { display: flex; flex-wrap: wrap; gap: 20px; margin: .4rem 0 1.6rem; }
+figure { margin: 0; flex: 0 1 auto; }
+figure img { display: block; max-width: 100%; height: auto; }
+figure.shot img { width: 300px; image-rendering: pixelated; border-radius: 4px; box-shadow: 0 0 0 1px var(--rule); }
+figure.wide { flex-basis: 100%; }
+figure.wide img { width: 100%; }
+figcaption { color: var(--muted); font-size: .88rem; margin-top: .4rem; max-width: 300px; }
+figure.wide figcaption { max-width: none; }
+nav.contents li { break-inside: avoid; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+<div class="page">
+<header class="site"><a class="home" href="../">DelRio</a><nav><a href="../emu/">Emulator</a><a href="../install/">Install</a><a href="../manual/" aria-current="page">Manual</a><a href="https://github.com/jsopdebeeck/fm1-delrio">Source</a></nav></header>
+<main id="content" tabindex="-1"><h1>Manual</h1>
+<p class="lede">FM-1_DelRio turns the M-VAVE FM-1 into a small rhythm box of hand percussion, made to accompany songs in a circle: djembe, cajon, udu, clapsticks, maracas and triangle. Choose a rhythm, set the tempo, press PLAY and sing; or play the instruments on the keys, record them into the loop, and shape them step by step. The berimbau has its own page, with its toques and the capoeira's bateria. Two drones, the tanpura and the shruti box, sound alone or under the rhythm.</p>
+<div class="figs"><figure class="shot"><img src="img/screen-ready.png" alt="The screen at rest: HEARTBEAT at the top; the djembe&#x27;s strokes, each marked B, on two rows of four steps; 64 BPM, 2/4 and DJEMBE in the footer; the kit&#x27;s six instruments in three letters below" loading="lazy"><figcaption>HEARTBEAT at rest, the djembe shown</figcaption></figure></div>
+<hr>
+<nav class="contents" aria-label="Contents"><h2 id="contents">Contents</h2>
+<ol><li><a href="#s1">Install</a></li><li><a href="#s2">The screen</a></li><li><a href="#s3">Controls</a></li><li><a href="#s4">Rhythms</a></li><li><a href="#s5">Saving</a></li><li><a href="#s6">The berimbau</a></li><li><a href="#s7">The drones</a></li><li><a href="#s8">USB</a></li><li><a href="#s9">The screen reader</a></li><li><a href="#s10">Troubleshooting</a></li></ol>
+</nav>
+<hr>
+<h2 id="s1"><span class="num">1</span>Install</h2>
+<p><strong>Try it first:</strong> the <a href="../emu/">emulator</a> runs the same code in the browser, with sound, played with the mouse, a touch screen or the computer keyboard. It plays every key at the same strength, without pressure.</p>
+<p><strong>Install from the browser:</strong> in Chrome or Edge, connect the FM-1 by USB, open the <a href="../install/">installer</a> and press Install. The browser asks once to allow MIDI: allow it. Don't unplug the cable while it writes.</p>
+<p><strong>Install from a terminal:</strong> download the package from the <a href="../">front page</a>; then, in a clone of the <a href="https://github.com/jsopdebeeck/fm1-delrio">source</a> with its submodules, <code>python3 base/tools/fm1_install.py delrio-VERSION.fwsc</code>. It needs mido with python-rtmidi.</p>
+<p><strong>Back to the stock firmware:</strong> the installer's "Back to the stock firmware" section writes M-VAVE's own firmware back. What DelRio saved may be lost. An FM-1 that doesn't start can be recovered too: see Troubleshooting.</p>
+<hr>
+<h2 id="s2"><span class="num">2</span>The screen</h2>
+<div class="figs"><figure class="shot"><img src="img/screen-playing.png" alt="DJOLE playing: the djembe&#x27;s strokes B, T and S on four rows of four steps, the first framed in white; 120 BPM, 4/4, DJEMBE and a green triangle in the footer; below, DJE and CAJ white as they strike, CLA in its colour, the others grey" loading="lazy"><figcaption>DJOLE playing, the step sounding framed in white</figcaption></figure></div>
+<div class="table" tabindex="0" role="region" aria-label="Table: The screen (Part, What it shows)"><table><thead><tr><th>Part</th><th>What it shows</th></tr></thead><tbody><tr><td>Top</td><td>The rhythm's name; in the accent colour while it waits for its bar. A drone sounding under the rhythm: the rule under the name, in the drone's colour.</td></tr><tr><td>Panel</td><td>What a knob or a button changes, said large for a second (a rhythm's name, a second and a half): its title, its value, its bar where it has a range. It sits under the name, over the first steps; a key, PLAY, REC or a page's button takes it away at once. SELECT: SELECT INSTRUMENT over the instrument's name. PRESETS: PRESET over the rhythm's name, NEXT under it while it waits for its bar.</td></tr><tr><td>Steps</td><td>The instrument shown: a row a beat, its steps across. A stroke fills its step in the instrument's colour, dimmer when soft, with its name where it fits, else its letter. A small letter before it: a flam. The step sounding has a white frame. On a bar longer than the keys, a white mark at the left shows the rows on them.</td></tr><tr><td>Footer</td><td>The tempo, the bar's time signature and the instrument shown, in its colour. At the right: a green triangle playing, a red dot recording or counting in, a white square stopping on the bar. Counting in: the beats to go, large on red, top right.</td></tr><tr><td>Bottom row</td><td>The page's instruments in three letters, always in the same order: DJE CAJ UDU CLA MAR TRI, or GUN MED VIO CAX PAN ATA AGO RCO (the reco-reco). In their colour when they play in the rhythm, grey letters on the dark when not, white as they strike, grey when muted; the one shown taller.</td></tr><tr><td>Battery</td><td>Top right: three bars, the outline red when it is empty; USB while a computer powers the FM-1. For 5 s after the opening, 3 s after HOME or FX, and all the time with one bar left or none. A name that needs its place is shown large without it.</td></tr></tbody></table></div>
+<div class="figs"><figure class="shot"><img src="img/screen-panel.png" alt="KNOB 1 turned: under HEARTBEAT, a panel framed in grey says TEMPO, 67 BPM and its bar; under it, the last steps, 67 BPM, 2/4 and DJEMBE in the footer, and the kit&#x27;s six instruments" loading="lazy"><figcaption>KNOB 1: the tempo said in its panel</figcaption></figure></div>
+<p>The time signature is the bar's beats over 4; beats of three steps, their eighths over 8 (6/8, 12/8). The berimbau's page shows its toques in 2/4.</p>
+<p>At start, a maned wolf walks into the cerrado at dusk. A key, a button or a knob skips it, and does nothing else.</p>
+<p><strong>The lights.</strong> White keys: a stroke lit, each beat's first step brighter than the other empty ones, the step sounding the other way round. Black keys: dim, the instrument shown's brighter, lit while held or as their instrument sounds. PLAY is green playing, red recording, and blinks stopping on the bar. REC is lit recording and blinks counting in. SEQ blinks the beat. SEL is lit on a muted instrument. SAVE is lit while there is something to save.</p>
+<hr>
+<h2 id="s3"><span class="num">3</span>Controls</h2>
+<h3 id="the-keys">The keys</h3>
+<p>The 16 white keys are a step sequencer for the instrument shown. Each press puts that step's next stroke, and after the last, none; stopped, it sounds. A bar has 2 to 8 beats of 2, 3 or 4 steps. When it is longer than the keys, they follow the step sounding, and stay there when it stops.</p>
+<p>The 11 black keys play the instruments, harder is louder, grouped as the keys are:</p>
+<div class="table" tabindex="0" role="region" aria-label="Table: The keys (Black keys, Instrument and strokes)"><table><thead><tr><th>Black keys</th><th>Instrument and strokes</th></tr></thead><tbody><tr><td>1 to 3</td><td>Djembe: bass (B), tone (T), slap (S).</td></tr><tr><td>4, 5</td><td>Cajon: bass (B), slap (S).</td></tr><tr><td>6 to 8</td><td>Udu: bass (B), tone (T), slap (S). Pressing the bass key harder lowers it (SOUND, BEND).</td></tr><tr><td>9</td><td>Clapsticks (X).</td></tr><tr><td>10</td><td>Maracas (X).</td></tr><tr><td>11</td><td>Triangle: held, it rings (O); let go, the hand closes on it. A short tap is a muted stroke (M).</td></tr></tbody></table></div>
+<h3 id="the-buttons">The buttons</h3>
+<div class="table" tabindex="0" role="region" aria-label="Table: The buttons (Button, What it does)"><table><thead><tr><th>Button</th><th>What it does</th></tr></thead><tbody><tr><td>PLAY</td><td>Loops the rhythm. Playing: stops on the next bar's first beat, its strokes the last. Again: stops at once.</td></tr><tr><td>REC</td><td>Records what the black keys play, each stroke onto the nearest step, over what is there. From a stop, a bar is counted in first. Again: stops recording, and the loop goes on.</td></tr><tr><td>SEL</td><td>Mutes the instrument shown, or brings it back.</td></tr><tr><td>EDIT</td><td>Twice within 2 s: clears the instrument's steps.</td></tr><tr><td>SEQ</td><td>Taps the tempo: two taps or more, less than 1.5 s apart. Held while playing: the tempo rises (Rhythms).</td></tr><tr><td>ARP</td><td>Held: a djembe key plays a flam, and a white key makes the djembe's step a flam, or no longer one. On the berimbau's page: the agogô and the ladainha (The berimbau).</td></tr><tr><td>OCT− · OCT+</td><td>The tempo, 5 BPM a press, 10 held.</td></tr><tr><td>LFO</td><td>Lists the presets, with their beats (a toque's, its counts), from the one chosen. KNOB 3 goes through them without changing anything. LFO held chooses the one shown; LFO again closes the list.</td></tr><tr><td>SAVE</td><td>Keeps the settings; a changed rhythm, in the FREE place you choose (Saving).</td></tr><tr><td>FX</td><td>The next page: the kit, the tanpura, the shruti box, the berimbau, and round.</td></tr><tr><td>HOME</td><td>The steps.</td></tr><tr><td>ENV</td><td>The instrument's SOUND page.</td></tr><tr><td>GLO</td><td>SETUP.</td></tr></tbody></table></div>
+<p>"Held" is half a second.</p>
+<h3 id="the-knobs">The knobs</h3>
+<div class="table" tabindex="0" role="region" aria-label="Table: The knobs (Knob, What it does)"><table><thead><tr><th>Knob</th><th>What it does</th></tr></thead><tbody><tr><td>SELECT</td><td>The instrument shown.</td></tr><tr><td>ALGORITHM</td><td>The beats, 2 to 8: the first rhythm with that many. On the berimbau's page, the counts: 4 or 8.</td></tr><tr><td>PRESETS</td><td>Goes round the rhythms with those beats.</td></tr><tr><td>KNOB 1 to 4</td><td>The page's settings, below.</td></tr><tr><td>MASTER</td><td>The volume.</td></tr></tbody></table></div>
+<div class="table" tabindex="0" role="region" aria-label="Table: The knobs (Knob, HOME, SETUP (GLO))"><table><thead><tr><th>Knob</th><th>HOME</th><th>SETUP (GLO)</th></tr></thead><tbody><tr><td>KNOB 1</td><td>TEMPO: 40 to 240 BPM; on the berimbau's page, 20 to 120.</td><td>CLICK: OFF, REC (recording and counting in), ALWAYS.</td></tr><tr><td>KNOB 2</td><td>STEPS: 2, 3 or 4 a beat.</td><td>COUNT-IN: OFF, 1 BAR.</td></tr><tr><td>KNOB 3</td><td>SWING: 0 to 100 %, with 2 or 4 steps a beat.</td><td>LIGHTS: the keys', LOW or HIGH.</td></tr><tr><td>KNOB 4</td><td>HUMAN: 0 to 100 %, the strokes up to 12 ms late and 30 % softer.</td><td>VELOCITY: KEYS, or FIXED (every stroke at 100).</td></tr></tbody></table></div>
+<div class="figs"><figure class="shot"><img src="img/screen-settings.png" alt="The djembe&#x27;s SOUND page: K1 LEVEL 85%, K2 TUNE 0, K3 DECAY 100%, each with its bar" loading="lazy"><figcaption>ENV: the instrument's SOUND page</figcaption></figure><figure class="shot"><img src="img/screen-setup.png" alt="The SETUP page: K1 CLICK REC, K2 COUNT-IN 1 BAR, K3 LIGHTS HIGH, K4 VELOCITY KEYS" loading="lazy"><figcaption>GLO: SETUP</figcaption></figure></div>
+<p>Each instrument's SOUND page (ENV) has only what a player of it can change:</p>
+<div class="table" tabindex="0" role="region" aria-label="Table: The knobs (Instrument, KNOB 1, KNOB 2, KNOB 3, KNOB 4)"><table><thead><tr><th>Instrument</th><th>KNOB 1</th><th>KNOB 2</th><th>KNOB 3</th><th>KNOB 4</th></tr></thead><tbody><tr><td>Djembe</td><td>LEVEL</td><td>TUNE</td><td>DECAY</td><td></td></tr><tr><td>Cajon</td><td>LEVEL</td><td>SNARES</td><td>DECAY</td><td></td></tr><tr><td>Udu</td><td>LEVEL</td><td>TUNE</td><td>BEND</td><td></td></tr><tr><td>Maracas</td><td>LEVEL</td><td>DECAY</td><td>TYPE</td><td></td></tr><tr><td>Triangle</td><td>LEVEL</td><td>DECAY</td><td></td><td></td></tr><tr><td>Gunga, medio, viola</td><td>LEVEL</td><td>TUNE</td><td>CABACA</td><td>VIRADAS</td></tr><tr><td>Atabaque</td><td>LEVEL</td><td>TUNE</td><td></td><td></td></tr><tr><td>Clapsticks, caxixi, agogô, pandeiro, reco-reco</td><td>LEVEL</td><td></td><td></td><td></td></tr></tbody></table></div>
+<ul><li>LEVEL: 0 to 100 %.</li><li>TUNE: 3 semitones either way, by half steps.</li><li>DECAY: 10 to 100 %: a hand on the djembe's head, a heel on the cajon's front, a short or long shake of the maracas, the triangle's ring.</li><li>SNARES: the cajon's wires, off to 100 %.</li><li>BEND: how far the udu's bass key pressed all the way lowers it, off to 6 semitones.</li><li>TYPE: the maracas' SHAKER, CLASSIC, GOURD or DAIME.</li><li>CABACA, VIRADAS: see The berimbau.</li></ul>
+<hr>
+<h2 id="s4"><span class="num">4</span>Rhythms</h2>
+<div class="table" tabindex="0" role="region" aria-label="Table: Rhythms (Beats, Rhythms, on the kit)"><table><thead><tr><th>Beats</th><th>Rhythms, on the kit</th></tr></thead><tbody><tr><td>2</td><td>HEARTBEAT, BAIAO, XOTE, SAMBA, MARCHA 2/4, DAIME MAZURCA, BARRAVENTO, JOROPO</td></tr><tr><td>3</td><td>THREE, DAIME VALSA, TOADA</td></tr><tr><td>4</td><td>FOUR, JOURNEY, SHAKER, CLAVE, AFRO 12/8, DAIME MARCHA, IJEXA, IJEXA CANTO, KUKU, AFRO SAMBA, BOSSA NOVA, FUNK IJEXA, SAMBA DJEMBE, XOTE DJEMBE, DJOLE, YANKADI</td></tr><tr><td>5</td><td>FIVE</td></tr><tr><td>6</td><td>LANDO, BULERIAS</td></tr><tr><td>7</td><td>SEVEN</td></tr><tr><td>8</td><td>AFOXE</td></tr></tbody></table></div>
+<div class="table" tabindex="0" role="region" aria-label="Table: Rhythms (Counts, Toques, on the berimbau&#x27;s page)"><table><thead><tr><th>Counts</th><th>Toques, on the berimbau's page</th></tr></thead><tbody><tr><td>4</td><td>ANGOLA, SB PEQUENO, SB GRANDE, BANGUELA, JOGO DE DENTRO, JOGO DE FORA, RODA ANGOLA</td></tr><tr><td>8</td><td>SB REGIONAL, CAVALARIA, IDALINA, MIUDINHO</td></tr></tbody></table></div>
+<p>Where they come from: <a href="https://github.com/jsopdebeeck/fm1-delrio#the-rhythms">the README</a>.</p>
+<div class="figs"><figure class="shot"><img src="img/screen-list.png" alt="The presets&#x27; list: SAMBA DJEMBE, XOTE DJEMBE, then DJOLE large on white, then YANKADI and FIVE, each with its beats at the right" loading="lazy"><figcaption>LFO: the presets listed</figcaption></figure></div>
+<ul><li><strong>Choosing.</strong> ALGORITHM chooses the beats; PRESETS goes round the rhythms with those beats, then your own. A FREE place shows only when it holds a rhythm.</li><li><strong>As it is written.</strong> A written rhythm comes as it is written, at its tempo as last set. What you change in it lasts until you choose another; to keep it, SAVE it in a FREE place.</li><li><strong>On the bar.</strong> A rhythm chosen while one plays comes in on the next bar's first beat. A tempo set while playing glides there over a bar; a tapped one is there at once.</li><li><strong>Its tempo.</strong> Each rhythm keeps its tempo: set it once, and it comes back at it, away and back.</li><li><strong>The tempo rising.</strong> SEQ held while playing: a BPM every 12 beats (BPM in the accent colour, SEQ lit). OCT− or OCT+, or SEQ held again, keep the tempo reached; KNOB 1 or tapping end the rise at the tempo they set. Stopped, or another rhythm come in, the rhythm is back at its own.</li><li><strong>Your own.</strong> Choose a rhythm with the beats you want, change it or clear it (EDIT twice, an instrument at a time), play it or record it, then SAVE it in a FREE place.</li></ul>
+<hr>
+<h2 id="s5"><span class="num">5</span>Saving</h2>
+<p>Press SAVE to keep the settings: each rhythm's tempo, the sounds, SETUP and the drones. They come back the next time the FM-1 starts. SAVE stays lit while there is something to save.</p>
+<p>If the rhythm shown has changed, SAVE then opens SAVE TO: the FREE places, 7 for the kit and 2 for the berimbau, each for a rhythm of any beats, EMPTY or with its time signature. KNOB 3 goes through them; SAVE puts the rhythm there, over what it holds, and it plays on from there. HOME, ENV or GLO leaves the list, the rhythm not saved. A tempo or a mute is no change to a rhythm. The written rhythms stay as they are.</p>
+<div class="figs"><figure class="shot"><img src="img/screen-save.png" alt="SAVE TO at the top; the FREE places listed, FREE 1 large on the accent colour between FREE 6, FREE 7, FREE 2 and FREE 3, each EMPTY" loading="lazy"><figcaption>SAVE: the FREE places, for a changed rhythm</figcaption></figure></div>
+<p>DelRio keeps only its own settings and rhythms, in its own place in the FM-1's flash. It does not read other firmwares' projects or samples.</p>
+<hr>
+<h2 id="s6"><span class="num">6</span>The berimbau</h2>
+<p>FX brings its page, played as the kit is: the white keys its steps, PLAY, REC, the pages. SELECT shows the three berimbaus of a roda, the GUNGA (the lowest), the MEDIO and the VIOLA, a tone up each; then the CAXIXI, the PANDEIRO, the ATABAQUE, the AGOGO and the RECO-RECO, each with its steps. The kit and this page share one sequencer: going from one to the other stops it.</p>
+<div class="figs"><figure class="shot"><img src="img/screen-berimbau.png" alt="RODA ANGOLA playing: the gunga&#x27;s strokes TCH, TCH, DOM and DIM on four rows of two steps, the step sounding framed in white; 45 BPM, 2/4 and GUNGA in the footer; the bateria&#x27;s eight instruments in three letters below" loading="lazy"><figcaption>RODA ANGOLA, the bateria</figcaption></figure></div>
+<div class="table" tabindex="0" role="region" aria-label="Table: The berimbau (Black keys, Strokes)"><table><thead><tr><th>Black keys</th><th>Strokes</th></tr></thead><tbody><tr><td>1 to 3</td><td>The berimbau shown (the gunga if none is): DOM (the wire struck free), DIM (the stone pressed on it, a tone higher), TSCH (the stone resting on it, a buzz; TCH on the screen).</td></tr><tr><td>4, 5</td><td>The caxixi, the reco-reco.</td></tr><tr><td>6 to 8</td><td>The pandeiro: TUM (thumb), PA (slap), CHIA (its jingles).</td></tr><tr><td>9, 10</td><td>The atabaque: TUM, PA. With ARP held: the agogô's high and low bells.</td></tr><tr><td>11</td><td>VIRADA: the berimbau shown varies from the next bar. With ARP held: the ladainha.</td></tr></tbody></table></div>
+<ul><li><strong>The cabaça.</strong> A berimbau's keys pressed harder close its gourd on the belly, its sound muffled as far as the pressure goes. SOUND, CABACA: how far, off to 100 %.</li><li><strong>Viradas.</strong> Each berimbau varies its toque now and then. SOUND, VIRADAS: OFF, EVERY 8, EVERY 4, EVERY 2 or EVERY BAR; the viola every 4 at first.</li><li><strong>The ladainha.</strong> ARP + VIRADA begins RODA ANGOLA as a roda of capoeira Angola begins, from a stop too: the gunga and its caxixi, then the medio, the viola and the pandeiro, two bars each, for the singer. Again: the chula, the atabaque, the agogô and the reco-reco on the next bar. Again: back to the base. PLAY stops as ever.</li><li><strong>A toque's tempo.</strong> This page shows the toques as their sources count them, in 2/4, the tempo its quarter note: ANGOLA at 45 BPM, its grid a row a count, four to the bar (eight, over two bars). OCT− and OCT+, KNOB 1, tapping and the tempo rising go by the number on the screen.</li></ul>
+<hr>
+<h2 id="s7"><span class="num">7</span>The drones</h2>
+<p>FX brings them right after the kit, which plays on under their pages. Both are synthesised as they play. One drone at a time. On a drone's page, GLO opens SETUP and LFO lists its presets.</p>
+<p><strong>PLAY on a drone's page</strong> stops the drone if it sounds; else it stops the rhythm if one plays (on the next bar's first beat; again: at once); else it starts the drone.</p>
+<p><strong>A drone under the rhythm:</strong> start the drone first. Its PLAY, then HOME (on its page) goes back to the kit, the drone sounding on, and the kit's PLAY starts the rhythm. The berimbau's page stops the kit, not the drone.</p>
+<div class="figs"><figure class="shot"><img src="img/screen-tanpura.png" alt="TANPURA sounding, a green triangle at the top: its four strings PA G#2, SA C#3, SA C#3 and SA C#2, the last filled as it is plucked; K1 JAWARI 75%, K2 CYCLE 4.0 S, K3 REGISTER LOW, K4 LEVEL 70%" loading="lazy"><figcaption>The tanpura, its fourth string plucked</figcaption></figure><figure class="shot"><img src="img/screen-shruti.png" alt="SHRUTI sounding, a green triangle at the top: its reeds C4, E4, G4 and C5 filled, C MAJOR under them, the bellows&#x27; bar; K1 BREATHING 40%, K2 TEMPO 40 BPM, K3 LEVEL 70%" loading="lazy"><figcaption>The shruti box, a chord</figcaption></figure></div>
+<p>The tanpura has four strings plucked in turn (Pa, Sa, Sa, low Sa), buzzing on their bridge (the jawari). The shruti box holds its reeds while the bellows breathe; a bar under the reeds shows them breathing.</p>
+<div class="table" tabindex="0" role="region" aria-label="Table: The drones (Control, Tanpura, Shruti box)"><table><thead><tr><th>Control</th><th>Tanpura</th><th>Shruti box</th></tr></thead><tbody><tr><td>A key</td><td>Sets Sa.</td><td>NOTES: opens or closes its reed. A chord: the chord on it.</td></tr><tr><td>ALGORITHM</td><td>The first string: SA PA, SA MA (the ragas without Pa), SA NI.</td><td></td></tr><tr><td>PRESETS</td><td>Its character, the jawari and the cycle together: MEDITATION (slow, soft), MANTRA (round), RAGA (the concert tanpura's open jawari), KIRTAN (quicker, brighter).</td><td>NOTES, or the chord a key plays: SA PA (root, fifth, octave), MAJOR, MINOR.</td></tr><tr><td>KNOB 1</td><td>JAWARI: 0 to 100 %.</td><td>BREATHING: how strongly the bellows breathe. STEADY at 0; at the most, the sound falls away where the hand turns.</td></tr><tr><td>KNOB 2</td><td>CYCLE: 2 to 8 s.</td><td>TEMPO: a push, then a pull, each a beat, 20 to 120 BPM. Under 20, the rhythm's tempo, halved above 120 ("= 66 BPM").</td></tr><tr><td>KNOB 3</td><td>REGISTER: LOW, HIGH.</td><td>LEVEL: 0 to 100 %.</td></tr><tr><td>KNOB 4</td><td>LEVEL: 0 to 100 %.</td><td></td></tr><tr><td>EDIT</td><td></td><td>Twice within 2 s: closes every reed.</td></tr></tbody></table></div>
+<hr>
+<h2 id="s8"><span class="num">8</span>USB</h2>
+<p>Over the USB cable the FM-1 is also a sound card: a computer can record what it plays, from an input named "FM-1 DelRio". It is an input only: a computer can't play through it.</p>
+<p>This firmware has no Bluetooth, and its keys send no MIDI.</p>
+<hr>
+<h2 id="s9"><span class="num">9</span>The screen reader</h2>
+<p>DelRio tells a screen reader what's on its screen, through the <a href="https://charlesvestal.github.io/fm1-reader/">FM-1 Screen Reader</a>: the instrument, the rhythm, its beats and its tempo when the reader starts listening (on a drone's page, the drone's settings), then each change as it happens. The emulator does the same, with your computer's own screen reader.</p>
+<hr>
+<h2 id="s10"><span class="num">10</span>Troubleshooting</h2>
+<p><strong>No sound:</strong> turn MASTER up. SEL lit: the instrument is muted. Its LEVEL may be down (ENV). A drone starts with PLAY, on its page.</p>
+<p><strong>PLAY doesn't stop at once:</strong> it stops on the next bar's first beat. Press it again to stop now.</p>
+<p><strong>A rhythm has lost its changes:</strong> a written rhythm comes back as written when you choose it again. SAVE it in a FREE place first.</p>
+<p><strong>A FREE place isn't there:</strong> PRESETS and LFO show only the places that hold a rhythm. SAVE's list shows them all.</p>
+<p><strong>The installer doesn't find the FM-1:</strong> use Chrome or Edge, allow MIDI when asked, and close other programs that use the FM-1's MIDI port.</p>
+<p><strong>The FM-1 doesn't start after an install:</strong> after two failed starts it comes up in SAFE MODE, without sound, USB on: install again from the web installer, or press PLAY to try again. If that fails too, it waits in the chip's update mode: put the stock firmware back, then install again. For details, see felucca-bsp's <a href="https://github.com/hugelton/felucca-bsp/tree/main/tools"><code>tools/fm1_rescue.sh</code></a>.</p>
+</main>
+</div>
+</body>
+</html>
