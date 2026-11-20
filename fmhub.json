@@ -1,0 +1,10 @@
+{
+  "what": "A rhythm box of ceremony percussion: djembe, cajon, udu, clapsticks, maracas and triangle on the black keys, a step sequencer on the white keys. The berimbau and the capoeira's bateria have their own page. A tanpura and a shruti box sound alone or under the rhythm.",
+  "author": "Jess Del Rio",
+  "kinds": ["drums"],
+  "play": "https://jsopdebeeck.github.io/fm1-delrio/emu/",
+  "cheat": "https://jsopdebeeck.github.io/fm1-delrio/manual/",
+  "image": "docs/hub/delrio-wolf-240.png",
+  "color": "#F08C28",
+  "sounds": "licensed: VCSL by Versilian Studios, CC0; Freesound sounds by Sadiquecat, REVERBERA and Oldome, CC0, by klemmy, CC BY 3.0, by AncientOracle and Paulo Goncalves, CC BY 4.0; the Daime maracas recorded by Jess Del Rio; the rest synthesised"
+}

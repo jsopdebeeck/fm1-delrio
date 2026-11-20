@@ -1,16 +1,79 @@
 # The manual's screenshots (app/docs/img): ./build.sh --host, then
-#   app/build/host/delrio_host app/tests/screens.txt app/docs/img
-wait 4200
+#   mkdir -p app/build/screens
+#   app/build/host/delrio_host app/tests/screens.txt app/build/screens
+#   cp app/build/screens/screen-*.png app/docs/img/
+# The waits are long enough for the opening, the battery and the messages to go.
+wait 9600
+expect rhythm 0
 shot screen-ready.png
-key 7 down 90 50
-press FX
-turn K3 3
-wait 1400
+# KNOB 1: the tempo said in its panel
+turn K1 3
+wait 200
+shot screen-panel.png
+turn K1 -3
+wait 1300
+# DJOLE playing, then the presets' list
+turn ALGO 2
+turn PRESET 14
+wait 4300
+expect rhythm 27
+tap PLAY
+wait 2000
 shot screen-playing.png
-release FX
-key 7 up
-tap OCT+
-wait 30
-turn PRESET 1
-wait 30
+tap LFO
+wait 200
+shot screen-list.png
+tap LFO
+wait 100
+tap PLAY
+tap PLAY
+wait 3400
+# a changed rhythm: SAVE's list of the FREE places
+tapkey w2
+tap SAVE
+wait 100
+shot screen-save.png
+tap HOME
+wait 3400
+# the SOUND page, the SETUP page
+tap ENV
+wait 3400
 shot screen-settings.png
+tap GLO
+wait 3400
+shot screen-setup.png
+tap HOME
+wait 3400
+# the tanpura sounding
+tap FX
+wait 4300
+expect mode 2
+tap PLAY
+wait 3500
+shot screen-tanpura.png
+tap PLAY
+wait 300
+expect drone 0
+# the shruti box, a chord
+tap FX
+wait 4300
+expect mode 3
+turn PRESET 2
+wait 4300
+tap PLAY
+wait 3600
+shot screen-shruti.png
+tap PLAY
+wait 300
+expect drone 0
+# the berimbau's page: the bateria in RODA ANGOLA
+tap FX
+wait 4300
+expect mode 1
+expect rhythm 39
+turn PRESET -1
+wait 4300
+expect rhythm 51
+tap PLAY
+wait 1650
+shot screen-berimbau.png
