@@ -7,7 +7,7 @@ own page, with its toques and the capoeira's bateria (the medio and the viola, p
 two drones, **the tanpura** and **the shruti box**, sound alone or under the rhythm.
 
 By Jess Del Rio. Its splash screen says DEL RIO; its USB name is "FM-1 DelRio", its identity FM-1_48 and the version
-(FM-1_48010000 is 1.0).
+(FM-1_48010001 is 1.0.1).
 
 ![Four of the firmware's screens: the djembe's steps in HEARTBEAT, the capoeira's bateria in RODA ANGOLA, the gunga's SOUND page, and the tanpura playing](docs/img/screens.png)
 
